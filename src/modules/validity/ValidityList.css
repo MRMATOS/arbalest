@@ -55,9 +55,68 @@
     color: var(--text-secondary);
 }
 
+/* Ensure buttons are side-by-side */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.validity-export-btn {
+    background: transparent;
+    /* Keep transparent to show border clearly */
+    padding: 10px 20px;
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.validity-export-btn:hover {
+    background: var(--bg-hover);
+    transform: translateY(-2px);
+}
+
+/* Solicitar - Yellow/Amber */
+.btn-solicitar {
+    color: var(--warning);
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.btn-solicitar:hover {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: var(--warning);
+}
+
+/* Exportar - Green */
+.btn-exportar {
+    color: var(--success);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.btn-exportar:hover {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: var(--success);
+}
+
+/* Exclusões - Red */
+.btn-exclusoes {
+    color: var(--error);
+    border-color: rgba(244, 63, 94, 0.3);
+}
+
+.btn-exclusoes:hover {
+    background: rgba(244, 63, 94, 0.1);
+    border-color: var(--error);
+}
+
 .add-btn {
     background: var(--brand-primary);
-    color: var(--bg-primary);
+    color: #000000 !important;
     padding: 10px 20px;
     border-radius: 10px;
     font-weight: 600;
@@ -140,6 +199,26 @@
 .code-info .ean {
     font-size: 0.75rem;
     color: var(--text-tertiary);
+}
+
+.clickable-copy {
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.clickable-copy:hover {
+    color: var(--brand-primary);
+    opacity: 0.8;
+}
+
+.clickable-copy:active {
+    transform: scale(0.95);
+}
+
+.clickable-copy.copied {
+    color: var(--success);
+    font-weight: 600;
+    cursor: default;
 }
 
 .status-badge {
@@ -339,6 +418,20 @@
     color: var(--text-secondary);
 }
 
+.card-action.success {
+    background: var(--success);
+    color: #000;
+    /* Dark text as requested */
+    border: 1px solid var(--success);
+}
+
+
+.card-action.warning {
+    background: var(--warning);
+    color: #000;
+    border: 1px solid var(--warning);
+}
+
 .add-btn {
     display: flex;
     align-items: center;
@@ -375,6 +468,10 @@
 
     .header-text p {
         font-size: 0.875rem;
+    }
+
+    .btn-solicitar {
+        display: none;
     }
 }
 

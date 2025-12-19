@@ -1,0 +1,98 @@
+.admin-dashboard {
+    padding: 24px;
+}
+
+.admin-content {
+    overflow-x: auto;
+    padding: 0;
+    border-radius: var(--border-radius);
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+    padding: 16px 24px;
+    text-align: left;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.admin-table th {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.user-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.user-cell .email {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.user-cell .id-sub {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.role-select,
+.store-select {
+    background: var(--bg-accent);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.role-select:focus,
+.store-select:focus {
+    border-color: var(--brand-primary);
+    outline: none;
+}
+
+.action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-accent);
+    color: var(--text-secondary);
+    transition: var(--transition);
+}
+
+.action-btn.approve {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.action-btn.approve:hover {
+    background: var(--success);
+    color: white;
+}
+
+.text-muted {
+    color: var(--text-tertiary);
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .admin-dashboard {
+        padding: 16px;
+    }
+
+    .admin-table th,
+    .admin-table td {
+        padding: 12px 16px;
+    }
+}

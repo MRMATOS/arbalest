@@ -1,0 +1,141 @@
+01 - Documentação inicial - Validade - Arbalest.Digital
+
+fundamentação
+
+visão do sistema
+Arbalest.Digital é um sistema modular para apoiar rotinas operacionais de supermercado. O sistema será construído por módulos independentes, como planograma, endereçamento, cotação e validade de produtos.
+
+princípio de construção
+Cada módulo deve funcionar de forma completa e isolada. Um módulo não pode depender de outro para operar, nem pode ser quebrado por alterações em outros módulos.
+Integrações entre módulos podem existir no futuro, mas devem ser opcionais, controladas e sem acoplamento obrigatório.
+
+módulo 1, validade de produtos
+
+objetivo
+Facilitar o registro de produtos com validade curta na área de venda, criando uma lista consolidada para conferência e decisão operacional.
+
+problema que o módulo resolve
+Hoje a identificação de produtos próximos do vencimento depende de observação manual e comunicação informal, o que gera perda, retrabalho e atrasos na tomada de decisão. O módulo cria um fluxo padronizado de registro e conferência, com histórico e rastreabilidade.
+
+conceitos e definições
+Produto
+O sistema possui uma tabela única de produtos, contendo itens de mercado e farmácia. A classificação do produto não deve ser interpretada como localização física, pois itens de mercado podem estar na farmácia e itens cadastrados como farmácia podem estar expostos no supermercado por motivos fiscais e de compra.
+A busca do produto deve ser unificada por EAN, código ou nome, evitando consultas a múltiplas fontes.
+
+Loja
+O sistema deve suportar múltiplas lojas. Registros de validade sempre pertencem a uma loja.
+
+Papéis de usuário
+Encarregado
+Usuário da loja responsável por registrar validade, lote e quantidade dos produtos na área de venda.
+Conferente
+Usuário que realiza a conferência dos registros, com visibilidade de todas as lojas e capacidade de marcar itens como conferidos.
+Admin
+Usuário responsável por aprovar contas, definir papéis, atribuir loja ao encarregado e cadastrar lojas no sistema.
+
+fluxo ideal do módulo
+
+Acesso e seleção de módulo
+1. O usuário acessa o sistema em http://arbalest.digital.
+2. A home exibe os módulos disponíveis.
+3. Ao selecionar o módulo “Validade de produtos”, o usuário é direcionado para login com Google Auth.
+
+Primeiro acesso
+1. Usuários novos entram em uma página de espera para aprovação.
+2. O admin aprova a conta e define o papel.
+3. Se o papel for encarregado, o admin também atribui uma loja.
+4. Se o papel for conferente, não é atribuída loja, pois ele atua de forma global.
+
+Dashboard por papel
+Após login, o usuário visualiza um dashboard com resumo coerente com seu papel.
+Exemplos:
+Encarregado vê solicitações de registro e itens recentes da sua loja.
+Conferente vê quantidade de itens pendentes de conferência, com filtros por loja e período.
+
+funcionalidade principal, registro de validade
+
+Acesso à lista
+O módulo exibe uma lista de registros de validade com campos principais:
+código do produto, EAN, descrição, quantidade, data de validade, lote e status.
+
+Registro pelo encarregado
+1. O encarregado acessa a tela principal do módulo.
+2. Acima da lista, existe um campo de busca por EAN, código ou nome, com opção de câmera para leitura.
+3. Ao ler ou selecionar um produto, abre um modal para informar:
+data de validade, lote e quantidade.
+4. O registro é salvo e fica disponível para conferência.
+
+Regras de registro
+1. O mesmo produto pode ser registrado mais de uma vez, pois pode existir em lotes diferentes e com datas de validade diferentes.
+2. Deve ser permitido registrar novamente o mesmo produto quando houver diferença de lote ou data de validade.
+3. O lote pode ser opcional na primeira entrada, e passa a ser validado conforme histórico de registros anteriores do mesmo produto na mesma loja, para evitar travar a operação em casos onde lote não é conhecido.
+
+Edição e rastreabilidade
+1. O encarregado pode editar registros para corrigir erros.
+2. Qualquer alteração deve manter histórico visível, incluindo o que foi alterado e quando.
+3. O histórico deve ser visível para encarregado e conferente.
+
+Exclusão controlada
+1. O encarregado não pode excluir diretamente um registro.
+2. Para excluir, ele deve usar “solicitar exclusão” e informar um motivo.
+3. O conferente decide aprovar ou rejeitar a exclusão.
+4. Admin pode realizar exceções, mantendo rastreabilidade.
+
+conferência e status
+
+Estados de conferência
+O conferente não cria registros, apenas atua sobre a lista.
+Existem dois modos para marcar conferência:
+
+Modo 1, conferindo
+1. O conferente marca um item como “conferindo”.
+2. Faz a checagem em outro sistema ou processo.
+3. Ao retornar, marca como “conferido”.
+
+Modo 2, conferência rápida
+O conferente clica em um ícone na linha para alternar diretamente entre “conferido” e “não conferido”.
+Ao desmarcar, o sistema deve pedir confirmação.
+
+Alertas de validade
+O status visual de alerta deve considerar os dias restantes até o vencimento:
+Menos de 30 dias, alerta.
+Menos de 15 dias, crítico.
+
+Indicador simbólico para itens classificados como farmácia
+Para produtos com informação de quantidade de unidades (ex: comprimidos ou cápsulas), o sistema pode exibir um indicador adicional de atenção com base em uma estimativa simples de consumo diário.
+Esse indicador é apenas informativo, não representa prescrição nem regra operacional rígida. O objetivo é chamar atenção para casos em que a quantidade pode exceder o consumo estimado antes do vencimento.
+
+exportação e cópia
+
+Exportar
+O conferente possui um botão “Exportar” acima da lista, que abre um modal com opções:
+Copiar produtos conferidos na última hora.
+Copiar produtos conferidos hoje.
+Selecionar produtos para copiar.
+
+Seleção manual
+Ao selecionar a opção de seleção manual:
+1. O modal exibe lista simplificada com código e descrição.
+2. Cada item possui checkbox.
+3. Há um botão “Copiar selecionados”.
+4. Ao copiar, os itens vão para a área de transferência e o modal permanece aberto.
+
+solicitação de validade pelo conferente
+
+Função “Solicitar validade”
+1. O conferente clica em “Solicitar validade”.
+2. Abre modal para buscar produto por EAN, código ou descrição com autocomplete.
+3. Seleciona loja específica ou todas.
+4. Adiciona observação de até 300 caracteres.
+5. Ao confirmar, encarregados da loja ou das lojas são notificados para registrar validade do produto solicitado.
+
+notificações
+
+Objetivo
+Criar um canal simples para coordenar solicitações e retornos entre encarregado e conferente.
+
+Regras de exibição
+1. Deve existir um ícone de notificações com texto.
+2. Ao clicar em uma notificação, ela é marcada como lida.
+3. Notificações lidas deixam de aparecer no ícone principal, mas permanecem acessíveis no histórico.
+4. Ao clicar no ícone de notificação, deve existir um link para a página de histórico de notificações.

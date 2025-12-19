@@ -1,20 +1,159 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     AlertCircle,
     CheckCircle2,
-    ChevronRight,
-    Clock,
+    Calendar,
     Copy,
+    Send,
     MoreVertical,
     Plus,
-    Search
+    Search,
+    X,
+    Trash2,
+    AlertOctagon,
+    Pen,
+    Settings2,
+    History
 } from 'lucide-react';
 import { useValidityEntries } from '../../hooks/useValidityEntries';
+import { useAuth } from '../../contexts/AuthContext';
+import { HistoryModal } from './HistoryModal';
+import { ConfirmModal } from '../../components/ConfirmModal';
+import { DeleteRequestModal } from './DeleteRequestModal';
+import { ExportValidityModal } from './ExportValidityModal';
+import { SolicitationModal } from './SolicitationModal';
+import { EditValidityModal } from './EditValidityModal';
+import { DeleteRequestsApprovalModal } from './DeleteRequestsApprovalModal';
+import { RequestsModal } from './RequestsModal';
+import { supabase } from '../../services/supabase';
 import './ValidityList.css';
 
-export const ValidityList: React.FC = () => {
-    const { entries, loading, error, refresh } = useValidityEntries();
+interface ValidityListProps {
+    onAddClick?: () => void;
+    isSolicitationModalOpen?: boolean;
+    onCloseSolicitationModal?: () => void;
+    onOpenSolicitationModal?: () => void;
+}
+
+export const ValidityList: React.FC<ValidityListProps> = ({
+    onAddClick,
+    isSolicitationModalOpen: controlledIsOpen,
+    onCloseSolicitationModal,
+    onOpenSolicitationModal
+}) => {
+    const {
+        entries,
+        loading,
+        error,
+        refresh,
+        updateStatus,
+        requestDelete,
+        approveDeleteRequest,
+        rejectDeleteRequest
+    } = useValidityEntries();
+    const { user } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+    const [selectedHistoryName, setSelectedHistoryName] = useState<string>('');
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
+    // Filter states
+    const [selectedStore, setSelectedStore] = useState<string>('all');
+    const [selectedUser, setSelectedUser] = useState<string>('all');
+    const [selectedType, setSelectedType] = useState<string>('all');
+    const [sortBy, setSortBy] = useState<string>('recent');
+
+    // Filter data
+    const [stores, setStores] = useState<Array<{ id: string, name: string }>>([]);
+    const [users, setUsers] = useState<Array<{ id: string, email?: string }>>([]);
+
+    // Internal state for when not controlled, though we aim to control it from App.tsx
+    const [internalSolicitationOpen, setInternalSolicitationOpen] = useState(false);
+    const [isRequestsModalOpen, setIsRequestsModalOpen] = useState(false);
+    const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+
+    // Fetch filter data
+    useEffect(() => {
+        const fetchFilterData = async () => {
+            // Fetch stores
+            const { data: storesData } = await supabase
+                .from('stores')
+                .select('id, name')
+                .order('name');
+            if (storesData) setStores(storesData);
+
+            // Fetch encarregados
+            const { data: usersData } = await supabase
+                .from('profiles')
+                .select('id, email')
+                .eq('role', 'encarregado')
+                .order('email');
+            if (usersData) setUsers(usersData);
+        };
+        fetchFilterData();
+    }, []);
+
+    // Effective state (controlled takes precedence)
+    const isSolicitationModalOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalSolicitationOpen;
+    const setIsSolicitationModalOpen = (isOpen: boolean) => {
+        if (controlledIsOpen !== undefined) {
+            if (isOpen && onOpenSolicitationModal) {
+                onOpenSolicitationModal();
+            } else if (!isOpen && onCloseSolicitationModal) {
+                onCloseSolicitationModal();
+            }
+        } else {
+            setInternalSolicitationOpen(isOpen);
+        }
+    };
+
+    const [deleteRequest, setDeleteRequest] = useState<{
+        isOpen: boolean;
+        entryId: string;
+        productName: string;
+    } | null>(null);
+
+    // Confirmation State
+    const [confirmAction, setConfirmAction] = useState<{
+        isOpen: boolean;
+        entryId: string;
+        action: 'unverify';
+    } | null>(null);
+
+    // Edit State
+    const [editEntry, setEditEntry] = useState<any | null>(null);
+
+    // Mobile Options State
+    const [mobileOptionsEntry, setMobileOptionsEntry] = useState<any | null>(null);
+
+    const [copiedState, setCopiedState] = useState<{ id: string; type: 'code' | 'ean' } | null>(null);
+
+    const handleCopy = (text: string, id: string, type: 'code' | 'ean') => {
+        navigator.clipboard.writeText(text);
+        setCopiedState({ id, type });
+        setTimeout(() => setCopiedState(null), 2000);
+    };
+
+    const handleStatusToggle = (id: string, currentStatus: string) => {
+        if (!hasRole('conferente')) return; // Guard
+        if (currentStatus === 'conferido') {
+            setConfirmAction({
+                isOpen: true,
+                entryId: id,
+                action: 'unverify'
+            });
+        } else {
+            updateStatus(id, 'conferido');
+        }
+    };
+
+    const hasRole = (role: string) => user?.role === role;
+
+    // Permissions Logic
+    const canVerify = hasRole('conferente');
+    const canEdit = hasRole('encarregado');
+
+    const pendingRequestsCount = entries.filter(e => e.has_pending_delete_request).length;
 
     if (loading && entries.length === 0) {
         return (
@@ -35,32 +174,48 @@ export const ValidityList: React.FC = () => {
         );
     }
 
-    // Filter local results based on search term
-    const filteredEntries = entries.filter(item =>
-        item.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.product.ean?.includes(searchTerm) ||
-        item.product.code.includes(searchTerm)
+    let filteredEntries = entries.filter(item =>
+        (item.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.product.ean?.includes(searchTerm) ||
+            item.product.code.includes(searchTerm)) &&
+        (selectedStore === 'all' || item.store_id === selectedStore) &&
+        (selectedUser === 'all' || item.created_by_user?.id === selectedUser) &&
+        (selectedType === 'all' || item.product.type === selectedType)
     );
+
+    // Apply sorting
+    filteredEntries = [...filteredEntries].sort((a, b) => {
+        switch (sortBy) {
+            case 'recent':
+                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+            case 'expires_soon':
+                return new Date(a.expires_at).getTime() - new Date(b.expires_at).getTime();
+            case 'expires_late':
+                return new Date(b.expires_at).getTime() - new Date(a.expires_at).getTime();
+            default:
+                return 0;
+        }
+    });
 
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'conferido': return <span className="status-badge success"><CheckCircle2 size={14} /> Conferido</span>;
-            case 'conferindo': return <span className="status-badge warning"><Clock size={14} /> Conferindo</span>;
             default: return <span className="status-badge info">Ativo</span>;
         }
+    };
+
+    const getExpiryClass = (date: string) => {
+        const diff = new Date(date).getTime() - new Date().getTime();
+        const days = Math.ceil(diff / (1000 * 3600 * 24));
+        if (days < 0) return 'expired';
+        if (days <= 7) return 'critical';
+        if (days <= 30) return 'warning';
+        return '';
     };
 
     const getExpiryDays = (date: string) => {
         const diff = new Date(date).getTime() - new Date().getTime();
         return Math.ceil(diff / (1000 * 3600 * 24));
-    };
-
-    const getExpiryClass = (date: string) => {
-        const days = getExpiryDays(date);
-        if (days < 0) return 'expired';
-        if (days <= 7) return 'critical';
-        if (days <= 30) return 'warning';
-        return '';
     };
 
     return (
@@ -70,10 +225,161 @@ export const ValidityList: React.FC = () => {
                     <h1>Lista de Validades</h1>
                     <p>Gerencie os produtos próximos do vencimento</p>
                 </div>
-                <button className="add-btn">
-                    <Plus size={20} />
-                    <span>Novo Registro</span>
-                </button>
+                <div className="header-actions">
+                    {hasRole('encarregado') && (
+                        <button className="add-btn" onClick={onAddClick}>
+                            <Plus size={20} />
+                            <span>Novo Registro</span>
+                        </button>
+                    )}
+
+                    {canVerify && (
+                        <>
+                            <button
+                                className="validity-export-btn btn-exclusoes"
+                                onClick={() => setIsApprovalModalOpen(true)}
+                                title="Aprovar Exclusões"
+                                style={{ position: 'relative' }}
+                            >
+                                <Trash2 size={20} />
+                                <span>Exclusões</span>
+                                {pendingRequestsCount > 0 && (
+                                    <span className="notification-badge" style={{
+                                        position: 'absolute',
+                                        top: '-5px',
+                                        right: '-5px',
+                                        background: 'var(--error)',
+                                        color: 'white',
+                                        fontSize: '10px',
+                                        padding: '2px 6px',
+                                        borderRadius: '10px',
+                                        border: '2px solid var(--bg-primary)'
+                                    }}>
+                                        {pendingRequestsCount}
+                                    </span>
+                                )}
+                            </button>
+
+                            <button
+                                className="validity-export-btn btn-solicitar"
+                                onClick={() => setIsSolicitationModalOpen(true)}
+                                title="Solicitar Conferência"
+                            >
+                                <Send size={20} />
+                                <span>Solicitar</span>
+                            </button>
+                        </>
+                    )}
+
+                    {hasRole('encarregado') && (
+                        <button
+                            className="validity-export-btn btn-solicitar"
+                            onClick={() => setIsRequestsModalOpen(true)}
+                            title="Ver Solicitações"
+                        >
+                            <Send size={20} />
+                            <span>Solicitações</span>
+                        </button>
+                    )}
+
+                    <button className="validity-export-btn btn-exportar" onClick={() => setIsExportModalOpen(true)}>
+                        <Copy size={20} />
+                        <span>Exportar</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Filters */}
+            <div className="filter-section glass" style={{ marginTop: '20px', padding: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                    <div className="filter-group">
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Loja</label>
+                        <select
+                            value={selectedStore}
+                            onChange={(e) => setSelectedStore(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '10px',
+                                borderRadius: '8px',
+                                border: '1px solid var(--glass-border)',
+                                background: 'var(--bg-secondary)',
+                                color: 'var(--text-primary)',
+                                fontSize: '0.9rem'
+                            }}
+                        >
+                            <option value="all">Todas as Lojas</option>
+                            {stores.map(store => (
+                                <option key={store.id} value={store.id}>{store.name}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="filter-group">
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Encarregado</label>
+                        <select
+                            value={selectedUser}
+                            onChange={(e) => setSelectedUser(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '10px',
+                                borderRadius: '8px',
+                                border: '1px solid var(--glass-border)',
+                                background: 'var(--bg-secondary)',
+                                color: 'var(--text-primary)',
+                                fontSize: '0.9rem'
+                            }}
+                        >
+                            <option value="all">Todos os Encarregados</option>
+                            {users.map(user => (
+                                <option key={user.id} value={user.id}>
+                                    {user.email}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="filter-group">
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Tipo</label>
+                        <select
+                            value={selectedType}
+                            onChange={(e) => setSelectedType(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '10px',
+                                borderRadius: '8px',
+                                border: '1px solid var(--glass-border)',
+                                background: 'var(--bg-secondary)',
+                                color: 'var(--text-primary)',
+                                fontSize: '0.9rem'
+                            }}
+                        >
+                            <option value="all">Todos os Tipos</option>
+                            <option value="mercado">Mercado</option>
+                            <option value="farmacia">Farmácia</option>
+                        </select>
+                    </div>
+
+                    <div className="filter-group">
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Ordenar</label>
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '10px',
+                                borderRadius: '8px',
+                                border: '1px solid var(--glass-border)',
+                                background: 'var(--bg-secondary)',
+                                color: 'var(--text-primary)',
+                                fontSize: '0.9rem'
+                            }}
+                        >
+                            <option value="recent">Últimos Registrados</option>
+                            <option value="expires_soon">Vence Mais Cedo</option>
+                            <option value="expires_late">Vence Mais Tarde</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
             <div className="filter-section glass">
@@ -110,8 +416,20 @@ export const ValidityList: React.FC = () => {
                                 </td>
                                 <td className="code-col">
                                     <div className="code-info">
-                                        <span className="code">{item.product.code}</span>
-                                        <span className="ean">{item.product.ean}</span>
+                                        <span
+                                            className={`code clickable-copy ${copiedState?.id === item.id && copiedState?.type === 'code' ? 'copied' : ''}`}
+                                            onClick={() => handleCopy(item.product.code, item.id, 'code')}
+                                            title="Clique para copiar código"
+                                        >
+                                            {copiedState?.id === item.id && copiedState?.type === 'code' ? 'Copiado!' : item.product.code}
+                                        </span>
+                                        <span
+                                            className={`ean clickable-copy ${copiedState?.id === item.id && copiedState?.type === 'ean' ? 'copied' : ''}`}
+                                            onClick={() => handleCopy(item.product.ean || '', item.id, 'ean')}
+                                            title="Clique para copiar EAN"
+                                        >
+                                            {copiedState?.id === item.id && copiedState?.type === 'ean' ? 'Copiado!' : (item.product.ean || '-')}
+                                        </span>
                                     </div>
                                 </td>
                                 <td>{getStatusBadge(item.status)}</td>
@@ -124,7 +442,70 @@ export const ValidityList: React.FC = () => {
                                 </td>
                                 <td><span className="lot-tag">{item.lot}</span></td>
                                 <td className="actions-col">
-                                    <button className="icon-btn"><MoreVertical size={18} /></button>
+                                    {/* Action Logic */}
+
+                                    {/* 1. Pending Request Actions (Conferente only) */}
+                                    {item.has_pending_delete_request && canVerify ? (
+                                        <>
+                                            <button className="icon-btn success" onClick={() => approveDeleteRequest(item.id)} title="Aprovar exclusão">
+                                                <CheckCircle2 size={18} />
+                                            </button>
+                                            <button className="icon-btn danger" onClick={() => rejectDeleteRequest(item.id)} title="Rejeitar exclusão">
+                                                <X size={18} />
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {/* 2. Verification Actions (Conferente only) */}
+                                            {canVerify && (
+                                                <>
+
+                                                    <button
+                                                        className={`icon-btn ${item.status === 'conferido' ? 'success' : ''}`}
+                                                        onClick={() => handleStatusToggle(item.id, item.status)}
+                                                        title={item.status === 'conferido' ? "Desmarcar" : "Confirmar"}
+                                                    >
+                                                        <CheckCircle2 size={18} />
+                                                    </button>
+                                                </>
+                                            )}
+
+                                            {/* 3. Common Actions */}
+                                            <button
+                                                className="icon-btn"
+                                                onClick={() => {
+                                                    setSelectedHistoryId(item.id);
+                                                    setSelectedHistoryName(item.product.name);
+                                                }}
+                                                title="Histórico"
+                                            >
+                                                <History size={18} />
+                                            </button>
+
+                                            {/* 4. Edit/Delete (Encarregado Only) */}
+                                            {canEdit && (
+                                                <>
+                                                    <button
+                                                        className="icon-btn"
+                                                        onClick={() => setEditEntry(item)}
+                                                        title="Editar"
+                                                    >
+                                                        <Pen size={18} />
+                                                    </button>
+
+                                                    <button
+                                                        className="icon-btn danger"
+                                                        onClick={() => setDeleteRequest({ isOpen: true, entryId: item.id, productName: item.product.name })}
+                                                        disabled={item.has_pending_delete_request}
+                                                        title={item.has_pending_delete_request ? "Solicitado" : "Excluir"}
+                                                        style={{ opacity: item.has_pending_delete_request ? 0.5 : 1 }}
+                                                    >
+                                                        {item.has_pending_delete_request ? <AlertOctagon size={18} /> : <Trash2 size={18} />}
+                                                    </button>
+                                                </>
+                                            )}
+                                        </>
+                                    )}
                                 </td>
                             </tr>
                         ))}
@@ -161,7 +542,7 @@ export const ValidityList: React.FC = () => {
 
                                 <div className={`card-expiry ${getExpiryClass(item.expires_at)}`}>
                                     <div className="expiry-main">
-                                        <Clock size={16} />
+                                        <Calendar size={16} />
                                         <span>Vence em: {new Date(item.expires_at).toLocaleDateString()}</span>
                                     </div>
                                     <span className="days-left">{getExpiryDays(item.expires_at)} dias</span>
@@ -169,13 +550,155 @@ export const ValidityList: React.FC = () => {
                             </div>
 
                             <div className="card-footer">
-                                <button className="card-action secondary"><Copy size={16} /> Copiar</button>
-                                <button className="card-action primary">Ver Detalhes <ChevronRight size={16} /></button>
+                                <button
+                                    className="card-action secondary"
+                                    onClick={() => {
+                                        setSelectedHistoryId(item.id);
+                                        setSelectedHistoryName(item.product.name);
+                                    }}
+                                >
+                                    <MoreVertical size={16} /> Histórico
+                                </button>
+
+                                {/* Mobile Actions based on Role */}
+                                {canVerify ? (
+                                    <button
+                                        className={`card-action ${item.status === 'conferido' ? 'success' : 'warning'}`}
+                                        onClick={() => handleStatusToggle(item.id, item.status)}
+                                    >
+                                        {item.status === 'conferido' ? (
+                                            <>Conferido <CheckCircle2 size={16} /></>
+                                        ) : (
+                                            <>Conferir <CheckCircle2 size={16} /></>
+                                        )}
+                                    </button>
+                                ) : (
+                                    <button
+                                        className="card-action primary"
+                                        onClick={() => setMobileOptionsEntry(item)}
+                                    >
+                                        Opções <Settings2 size={16} />
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}
                 </div>
             </div>
+
+            {/* Modals */}
+            <HistoryModal
+                isOpen={!!selectedHistoryId}
+                onClose={() => setSelectedHistoryId(null)}
+                entryId={selectedHistoryId}
+                productName={selectedHistoryName}
+            />
+
+            <DeleteRequestModal
+                isOpen={!!deleteRequest?.isOpen}
+                onClose={() => setDeleteRequest(null)}
+                onConfirm={(reason) => {
+                    if (deleteRequest) {
+                        requestDelete(deleteRequest.entryId, reason);
+                    }
+                }}
+                productName={deleteRequest?.productName || ''}
+            />
+
+            <ExportValidityModal
+                isOpen={isExportModalOpen}
+                onClose={() => setIsExportModalOpen(false)}
+                entries={entries}
+            />
+
+            <SolicitationModal
+                isOpen={isSolicitationModalOpen}
+                onClose={() => setIsSolicitationModalOpen(false)}
+            />
+
+            <ConfirmModal
+                isOpen={!!confirmAction}
+                onClose={() => setConfirmAction(null)}
+                onConfirm={() => {
+                    if (confirmAction) {
+                        updateStatus(confirmAction.entryId, 'ativo');
+                    }
+                }}
+                title="Desmarcar Conferência?"
+                message="Você está prestes a remover o status de 'conferido'. Deseja continuar?"
+                confirmText="Sim, desmarcar"
+                cancelText="Cancelar"
+                type="warning"
+            />
+
+            <EditValidityModal
+                isOpen={!!editEntry}
+                onClose={() => setEditEntry(null)}
+                entry={editEntry}
+                onSuccess={refresh}
+            />
+
+            {/* Requests Modal */}
+            <RequestsModal
+                isOpen={isRequestsModalOpen}
+                onClose={() => setIsRequestsModalOpen(false)}
+            />
+
+            <DeleteRequestsApprovalModal
+                isOpen={isApprovalModalOpen}
+                onClose={() => setIsApprovalModalOpen(false)}
+                entries={entries}
+                onApprove={approveDeleteRequest}
+                onReject={rejectDeleteRequest}
+            />
+
+            {/* Mobile Options Modal (Custom) */}
+            {mobileOptionsEntry && (
+                <div className="modal-overlay" onClick={() => setMobileOptionsEntry(null)}>
+                    <div className="modal-content glass" style={{ maxWidth: '320px', padding: '24px' }}>
+                        <h3 style={{ marginBottom: '20px' }}>Opções do Registro</h3>
+                        <p style={{ marginBottom: '20px', color: 'var(--text-secondary)' }}>
+                            {mobileOptionsEntry.product.name}
+                        </p>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <button className="btn-primary" onClick={() => {
+                                setEditEntry(mobileOptionsEntry);
+                                setMobileOptionsEntry(null);
+                            }}>
+                                Editar Registro
+                            </button>
+
+                            <button
+                                className="btn-danger-outline"
+                                style={{
+                                    padding: '12px',
+                                    border: '1px solid var(--error)',
+                                    color: 'var(--error)',
+                                    background: 'transparent',
+                                    borderRadius: '8px',
+                                    fontWeight: 600
+                                }}
+                                onClick={() => {
+                                    setDeleteRequest({
+                                        isOpen: true,
+                                        entryId: mobileOptionsEntry.id,
+                                        productName: mobileOptionsEntry.product.name
+                                    });
+                                    setMobileOptionsEntry(null);
+                                }}
+                                disabled={mobileOptionsEntry.has_pending_delete_request}
+                            >
+                                {mobileOptionsEntry.has_pending_delete_request ? 'Exclusão Pendente' : 'Solicitar Exclusão'}
+                            </button>
+
+                            <button className="btn-secondary" onClick={() => setMobileOptionsEntry(null)}>
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

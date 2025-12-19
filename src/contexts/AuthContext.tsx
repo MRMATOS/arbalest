@@ -1,18 +1,28 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
+import type { Session } from '@supabase/supabase-js';
+
+interface Store {
+    id: string;
+    name: string;
+}
 
 interface Profile {
     id: string;
     role: 'admin' | 'encarregado' | 'conferente';
     store_id?: string;
+    store?: Store;
     full_name?: string;
     email?: string;
+    approved_at?: string | null;
 }
 
 interface AuthContextType {
     user: Profile | null;
+    session: Session | null;
     loading: boolean;
-    login: (email: string) => Promise<void>;
+    login: (email: string, password: string) => Promise<void>;
+    signUp: (email: string, password: string) => Promise<void>;
     logout: () => void;
 }
 
@@ -20,48 +30,79 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<Profile | null>(null);
+    const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Check for saved session
-        const savedEmail = localStorage.getItem('arbalest_auth_email');
-        if (savedEmail) {
-            handleLogin(savedEmail);
-        } else {
-            setLoading(false);
-        }
+        // Get initial session
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setSession(session);
+            if (session?.user) {
+                fetchProfile(session.user.id, session.user.email);
+            } else {
+                setLoading(false);
+            }
+        });
+
+        // Listen for auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setSession(session);
+            if (session?.user) {
+                fetchProfile(session.user.id, session.user.email);
+            } else {
+                setUser(null);
+                setLoading(false);
+            }
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
 
-    const handleLogin = async (email: string) => {
+    const fetchProfile = async (userId: string, email?: string) => {
         try {
-            setLoading(true);
             const { data, error } = await supabase
                 .from('profiles')
-                .select('*')
-                .eq('email', email)
+                .select(`
+                    *,
+                    store:stores(id, name)
+                `)
+                .eq('id', userId)
                 .single();
 
-            if (error || !data) throw new Error('Profile not found');
-
-            setUser(data);
-            localStorage.setItem('arbalest_auth_email', email);
+            if (error) throw error;
+            setUser({ ...data, email });
         } catch (err) {
-            console.error('Auth error:', err);
-            localStorage.removeItem('arbalest_auth_email');
-            setUser(null);
-            throw err;
+            console.error('Error fetching profile:', err);
+            // If profile doesn't exist yet (race condition with trigger), retry or handle gracefully
         } finally {
             setLoading(false);
         }
     };
 
-    const logout = () => {
+    const login = async (email: string, password: string) => {
+        const { error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+        if (error) throw error;
+    };
+
+    const signUp = async (email: string, password: string) => {
+        const { error } = await supabase.auth.signUp({
+            email,
+            password
+        });
+        if (error) throw error;
+    };
+
+    const logout = async () => {
+        await supabase.auth.signOut();
         setUser(null);
-        localStorage.removeItem('arbalest_auth_email');
+        setSession(null);
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login: handleLogin, logout }}>
+        <AuthContext.Provider value={{ user, session, loading, login, signUp, logout }}>
             {children}
         </AuthContext.Provider>
     );

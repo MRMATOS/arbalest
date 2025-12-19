@@ -80,6 +80,7 @@
     color: var(--text-secondary);
     transition: var(--transition);
     cursor: pointer;
+    text-decoration: none;
 }
 
 .nav-item:hover {
@@ -305,6 +306,7 @@
     transition: var(--transition);
     padding: 8px;
     min-width: 60px;
+    text-decoration: none;
 }
 
 .nav-btn span {

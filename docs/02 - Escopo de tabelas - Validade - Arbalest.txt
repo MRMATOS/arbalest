@@ -1,0 +1,611 @@
+02 - Escopo de tabelas - Validade - Arbalest.Digital
+
+escopo de tabelas, módulo 1, validade de produtos
+
+Princípio
+Essas tabelas existem apenas para o módulo de validade.
+Elas não assumem planograma, endereçamento, cotação ou qualquer outro módulo.
+Se outro módulo quiser usar algo daqui no futuro, ele consome, não acopla.
+
+tabelas base do sistema (não são do módulo, mas são dependências estáveis)
+
+1. products
+Responsabilidade
+Fonte única de verdade para identificação de produto.
+
+Motivo de existir
+Sem produto não existe validade.
+Produto é buscado por EAN, código ou nome, independentemente de estar fisicamente na farmácia ou no mercado.
+
+Observações importantes
+Produto é neutro em relação ao módulo.
+Nenhuma regra de validade vive aqui.
+Nenhuma lógica de status vive aqui.
+
+Campos conceituais mínimos
+id
+code
+ean
+name
+outros atributos já existentes no seu banco podem permanecer
+
+2. stores
+Responsabilidade
+Representar as lojas físicas.
+
+Motivo de existir
+Validade sempre pertence a uma loja.
+Admin precisa cadastrar lojas.
+
+Campos conceituais mínimos
+id
+name
+code
+is_active
+
+tabelas de usuários e controle (base do sistema)
+
+3. profiles
+Responsabilidade
+Representar o usuário autenticado e seu papel no sistema.
+
+Motivo de existir
+Controle de acesso, visibilidade e fluxo de aprovação.
+
+Campos conceituais mínimos
+id (relacionado ao auth)
+role (admin, encarregado, conferente)
+store_id (obrigatório apenas para encarregado)
+approved_at
+
+Observação
+Nada de regra de negócio de validade aqui.
+Perfil só informa “quem é quem”.
+
+tabelas de usuários e controle (base do sistema)
+
+3. profiles
+Responsabilidade
+Representar o usuário autenticado e seu papel no sistema.
+
+Motivo de existir
+Controle de acesso, visibilidade e fluxo de aprovação.
+
+Campos conceituais mínimos
+id (relacionado ao auth)
+role (admin, encarregado, conferente)
+store_id (obrigatório apenas para encarregado)
+approved_at
+
+Observação
+Nada de regra de negócio de validade aqui.
+Perfil só informa “quem é quem”.
+
+5. validity_entry_history
+Responsabilidade
+Rastrear alterações feitas em registros de validade.
+
+Motivo de existir
+Auditoria e confiança operacional.
+Evita discussão do tipo “quem mexeu nisso?”.
+
+Campos conceituais mínimos
+id
+validity_entry_id
+changed_by
+field_name
+old_value
+new_value
+created_at
+
+Observação
+Essa tabela cresce, e está tudo bem.
+Histórico não se apaga.
+
+6. validity_delete_requests
+Responsabilidade
+Controlar o fluxo de exclusão com dupla permissão.
+
+Motivo de existir
+Evitar exclusão direta e perda de evidência.
+Separar intenção de exclusão da ação final.
+
+Campos conceituais mínimos
+id
+validity_entry_id
+requested_by
+reason
+status (pendente, aprovado, rejeitado)
+reviewed_by
+reviewed_at
+created_at
+
+Observação
+Mesmo após aprovado, o registro original só recebe deleted_at.
+
+tabelas de apoio ao fluxo do módulo
+
+7. validity_notifications
+Responsabilidade
+Notificar usuários sobre eventos do módulo.
+
+Motivo de existir
+Comunicação entre encarregado e conferente sem depender de conversa informal.
+
+Eventos típicos
+Novo registro criado
+Solicitação de validade criada pelo conferente
+Solicitação de exclusão aprovada ou rejeitada
+
+Campos conceituais mínimos
+id
+to_user_id (opcional)
+to_role (opcional)
+store_id (opcional)
+title
+body
+link_path
+read_at
+created_at
+
+Observações
+Notificação não some do banco.
+Ela apenas muda de estado (lida).
+
+tabelas deliberadamente fora do escopo agora
+
+Essas NÃO entram neste módulo, mesmo sendo tentadoras:
+
+- tabela de alertas automáticos por rotina
+- tabela de regras avançadas de consumo de farmácia
+- tabela de integração com planograma
+- tabela de histórico consolidado por produto
+- tabela de métricas e dashboards históricos
+
+Motivo
+Tudo isso é camada 2.
+O módulo precisa primeiro funcionar perfeitamente no fluxo básico.
+
+resumo final do escopo de tabelas
+
+Base do sistema
+- products
+- stores
+- profiles
+
+Módulo validade
+- validity_entries
+- validity_entry_history
+- validity_delete_requests
+- validity_notifications
+
+Total: 7 tabelas.
+Nem uma a mais.
+
+Pergunta atual: ver as relações entre tabelas e os estados possíveis para validar se o escopo atende o que queremos.
+
+Resposta curta: atende, mas só fica “à prova de operação real” quando a gente explicita claramente
+1) quem depende de quem
+2) quem pode mudar o estado de quem
+3) quais estados são terminais e quais são reversíveis
+
+Vou fazer isso agora, sem SQL, sem RLS, só modelo mental sólido.
+
+1. relações entre tabelas (modelo conceitual)
+
+Vou descrever em forma de dependência lógica, não técnica.
+
+products
+É entidade raiz.
+Nada no módulo de validade existe sem um produto.
+Um produto pode aparecer em N registros de validade.
+Produto nunca depende de validade.
+
+stores
+Também entidade raiz.
+Uma loja pode ter N registros de validade.
+Uma validade sempre pertence a exatamente uma loja.
+
+profiles
+Usuário do sistema.
+Um usuário pode criar, alterar, revisar ou receber notificações.
+Perfil não depende de validade, validade depende de perfil.
+
+validity_entries
+Entidade central do módulo.
+Depende obrigatoriamente de:
+- um product
+- uma store
+- um profile que criou
+
+Pode gerar:
+- N registros de histórico
+- no máximo 1 solicitação de exclusão ativa por vez
+- N notificações ao longo do tempo
+
+validity_entry_history
+Depende de um validity_entry.
+Não existe sozinho.
+Nunca altera nada, apenas registra fatos passados.
+Histórico nunca gera efeitos colaterais.
+
+validity_delete_requests
+Depende de um validity_entry.
+Representa uma intenção humana, não uma ação final.
+Pode existir zero ou uma ativa por validity_entry.
+
+validity_notifications
+Depende de eventos do módulo.
+Pode referenciar:
+- um usuário específico
+- um papel
+- uma loja
+É sempre consequência de algo, nunca causa algo.
+
+Resumo visual simplificado
+
+products 1 ─── N validity_entries N ─── 1 stores
+                    │
+                    │ 1 ─── N validity_entry_history
+                    │
+                    │ 1 ─── 0..1 validity_delete_requests
+                    │
+                    └─── N validity_notifications
+
+profiles se conectam a:
+- validity_entries (created_by)
+- validity_entry_history (changed_by)
+- validity_delete_requests (requested_by, reviewed_by)
+- validity_notifications (to_user)
+
+2. estados possíveis por tabela (isso é o coração do modelo)
+
+Aqui é onde normalmente os sistemas quebram se isso não estiver claro.
+
+2.1 validity_entries – estados operacionais
+
+Estado não é só status de UI, é regra de comportamento.
+
+Estados sugeridos:
+
+ativo
+Registro normal, válido, visível nas listas.
+
+conferindo
+Conferente sinalizou que está em processo de verificação.
+Reversível.
+
+conferido
+Registro validado pelo conferente.
+Reversível, mas com confirmação.
+
+exclusao_solicitada
+Existe uma validity_delete_request pendente associada.
+Registro ainda visível, mas com destaque.
+Bloqueia novas edições normais.
+
+excluido (soft delete)
+deleted_at preenchido.
+Registro sai das listas padrão.
+Histórico permanece acessível.
+
+Observação importante
+“excluido” é estado terminal.
+Depois disso, não volta.
+
+Transições permitidas em validity_entries
+
+ativo → conferindo
+ativo → conferido
+ativo → exclusao_solicitada
+
+conferindo → conferido
+conferindo → ativo
+
+conferido → ativo (com confirmação explícita)
+conferido → exclusao_solicitada
+
+exclusao_solicitada → ativo (se exclusão for rejeitada)
+exclusao_solicitada → excluido (se exclusão for aprovada)
+
+excluido → nenhum (estado final)
+
+Quem pode mudar o quê
+
+Encarregado
+- ativo → ativo (edição de dados)
+- ativo → exclusao_solicitada
+
+Conferente
+- ativo ↔ conferindo
+- ativo ↔ conferido
+- conferido ↔ ativo
+- exclusao_solicitada → ativo ou excluido
+
+Admin
+- qualquer transição, com registro obrigatório
+
+2.2 validity_delete_requests – estados da solicitação
+
+Estados possíveis:
+
+pendente
+Criada pelo encarregado.
+Bloqueia exclusão direta.
+
+aprovada
+Conferente aprovou.
+Gatilho para validity_entries → excluido.
+
+rejeitada
+Conferente rejeitou.
+Gatilho para validity_entries → ativo.
+
+Estados aprovada e rejeitada são terminais.
+
+2.3 validity_entry_history – estados
+
+Não tem estado.
+Cada linha é imutável.
+Se existe, é verdade histórica.
+
+2.4 validity_notifications – estados
+
+Estados possíveis:
+
+nao_lida
+Aparece no ícone de notificação.
+
+lida
+Usuário clicou.
+Não aparece mais no ícone, mas aparece no histórico.
+
+Opcional futuramente
+arquivada
+Se quiser separar “lido” de “resolvido”.
+Fora do escopo agora.
+
+3. validação contra os objetivos do módulo
+
+Vamos confrontar com o que você quer resolver.
+
+Registrar validade por loja
+Atendido, validity_entries depende de store.
+
+Permitir múltiplos lotes e datas
+Atendido, não existe unicidade forçada global.
+
+Evitar exclusão indevida
+Atendido, exclusão é fluxo separado.
+
+Dar visibilidade ao conferente
+Atendido, conferente atua sobre estados, não sobre dados brutos.
+
+Manter histórico e rastreabilidade
+Atendido, history é imutável e separado.
+
+Não virar ERP
+Atendido, estados são poucos, sem regra automática complexa.
+
+4. pontos de atenção que NÃO quebram o modelo, mas você deve ter consciência
+
+1. Volume de history
+Vai crescer rápido.
+Mas isso é custo aceitável, histórico é barato, perda operacional é cara.
+
+2. Estado “conferido” não impede erro humano
+E nem deve.
+Esse sistema aponta e organiza, não garante verdade absoluta.
+
+3. Notificações não devem virar dependência de fluxo
+O sistema deve funcionar mesmo se ninguém ler notificação.
+Elas são reforço, não bloqueio.
+
+CONTRATO DE API
+Módulo: validade de produtos
+
+1. O client nunca decide autoria
+2. O client nunca decide exclusão real
+3. O client nunca escreve histórico
+4. O client nunca seta timestamps sensíveis
+5. O client só pede intenções, o backend aplica efeitos
+
+Se um campo não aparece como “permitido”, ele é proibido.
+
+1. Criar registro de validade
+
+Tabela: validity.validity_entries
+Ação: INSERT
+Quem: encarregado
+
+Payload permitido (client → backend)
+
+{
+  "product_id": "uuid",
+  "store_id": "uuid",
+  "expires_at": "date",
+  "lot": "string | null",
+  "quantity": "number"
+}
+
+Campos proibidos no payload
+
+id
+created_by
+status
+deleted_at
+created_at
+updated_at
+
+O que o backend faz automaticamente
+
+created_by   ← auth.uid()
+status       ← 'ativo'
+created_at   ← now()
+updated_at   ← now()
+
+Observações de contrato
+	•	se o client tentar mandar campos proibidos, eles são ignorados ou bloqueados
+	•	se o store_id não for da loja do encarregado, RLS bloqueia
+
+⸻
+
+2. Atualizar registro de validade (edição)
+
+Tabela: validity.validity_entries
+Ação: UPDATE
+Quem: encarregado (limitado) ou conferente (status)
+
+Payload permitido para ENCARREGADO
+
+{
+  "expires_at": "date",
+  "lot": "string | null",
+  "quantity": "number"
+}
+
+Payload permitido para CONFERENTE
+
+{
+  "status": "ativo | conferindo | conferido"
+}
+
+Campos proibidos
+
+product_id
+store_id
+created_by
+deleted_at
+created_at
+updated_at
+
+O que o backend faz automaticamente
+
+updated_at ← now()
+history    ← trigger automático
+
+3. Solicitar exclusão de registro
+
+Tabela: validity.validity_delete_requests
+Ação: INSERT
+Quem: encarregado
+
+Payload permitido
+
+{
+  "validity_entry_id": "uuid",
+  "reason": "string"
+}
+
+Campos proibidos
+status
+reviewed_by
+reviewed_at
+created_at
+
+O que o backend faz automaticamente
+status     ← 'pendente'
+created_at ← now()
+
+
+⸻
+
+4. Analisar solicitação de exclusão
+
+Tabela: validity.validity_delete_requests
+Ação: UPDATE
+Quem: conferente ou admin
+
+Payload permitido
+
+{
+  "status": "aprovado | rejeitado"
+}
+
+Campos proibidos
+validity_entry_id
+requested_by
+reason
+created_at
+
+O que o backend faz automaticamente
+reviewed_by ← auth.uid()
+reviewed_at ← now()
+
+SE status = aprovado:
+  validity_entries.deleted_at ← now()
+  validity_entries.status     ← 'excluido'
+  history                     ← trigger automático
+
+O client não chama update em validity_entries para excluir.
+
+⸻
+
+5. Listar registros de validade
+
+Tabela: validity.validity_entries
+Ação: SELECT
+Quem: encarregado, conferente, admin
+
+Filtros permitidos (query)
+store_id
+product_id
+status
+expires_at (range)
+
+Regras invisíveis ao client
+- encarregado só vê sua loja
+- conferente vê todas
+- excluidos podem ser omitidos por default
+
+6. Ver histórico de um registro
+
+Tabela: validity.validity_entry_history
+Ação: SELECT
+Quem: quem pode ver o registro pai
+
+Query esperada
+where validity_entry_id = :id
+order by created_at asc
+
+Campos retornados
+field_name
+old_value
+new_value
+changed_by
+created_at
+
+O client nunca escreve nessa tabela.
+
+⸻
+
+7. Notificações (quando entrarem na UI)
+
+Tabela: validity.validity_notifications
+
+Leitura
+select where read_at is null
+
+Marcar como lida
+{
+  "read_at": "now()"
+}
+
+Proibido
+INSERT
+DELETE
+
+Resumo rápido do contrato
+validity_entries
+- client cria
+- client edita parcialmente
+- backend decide autor, status inicial, histórico, exclusão
+
+validity_delete_requests
+- client pede
+- conferente decide
+- backend executa
+
+validity_entry_history
+- backend escreve
+- client só lê
