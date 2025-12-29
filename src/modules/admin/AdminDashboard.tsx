@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabase';
-import { Check } from 'lucide-react';
+import { Check, Pencil, X } from 'lucide-react';
 import './AdminDashboard.css';
 
 interface Profile {
     id: string;
     email: string;
+    name: string | null;
     role: string;
     store_id: string | null;
     approved_at: string | null;
@@ -21,6 +22,8 @@ export const AdminDashboard: React.FC = () => {
     const [profiles, setProfiles] = useState<Profile[]>([]);
     const [stores, setStores] = useState<StoreType[]>([]);
     const [loading, setLoading] = useState(true);
+    const [editingNameId, setEditingNameId] = useState<string | null>(null);
+    const [editingNameValue, setEditingNameValue] = useState('');
 
     useEffect(() => {
         fetchData();
@@ -71,6 +74,33 @@ export const AdminDashboard: React.FC = () => {
         }
     };
 
+    const handleStartEditName = (user: Profile) => {
+        setEditingNameId(user.id);
+        setEditingNameValue(user.name || '');
+    };
+
+    const handleSaveName = async (userId: string) => {
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ name: editingNameValue.trim() || null })
+                .eq('id', userId);
+
+            if (error) throw error;
+            setEditingNameId(null);
+            setEditingNameValue('');
+            fetchData();
+        } catch (error) {
+            console.error('Error updating name:', error);
+            alert('Erro ao salvar nome');
+        }
+    };
+
+    const handleCancelEditName = () => {
+        setEditingNameId(null);
+        setEditingNameValue('');
+    };
+
     if (loading) return <div className="loading-state"><div className="spinner" /></div>;
 
     return (
@@ -87,6 +117,7 @@ export const AdminDashboard: React.FC = () => {
                     <thead>
                         <tr>
                             <th>Usuário</th>
+                            <th>Nome</th>
                             <th>Status</th>
                             <th>Cargo</th>
                             <th>Loja Vinculada</th>
@@ -101,6 +132,47 @@ export const AdminDashboard: React.FC = () => {
                                         <span className="email">{user.email}</span>
                                         <span className="id-sub">{user.id.slice(0, 8)}...</span>
                                     </div>
+                                </td>
+                                <td>
+                                    {editingNameId === user.id ? (
+                                        <div className="name-edit-cell">
+                                            <input
+                                                type="text"
+                                                value={editingNameValue}
+                                                onChange={(e) => setEditingNameValue(e.target.value)}
+                                                placeholder="Nome..."
+                                                className="name-input"
+                                                autoFocus
+                                            />
+                                            <button
+                                                onClick={() => handleSaveName(user.id)}
+                                                className="action-btn save"
+                                                title="Salvar"
+                                            >
+                                                <Check size={16} />
+                                            </button>
+                                            <button
+                                                onClick={handleCancelEditName}
+                                                className="action-btn cancel"
+                                                title="Cancelar"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="name-display-cell">
+                                            <span className={user.name ? '' : 'text-muted'}>
+                                                {user.name || 'Não definido'}
+                                            </span>
+                                            <button
+                                                onClick={() => handleStartEditName(user)}
+                                                className="action-btn edit-mini"
+                                                title="Editar nome"
+                                            >
+                                                <Pencil size={14} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </td>
                                 <td>
                                     {user.approved_at ? (

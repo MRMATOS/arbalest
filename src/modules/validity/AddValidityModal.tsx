@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Loader, Package, Camera } from 'lucide-react';
 import { Modal } from '../../components/Modal';
-import { useProductSearch } from '../../hooks/useProductSearch';
+import { useProductSearch, type Product } from '../../hooks/useProductSearch';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { BarcodeScannerModal } from './BarcodeScannerModal';
@@ -18,7 +18,7 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
     const { user } = useAuth();
 
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedProduct, setSelectedProduct] = useState<any>(null);
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
 
     const [formData, setFormData] = useState({
@@ -35,7 +35,7 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
         search(value);
     };
 
-    const handleProductSelect = (product: any) => {
+    const handleProductSelect = (product: Product) => {
         setSelectedProduct(product);
         setSearchTerm('');
     };
@@ -43,7 +43,7 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
 
 
     // State
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.SyntheticEvent) => {
         e.preventDefault();
 
         if (!selectedProduct || !user) return;
@@ -72,9 +72,9 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
             setFormData({ expires_at: '', lot: '', quantity: '' });
             onSuccess();
             onClose();
-        } catch (err: any) {
+        } catch (err) {
             console.error('Error saving validity entry:', err);
-            setError(err.message);
+            if (err instanceof Error) setError(err.message);
         } finally {
             setSaving(false);
         }
@@ -135,7 +135,7 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
                         {/* Search Results */}
                         {results.length > 0 && (
                             <div className="search-results">
-                                {results.map((product: any) => (
+                                {results.map((product) => (
                                     <div
                                         key={product.id}
                                         className="product-item"
@@ -244,7 +244,7 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
                             // Actually better to keep it inside form or use form id.
                             // Original code: form wraps everything.
                             // Here I wrapped content in form.
-                            handleSubmit(e as any);
+                            handleSubmit(e);
                         }}
                         disabled={saving || !formData.expires_at || !formData.quantity}
                     >

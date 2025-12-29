@@ -14,6 +14,21 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({ isOpen
     const [error, setError] = useState<string>('');
     const scannerRegionId = 'html5-qrcode-reader';
 
+    const handleStop = async () => {
+        if (readerRef.current && readerRef.current.isScanning) {
+            try {
+                await readerRef.current.stop();
+                readerRef.current.clear();
+            } catch (err) {
+                console.error("Error stopping scanner:", err);
+            }
+        }
+    };
+
+    const handleModalClose = () => {
+        handleStop().then(onClose);
+    };
+
     useEffect(() => {
         if (!isOpen) {
             handleStop();
@@ -26,7 +41,11 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({ isOpen
             try {
                 // Initialize if not already done
                 if (!readerRef.current) {
-                    readerRef.current = new Html5Qrcode(scannerRegionId);
+                    // Enable native BarcodeDetector if supported for better performance and orientation handling
+                    readerRef.current = new Html5Qrcode(scannerRegionId, {
+                        useBarCodeDetectorIfSupported: true,
+                        verbose: false
+                    });
                 }
 
                 // First, check if we have cameras permissions/availability
@@ -36,10 +55,11 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({ isOpen
                     if (!cameras || cameras.length === 0) {
                         throw new Error("Nenhuma câmera encontrada no dispositivo.");
                     }
-                } catch (camErr: any) {
+                } catch (camErr) {
                     console.error("Error getting cameras:", camErr);
                     // Often this is where 'NotAllowedError' or Insecure Context errors happen
-                    throw new Error(camErr.message || "Erro de permissão ou contexto inseguro.");
+                    const message = camErr instanceof Error ? camErr.message : "Erro desconhecido";
+                    throw new Error(message || "Erro de permissão ou contexto inseguro.");
                 }
 
                 // Config
@@ -70,11 +90,13 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({ isOpen
                         // Ignore parse errors
                     }
                 );
-            } catch (err: any) {
+            } catch (err) {
                 if (!isCancelled) {
                     console.error("Error starting scanner:", err);
                     // Show specific error to user for debugging
-                    setError(`${err.name || 'Erro'}: ${err.message || JSON.stringify(err)}`);
+                    const message = err instanceof Error ? err.message : JSON.stringify(err);
+                    const name = err instanceof Error ? err.name : 'Erro';
+                    setError(`${name}: ${message}`);
                 }
             }
         };
@@ -87,22 +109,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({ isOpen
             clearTimeout(timer);
             handleStop();
         };
-    }, [isOpen]);
-
-    const handleStop = async () => {
-        if (readerRef.current && readerRef.current.isScanning) {
-            try {
-                await readerRef.current.stop();
-                readerRef.current.clear();
-            } catch (err) {
-                console.error("Error stopping scanner:", err);
-            }
-        }
-    };
-
-    const handleModalClose = () => {
-        handleStop().then(onClose);
-    };
+    }, [isOpen, onClose, onScan]);
 
     return (
         <Modal

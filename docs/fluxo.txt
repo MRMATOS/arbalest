@@ -1,0 +1,290 @@
+Contexto geral do sistema de planograma
+
+O sistema de planograma terá dois modos de visualização:
+	1.	Modo tradicional (lista/estrutura textual)
+Este é o modo principal de cadastro e operação.
+	2.	Modo mapa (visual/espacial)
+Inicialmente será apenas visualização, não utilizado para cadastro.
+O mapa poderá ser baseado futuramente em OpenStreetMap ou planta da loja, usando códigos e endereçamento já definidos no modo tradicional.
+
+O cadastro e a integração com a WebJasper não dependem do mapa.
+
+⸻
+
+Princípios fundamentais do fluxo
+	•	O cadastro sempre começa de forma textual e estrutural, não espacial.
+	•	A WebJasper é usada como fonte de dados de categorias, produtos e prateleiras, não como fonte estrutural.
+	•	A estrutura física (corredor, módulos, lados) é definida exclusivamente pelo usuário, conforme a realidade da loja.
+	•	A integração com a WebJasper nunca cria corredores nem módulos.
+	•	A Edge Function pode criar prateleiras, pois elas vêm associadas aos produtos.
+	•	O sistema confia que o usuário está importando a categoria correta.
+
+⸻
+
+Estrutura hierárquica do cadastro
+
+A hierarquia lógica do sistema é:
+Seção
+ └── Corredor
+      ├── Lado A
+      │    └── Módulos
+      │         └── Prateleiras
+      │              └── Produtos
+      └── Lado B
+
+Fluxo de cadastro inicial
+
+1. Cadastro da seção
+
+O usuário cria uma seção, por exemplo:
+	•	Seção: Cesta básica
+
+A seção é apenas um agrupador lógico, mas depois será usada para se linkar à visão espacial do mapa.
+
+⸻
+
+2. Cadastro do corredor
+
+Dentro da seção, o usuário cadastra um corredor:
+	•	Corredor: 55
+
+No cadastro do corredor, o usuário define:
+	•	Quantidade total de módulos
+	•	Distribuição por lado
+Exemplo:
+	•	12 módulos no lado A
+	•	12 módulos no lado B
+	•	Padrão físico do módulo
+(largura, altura, profundidade, etc.)
+
+Essa estrutura representa exatamente o físico da loja.
+
+⸻
+
+3. Disponibilidade da sincronização com a WebJasper
+
+A opção “Sincronizar com WebJasper” fica disponível no nível do corredor, porque:
+	•	A WebJasper trabalha com corredor único
+	•	Ela não separa por lado A e lado B
+	•	Não existe conceito de endereçamento físico completo na WebJasper
+
+⸻
+
+Fluxo de importação da WebJasper
+
+4. Seleção da categoria
+
+Ao clicar em sincronizar:
+	•	O sistema apresenta um select com categorias disponíveis na WebJasper
+	•	Categorias já utilizadas aparecem visualmente marcadas e bloqueadas.
+
+Exemplo:
+	•	Categoria: Arroz
+	•	Loja: Matriz
+
+Não existe validação entre:
+	•	Categoria da WebJasper
+	•	Seção cadastrada no sistema
+
+O sistema confia no usuário.
+
+⸻
+
+5. Importação da categoria
+
+Ao importar uma categoria:
+	•	O sistema assume que o corredor está vazio
+	•	A importação sempre começa do módulo 1 do corredor
+	•	Os produtos vêm com:
+		•	Prateleiras
+		•	Ordem
+		•	Quantidade de módulos ocupados
+
+Exemplo:
+	•	Categoria arroz ocupa módulos 1 a 18
+
+O sistema preenche:
+	•	Módulo 1 até módulo 18
+	•	Criando automaticamente as prateleiras dentro dos módulos
+	•	Associando os produtos
+
+⸻
+
+Situação 1: Categoria cabe no corredor
+
+Se a categoria ocupa menos ou igual ao total de módulos do corredor:
+	•	Preenchimento ocorre normalmente
+	•	Nenhuma pendência é gerada
+
+⸻
+
+Situação 2: Categoria excede o corredor
+
+Exemplo:
+	•	Corredor tem 24 módulos
+	•	Categoria importada ocupa 30 módulos
+
+Fluxo esperado:
+	•	O sistema preenche do módulo 1 ao 24
+	•	Os módulos excedentes ficam pendentes
+	•	Todos os dados são armazenados no sistema, nada é descartado
+
+O sistema então:
+	•	Exibe um aviso de pendência
+	•	Informa que faltam módulos para completar a categoria
+	•	Solicita ao usuário que indique outro corredor
+
+⸻
+
+Continuação da categoria em outro corredor
+
+O usuário então:
+	•	Cadastra um novo corredor manualmente
+ou
+	•	Seleciona um corredor existente
+
+Ao confirmar:
+	•	O sistema automaticamente continua o preenchimento da categoria
+	•	A sequência lógica é mantida
+	•	A categoria pode ocupar:
+	•	Vários corredores
+	•	Corredores não sequenciais
+	•	Corredores paralelos ou opostos
+
+⸻
+
+Organização posterior do planograma
+
+Após a importação:
+	•	O usuário pode reorganizar os módulos manualmente
+	•	A WebJasper não define:
+	•	Onde começa fisicamente a categoria
+	•	Em qual módulo real ela inicia
+
+Exemplo:
+	•	A WebJasper começa no módulo 1
+	•	No físico, o arroz começa no módulo 5
+
+O sistema precisa permitir:
+	•	Selecionar todos os módulos de uma categoria
+	•	Mover para frente ou para trás
+	•	Reposicionar mantendo a sequência
+
+⸻
+
+Nova pendência ao mover módulos
+
+Se o usuário mover módulos e:
+	•	Eles ultrapassarem o limite do corredor
+
+O sistema repete a lógica:
+	•	Exibe pendência
+	•	Solicita o corredor de continuação
+	•	Aplica a movimentação após confirmação
+
+Isso vale mesmo que:
+	•	A categoria ocupe 3 ou mais corredores
+
+⸻
+
+Alternativa sem WebJasper
+
+O sistema também permite cadastro totalmente manual:
+	•	Usuário cadastra corredor
+	•	Seleciona módulo
+	•	Bipagem produto por produto
+	•	Criação manual de prateleiras ou conforme o cadastro do padrão de módulo.	
+
+Esse fluxo convive com o fluxo da WebJasper.
+
+⸻
+
+Identificação e endereçamento
+
+Cada nível pode gerar identificação:
+	•	Seção
+	•	Corredor
+	•	Lado
+	•	Módulo
+	•	Prateleira
+
+Esses identificadores servem para:
+	•	Impressão de etiquetas
+	•	Códigos de barras
+	•	Endereçamento físico
+	•	Uso futuro no mapa
+
+O mapa apenas consome esses códigos, não os cria.
+
+Agora a parte crítica, avaliando friamente.
+
+1. Conceito de “bloco de categoria”
+
+Internamente, trate cada importação como um bloco contínuo:
+	•	Categoria
+	•	Ordem
+	•	Comprimento em módulos
+
+Isso facilita:
+	•	Mover tudo junto
+	•	Detectar overflow
+	•	Reatribuir corredor
+
+⸻
+
+2. Regra clara de overflow
+
+Sempre a mesma regra:
+	•	Preenche até onde cabe
+	•	Gera pendência
+	•	Usuário escolhe continuidade
+
+Sem exceções escondidas.
+
+⸻
+
+3. Nenhuma automação espacial precoce
+
+Não tente:
+	•	Calcular lado automaticamente
+	•	Distribuir módulos por mapa
+	•	Inferir layout
+
+Isso só gera bug e frustração.
+Deixe o mapa para leitura, não decisão.
+
+⸻
+
+4. Marcação visual de categorias usadas
+
+Muito importante:
+	•	Mostrar categorias já usadas
+	•	Não bloquear reutilização
+	•	Apenas alertar visualmente
+
+Isso resolve 80% dos erros sem travar o fluxo.
+
+⸻
+
+5. Edge Function burra estruturalmente
+
+A Edge Function deve:
+	•	Buscar dados
+	•	Criar prateleiras
+	•	Retornar estrutura limpa
+
+Ela não decide layout, não cria módulos, não cria corredores.
+
+Decisão estrutural sempre no frontend.
+
+⸻
+
+6. Tudo reversível
+
+Toda importação deve permitir:
+	•	Desfazer
+	•	Reimportar
+	•	Mover
+
+Sem estado “definitivo”.
+

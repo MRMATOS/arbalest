@@ -2,6 +2,7 @@ import React from 'react';
 import { X, CheckCircle2, AlertOctagon } from 'lucide-react';
 import { Modal } from '../../components/Modal';
 import { type ValidityEntry } from '../../hooks/useValidityEntries';
+import { type Profile } from '../../contexts/AuthContext';
 import './DeleteRequestsApprovalModal.css';
 
 interface DeleteRequestsApprovalModalProps {
@@ -10,6 +11,7 @@ interface DeleteRequestsApprovalModalProps {
     entries: ValidityEntry[];
     onApprove: (id: string) => void;
     onReject: (id: string) => void;
+    user: Profile | null;
 }
 
 export const DeleteRequestsApprovalModal: React.FC<DeleteRequestsApprovalModalProps> = ({
@@ -17,12 +19,35 @@ export const DeleteRequestsApprovalModal: React.FC<DeleteRequestsApprovalModalPr
     onClose,
     entries,
     onApprove,
-    onReject
+    onReject,
+    user
 }) => {
     if (!isOpen) return null;
 
-    // Filter only pending requests
-    const pendingRequests = entries.filter(e => e.has_pending_delete_request && e.pending_delete_request);
+    // Filter logic based on role
+    const isEncarregado = user?.role === 'encarregado';
+
+    // Filter pending requests
+    const pendingRequests = entries.filter(e => {
+        if (!e.has_pending_delete_request || !e.pending_delete_request) return false;
+
+        // If Encarregado, only show their own requests
+        try {
+            if (isEncarregado) {
+                return e.pending_delete_request.requested_by === user.id;
+            }
+        } catch (error: unknown) { // Changed 'error' to 'error: unknown' as per instruction
+            // If an error occurs during the check, perhaps we should not show it,
+            // or handle it based on specific requirements.
+            // For now, returning false to exclude it if an error occurs during this specific check.
+            console.error("Error checking encarregado's request:", error);
+            return false; // Or handle as appropriate for your application's error policy
+        }
+
+
+        // Conferente/Admin sees all
+        return true;
+    });
 
     return (
         <Modal
@@ -34,7 +59,7 @@ export const DeleteRequestsApprovalModal: React.FC<DeleteRequestsApprovalModalPr
             <div className="modal-header">
                 <div className="header-title">
                     <AlertOctagon size={24} className="text-warning" />
-                    <h2>Aprovar Exclusões</h2>
+                    <h2>{isEncarregado ? 'Solicitações de Exclusão' : 'Aprovar Exclusões'}</h2>
                 </div>
                 <button className="close-btn" onClick={onClose}>
                     <X size={24} />
@@ -66,22 +91,24 @@ export const DeleteRequestsApprovalModal: React.FC<DeleteRequestsApprovalModalPr
                                     </div>
                                 </div>
 
-                                <div className="request-actions">
-                                    <button
-                                        className="btn-reject"
-                                        onClick={() => onReject(entry.id)}
-                                        title="Rejeitar"
-                                    >
-                                        <X size={20} /> Rejeitar
-                                    </button>
-                                    <button
-                                        className="btn-approve"
-                                        onClick={() => onApprove(entry.id)}
-                                        title="Aprovar"
-                                    >
-                                        <CheckCircle2 size={20} /> Aprovar
-                                    </button>
-                                </div>
+                                {!isEncarregado && (
+                                    <div className="request-actions">
+                                        <button
+                                            className="btn-reject"
+                                            onClick={() => onReject(entry.id)}
+                                            title="Rejeitar"
+                                        >
+                                            <X size={20} /> Rejeitar
+                                        </button>
+                                        <button
+                                            className="btn-approve"
+                                            onClick={() => onApprove(entry.id)}
+                                            title="Aprovar"
+                                        >
+                                            <CheckCircle2 size={20} /> Aprovar
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

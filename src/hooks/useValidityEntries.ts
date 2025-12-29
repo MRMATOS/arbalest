@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -13,9 +13,11 @@ export interface ValidityEntry {
         ean: string | null;
         code: string;
         type?: 'mercado' | 'farmacia';
+        amount?: number;
     };
     created_by_user?: {
         id: string;
+        name?: string;
         email?: string;
     };
     has_pending_delete_request?: boolean;
@@ -36,7 +38,7 @@ export const useValidityEntries = () => {
     const [error, setError] = useState<string | null>(null);
     const { user } = useAuth();
 
-    const fetchEntries = async () => {
+    const fetchEntries = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -52,24 +54,24 @@ export const useValidityEntries = () => {
             if (entriesError) throw entriesError;
 
             // Get unique product IDs
-            const productIds = [...new Set((entriesData || []).map((e: any) => e.product_id))];
-            const createdByIds = [...new Set((entriesData || []).map((e: any) => e.created_by).filter(Boolean))];
+            const productIds = [...new Set((entriesData || []).map((e) => e.product_id))];
+            const createdByIds = [...new Set((entriesData || []).map((e) => e.created_by).filter(Boolean))];
 
             // Fetch products from public schema (default)
             const { data: productsData } = await supabase
                 .from('products')
-                .select('id, name, ean, code, type')
+                .select('id, name, ean, code, type, amount')
                 .in('id', productIds.length > 0 ? productIds : ['00000000-0000-0000-0000-000000000000']);
 
             // Fetch profiles from public schema (default)
             const { data: profilesData } = await supabase
                 .from('profiles')
-                .select('id, email')
+                .select('id, name, email')
                 .in('id', createdByIds.length > 0 ? createdByIds : ['00000000-0000-0000-0000-000000000000']);
 
             // Create maps for quick lookup
-            const productsMap = new Map((productsData || []).map((p: any) => [p.id, p]));
-            const profilesMap = new Map((profilesData || []).map((p: any) => [p.id, p]));
+            const productsMap = new Map((productsData || []).map((p) => [p.id, p]));
+            const profilesMap = new Map((profilesData || []).map((p) => [p.id, p]));
 
             // Fetch pending delete requests
             const { data: requestsData, error: requestsError } = await supabase
@@ -81,7 +83,7 @@ export const useValidityEntries = () => {
             if (requestsError) throw requestsError;
 
             const pendingRequestsMap = new Map();
-            requestsData?.forEach((r: any) => {
+            requestsData?.forEach((r) => {
                 pendingRequestsMap.set(r.validity_entry_id, {
                     reason: r.reason,
                     requested_at: r.created_at,
@@ -90,7 +92,7 @@ export const useValidityEntries = () => {
             });
 
             // Transform the data structure
-            const transformedData = (entriesData || []).map((item: any) => {
+            const transformedData = (entriesData || []).map((item) => {
                 const product = productsMap.get(item.product_id);
                 const createdByUser = profilesMap.get(item.created_by);
                 return {
@@ -109,10 +111,12 @@ export const useValidityEntries = () => {
                         name: product?.name || 'Unknown',
                         ean: product?.ean || null,
                         code: product?.code || '',
-                        type: product?.type
+                        type: product?.type,
+                        amount: product?.amount
                     },
                     created_by_user: createdByUser ? {
                         id: createdByUser.id,
+                        name: createdByUser.name,
                         email: createdByUser.email
                     } : undefined
                 };
@@ -121,25 +125,46 @@ export const useValidityEntries = () => {
             // Filter by store if user is encarregado (client-side)
             let filteredEntries = transformedData;
             if (user?.role === 'encarregado' && user.store_id) {
-                filteredEntries = transformedData.filter((entry: any) =>
+                filteredEntries = transformedData.filter((entry) =>
                     entry.store_id === user.store_id
                 );
             }
 
             setEntries(filteredEntries as ValidityEntry[]);
-        } catch (err: any) {
+        } catch (err) {
             console.error('Error fetching validity entries:', err);
-            setError(err.message);
+            if (err instanceof Error) setError(err.message);
         } finally {
             setLoading(false);
         }
-    };
+    }, [user]);
+
+    useEffect(() => {
+        const subscription = supabase
+            .channel('validity_delete_requests_changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'validity',
+                    table: 'validity_delete_requests'
+                },
+                () => {
+                    fetchEntries();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, [fetchEntries]);
 
     useEffect(() => {
         if (user) {
             fetchEntries();
         }
-    }, [user]);
+    }, [user, fetchEntries]);
 
     return {
         entries,
@@ -155,7 +180,7 @@ export const useValidityEntries = () => {
 
     async function updateStatus(id: string, newStatus: ValidityEntry['status']) {
         try {
-            const updates: any = { status: newStatus };
+            const updates: Record<string, unknown> = { status: newStatus };
             if (newStatus === 'conferido') {
                 updates.verified_at = new Date().toISOString();
                 updates.verified_by = user?.id;
@@ -176,7 +201,7 @@ export const useValidityEntries = () => {
             setEntries(prev => prev.map(entry =>
                 entry.id === id ? { ...entry, status: newStatus } : entry
             ));
-        } catch (err: any) {
+        } catch (err) {
             console.error('Error updating status:', err);
             throw err;
         }
@@ -197,7 +222,7 @@ export const useValidityEntries = () => {
             if (error) throw error;
 
             await fetchEntries();
-        } catch (err: any) {
+        } catch (err) {
             console.error('Error requesting delete:', err);
             throw err;
         }
@@ -230,7 +255,7 @@ export const useValidityEntries = () => {
             if (entryError) throw entryError;
 
             await fetchEntries();
-        } catch (err: any) {
+        } catch (err) {
             console.error('Error approving delete:', err);
             throw err;
         }
@@ -251,7 +276,7 @@ export const useValidityEntries = () => {
 
             if (error) throw error;
             await fetchEntries();
-        } catch (err: any) {
+        } catch (err) {
             console.error('Error rejecting delete:', err);
             throw err;
         }
@@ -269,7 +294,7 @@ export const useValidityEntries = () => {
 
             if (error) throw error;
             await fetchEntries();
-        } catch (err: any) {
+        } catch (err) {
             console.error('Error updating entry:', err);
             throw err;
         }

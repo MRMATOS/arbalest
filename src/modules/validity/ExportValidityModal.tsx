@@ -63,9 +63,28 @@ export const ExportValidityModal: React.FC<ExportValidityModalProps> = ({ isOpen
             return;
         }
 
-        const text = `*${title} - ${now.toLocaleDateString()} ${now.toLocaleTimeString()}*\n\n` +
+        const text = `*${title} - ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR')}*\n\n` +
             filtered.map(e => {
-                return `✅ ${e.quantity}x ${e.product.name}\n   Venc: ${new Date(e.expires_at).toLocaleDateString()} | Lote: ${e.lot || 'N/A'}`;
+                const expiryDate = new Date(e.expires_at).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+
+                let baseText = `✅ ${e.quantity}x ${e.product.name}\n   Venc: ${expiryDate} | Lote: ${e.lot || 'N/A'} | Cód: ${e.product.code}`;
+
+                if (e.product.ean) {
+                    baseText += ` | EAN: ${e.product.ean}`;
+                }
+
+                // Pharmacy Logic
+                const diff = new Date(e.expires_at).getTime() - new Date().getTime();
+                const days = Math.ceil(diff / (1000 * 3600 * 24));
+                const amount = e.product.amount || 0;
+
+                if (e.product.type === 'farmacia' && amount > 0 && amount < days) {
+                    const salesDeadline = days - amount;
+                    const deadlineText = salesDeadline <= 0 ? "Prazo Encerrado" : `Resta ${salesDeadline} dias para venda`;
+                    baseText += `\n   ℹ️ Prazo Venda: ${deadlineText} | Frasco: ${amount} un`;
+                }
+
+                return baseText;
             }).join('\n\n');
 
         try {

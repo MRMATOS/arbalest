@@ -96,24 +96,17 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                 </nav>
 
                 <div className="sidebar-footer">
-                    <button
-                        className={`nav-item ${!sidebarOpen ? 'collapsed' : ''}`}
-                        onClick={() => onAddClick?.()}
-                    >
-                        <div className="icon"><PlusCircle size={20} /></div>
-                        {sidebarOpen && <span className="label">Adicionar</span>}
-                    </button>
-                    <div className="user-info">
+                    <Link to="/profile" className={`user-info ${!sidebarOpen ? 'collapsed' : ''}`}>
                         <div className="avatar">
                             <User size={18} />
                         </div>
                         {sidebarOpen && (
                             <div className="details">
-                                <span className="name">{user?.full_name || user?.role}</span>
+                                <span className="name">{user?.name || user?.email || user?.role}</span>
                                 <span className="role">{user?.role}</span>
                             </div>
                         )}
-                    </div>
+                    </Link>
                     <button onClick={logout} className={`nav-item logout ${!sidebarOpen ? 'collapsed' : ''}`}>
                         <div className="icon"><LogOut size={20} /></div>
                         {sidebarOpen && <span className="label">Sair</span>}

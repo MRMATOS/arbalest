@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabase';
 import { Loader, TrendingUp, AlertCircle } from 'lucide-react';
+
+import { type Product } from '../../hooks/useProductSearch';
+import { type ValidityEntry } from '../../hooks/useValidityEntries';
 import './DashboardHome.css';
+
+interface EnhancedEntry extends Omit<ValidityEntry, 'product'> {
+    product: Product;
+}
 
 interface DashboardMetric {
     count: number;
@@ -31,11 +38,12 @@ export const DashboardHome: React.FC = () => {
             const { data: entries, error: entriesError } = await supabase
                 .schema('validity')
                 .from('validity_entries')
-                .select('id, expires_at, created_at, product_id')
+                .select('id, expires_at, created_at, product_id, status, store_id, quantity, lot, updated_at')
                 .neq('status', 'excluido')
                 .neq('status', 'discarded'); // Assuming discarded exists or similar
 
             if (entriesError) throw entriesError;
+
 
             if (!entries || entries.length === 0) {
                 setLoading(false);
@@ -46,16 +54,16 @@ export const DashboardHome: React.FC = () => {
             const productIds = Array.from(new Set(entries.map(e => e.product_id)));
             const { data: products, error: productsError } = await supabase
                 .from('products')
-                .select('id, name, type')
+                .select('id, name, type, ean, code, amount')
                 .in('id', productIds);
 
             if (productsError) throw productsError;
 
-            const productMap = new Map(products?.map(p => [p.id, p]));
+            const productMap = new Map<string, Product>(products?.map(p => [p.id, p]) || []);
 
             // 3. Process Stats
-            const marketEntries: any[] = [];
-            const pharmaEntries: any[] = [];
+            const marketEntries: EnhancedEntry[] = [];
+            const pharmaEntries: EnhancedEntry[] = [];
 
             entries.forEach(entry => {
                 const product = productMap.get(entry.product_id);
@@ -71,7 +79,7 @@ export const DashboardHome: React.FC = () => {
             });
 
             // Helper to calculate metrics
-            const calcMetrics = (list: any[]): DashboardMetric => {
+            const calcMetrics = (list: EnhancedEntry[]): DashboardMetric => {
                 if (list.length === 0) return { count: 0, lastRegistered: null, shortestExpiry: null };
 
                 // Sort by created_at desc for Last Registered

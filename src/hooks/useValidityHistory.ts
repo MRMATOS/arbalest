@@ -44,7 +44,7 @@ export const useValidityHistory = (entryId: string | null) => {
                 if (error) throw error;
 
                 // Map to our interface (renaming created_at to changed_at for clarity)
-                const mappedData: HistoryEntry[] = data.map((item: any) => ({
+                const mappedData: HistoryEntry[] = (data || []).map((item) => ({
                     id: item.id,
                     field_name: item.field_name,
                     old_value: item.old_value,
@@ -54,9 +54,13 @@ export const useValidityHistory = (entryId: string | null) => {
                 }));
 
                 setHistory(mappedData);
-            } catch (err: any) {
+            } catch (err) {
                 console.error('Error fetching history:', err);
-                setError(err.message);
+                if (err instanceof Error) {
+                    setError(err.message);
+                } else {
+                    setError('An unknown error occurred');
+                }
             } finally {
                 setLoading(false);
             }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { UserPlus, Mail, Lock, ShieldCheck, ArrowLeft } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { UserPlus, Mail, Lock, ShieldCheck, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import './Login.css'; // Reusing Login styles for consistency
 
@@ -8,10 +8,12 @@ export const Register: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [success, setSuccess] = useState(false);
     const { signUp } = useAuth();
-    const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -32,14 +34,58 @@ export const Register: React.FC = () => {
 
         try {
             await signUp(email, password);
-            navigate('/aguardando-aprovacao');
-        } catch (err: any) {
-            console.error('Registration error:', err);
-            setError(err.message || 'Erro ao criar conta. Tente novamente.');
+            setSuccess(true);
+        } catch (error) {
+            console.error('Registration error:', error);
+            if (error instanceof Error) setError(error.message);
+            else setError('Erro ao criar conta. Tente novamente.');
         } finally {
             setIsLoading(false);
         }
     };
+
+    if (success) {
+        return (
+            <div className="login-container">
+                <div className="login-card glass">
+                    <div className="login-header">
+                        <div className="logo-badge">
+                            <ShieldCheck size={32} color="var(--brand-primary)" />
+                        </div>
+                        <h1>Conta Criada!</h1>
+                        <p>Verifique seu e-mail para confirmar seu cadastro.</p>
+                    </div>
+
+                    <div className="login-form" style={{ textAlign: 'center' }}>
+                        <div style={{ margin: '2rem 0', display: 'flex', justifyContent: 'center' }}>
+                            <div style={{
+                                width: '64px',
+                                height: '64px',
+                                borderRadius: '50%',
+                                background: 'rgba(16, 185, 129, 0.1)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}>
+                                <Mail size={32} color="var(--success)" />
+                            </div>
+                        </div>
+
+                        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', lineHeight: '1.6' }}>
+                            Um link de confirmação foi enviado para <strong>{email}</strong>.
+                            <br />
+                            Clique no link para ativar sua conta e acessar o sistema.
+                        </p>
+
+                        <Link to="/login" className="login-button" style={{ textDecoration: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+                            <ArrowLeft size={18} />
+                            Voltar para o Login
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="login-container">
@@ -74,12 +120,20 @@ export const Register: React.FC = () => {
                             <Lock size={18} className="input-icon" />
                             <input
                                 id="password"
-                                type="password"
+                                type={showPassword ? 'text' : 'password'}
                                 placeholder="••••••••"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                             />
+                            <button
+                                type="button"
+                                className="password-toggle"
+                                onClick={() => setShowPassword(!showPassword)}
+                                tabIndex={-1}
+                            >
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
                         </div>
                     </div>
 
@@ -89,12 +143,20 @@ export const Register: React.FC = () => {
                             <Lock size={18} className="input-icon" />
                             <input
                                 id="confirm-password"
-                                type="password"
+                                type={showConfirmPassword ? 'text' : 'password'}
                                 placeholder="••••••••"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 required
                             />
+                            <button
+                                type="button"
+                                className="password-toggle"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                tabIndex={-1}
+                            >
+                                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
                         </div>
                     </div>
 

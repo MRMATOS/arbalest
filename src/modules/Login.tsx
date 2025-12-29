@@ -1,18 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogIn, Mail, Lock, ShieldCheck } from 'lucide-react';
+import { LogIn, Mail, Lock, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import './Login.css';
 
 export const Login: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { login, user } = useAuth();
     const navigate = useNavigate();
 
-    useEffect(() => {
+    // Redirect if already logged in
+    React.useEffect(() => {
         if (user) {
             navigate('/');
         }
@@ -28,9 +30,9 @@ export const Login: React.FC = () => {
         try {
             await login(email, password);
             navigate('/');
-        } catch (err: any) {
-            console.error(err);
-            setError('Falha no login. Verifique suas credenciais.');
+        } catch (error) {
+            console.error('Login error:', error);
+            setError('Erro ao fazer login. Verifique suas credenciais.');
         } finally {
             setIsLoading(false);
         }
@@ -69,12 +71,20 @@ export const Login: React.FC = () => {
                             <Lock size={18} className="input-icon" />
                             <input
                                 id="password"
-                                type="password"
+                                type={showPassword ? 'text' : 'password'}
                                 placeholder="••••••••"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                             />
+                            <button
+                                type="button"
+                                className="password-toggle"
+                                onClick={() => setShowPassword(!showPassword)}
+                                tabIndex={-1}
+                            >
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
                         </div>
                     </div>
 

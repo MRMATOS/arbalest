@@ -46,8 +46,9 @@ export const EditValidityModal: React.FC<EditValidityModalProps> = ({ isOpen, on
             });
             if (onSuccess) onSuccess();
             onClose();
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err) {
+            console.error('Error updating validity:', err);
+            if (err instanceof Error) setError(err.message);
         } finally {
             setSaving(false);
         }

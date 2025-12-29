@@ -113,3 +113,83 @@
 .logout-btn:hover {
     background: rgba(244, 63, 94, 0.2);
 }
+
+/* Name editing styles */
+.name-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-primary);
+}
+
+.edit-name-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.name-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.name-input:focus {
+    outline: none;
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 2px rgba(62, 207, 142, 0.1);
+}
+
+.icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.edit-btn {
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.edit-btn:hover {
+    background: var(--bg-accent);
+    color: var(--brand-primary);
+}
+
+.save-btn {
+    background: rgba(62, 207, 142, 0.1);
+    color: var(--brand-primary);
+}
+
+.save-btn:hover {
+    background: rgba(62, 207, 142, 0.2);
+}
+
+.save-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.cancel-btn {
+    background: rgba(244, 63, 94, 0.1);
+    color: var(--error);
+}
+
+.cancel-btn:hover {
+    background: rgba(244, 63, 94, 0.2);
+}
+
+.cancel-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

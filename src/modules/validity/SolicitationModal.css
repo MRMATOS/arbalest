@@ -294,3 +294,130 @@
 .validity-cancel-btn:hover {
     background: rgba(255, 255, 255, 0.05);
 }
+
+/* Tabs & History */
+.solicitation-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 0 16px 16px 16px;
+    border-bottom: 1px solid var(--glass-border);
+    margin-bottom: 20px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: var(--transition);
+}
+
+.tab-btn.active {
+    color: var(--brand-primary);
+    border-bottom-color: var(--brand-primary);
+}
+
+.tab-btn:hover:not(.active) {
+    color: var(--text-secondary);
+    background: var(--bg-hover);
+    border-radius: 4px;
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.history-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.h-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.h-product {
+    display: flex;
+    flex-direction: column;
+}
+
+.h-product strong {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.h-product span {
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+}
+
+.h-card-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.h-card-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.h-card-obs {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    background: var(--bg-accent);
+    padding: 8px;
+    border-radius: 4px;
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+}
+
+.cancel-req-btn {
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    margin-top: 4px;
+    border-radius: 6px;
+    background: rgba(244, 63, 94, 0.1);
+    color: var(--error);
+    border: 1px solid rgba(244, 63, 94, 0.2);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.cancel-req-btn:hover {
+    background: rgba(244, 63, 94, 0.2);
+}
+
+@media (max-width: 480px) {
+    .h-card-top {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .status-badge {
+        align-self: flex-start;
+    }
+}

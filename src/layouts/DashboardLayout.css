@@ -111,6 +111,25 @@
     align-items: center;
     gap: 12px;
     padding: 8px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.user-info:hover,
+.user-info:visited,
+.user-info:focus,
+.user-info:active {
+    color: var(--text-primary);
+    text-decoration: none;
+    background: var(--bg-accent);
+}
+
+.user-info.collapsed {
+    justify-content: center;
+    padding: 8px;
 }
 
 .avatar {
@@ -267,7 +286,7 @@
     height: 60px;
     padding: 0 16px;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     position: sticky;
     top: 0;
     z-index: 100;

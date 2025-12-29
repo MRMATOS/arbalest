@@ -1,0 +1,170 @@
+.products-container {
+    padding: 0;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.products-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.products-header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.products-controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.search-input-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    padding: 10px 16px;
+    border-radius: 10px;
+}
+
+.search-input-wrapper input {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    width: 100%;
+    font-size: 0.9rem;
+}
+
+.btn-add-product {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--brand-primary);
+    color: #fff;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-add-product:hover {
+    filter: brightness(1.1);
+}
+
+.products-table-container {
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.products-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.products-table th,
+.products-table td {
+    padding: 14px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.products-table th {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.products-table td {
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.products-table tr:last-child td {
+    border-bottom: none;
+}
+
+.products-table tr:hover {
+    background: var(--glass-bg);
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-badge.active {
+    background: rgba(62, 207, 142, 0.1);
+    color: var(--brand-primary);
+}
+
+.status-badge.inactive {
+    background: rgba(244, 63, 94, 0.1);
+    color: var(--error);
+}
+
+.action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    padding: 6px;
+    border-radius: 6px;
+    transition: var(--transition);
+}
+
+.action-btn:hover {
+    color: var(--brand-primary);
+    background: var(--glass-bg);
+}
+
+.action-btn.delete:hover {
+    color: var(--error);
+}
+
+.actions-cell {
+    display: flex;
+    gap: 4px;
+}
+
+.pagination-loader {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .products-table {
+        display: block;
+        overflow-x: auto;
+    }
+
+    .products-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .btn-add-product {
+        width: 100%;
+        justify-content: center;
+    }
+}

@@ -1,17 +1,19 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import type { Session } from '@supabase/supabase-js';
 
-interface Store {
+export interface Store {
     id: string;
     name: string;
 }
 
-interface Profile {
+export interface Profile {
     id: string;
     role: 'admin' | 'encarregado' | 'conferente';
     store_id?: string;
     store?: Store;
+    name?: string;
     full_name?: string;
     email?: string;
     approved_at?: string | null;

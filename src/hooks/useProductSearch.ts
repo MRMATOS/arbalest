@@ -34,9 +34,9 @@ export const useProductSearch = () => {
             if (supabaseError) throw supabaseError;
 
             setResults(data as Product[]);
-        } catch (err: any) {
+        } catch (err) {
             console.error('Error searching products:', err);
-            setError(err.message);
+            if (err instanceof Error) setError(err.message);
         } finally {
             setLoading(false);
         }

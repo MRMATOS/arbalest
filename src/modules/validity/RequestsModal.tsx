@@ -10,19 +10,24 @@ interface RequestsModalProps {
     onClose: () => void;
 }
 
+interface RequestItem {
+    id: string;
+    product_name: string;
+    product_code: string;
+    req_user?: string;
+    requester_name?: string;
+    requested_at: string;
+    status: 'pendente' | 'resolvido' | 'arquivado';
+    observation?: string;
+}
+
 export const RequestsModal: React.FC<RequestsModalProps> = ({ isOpen, onClose }) => {
     const { user } = useAuth();
     const [view, setView] = useState<'pending' | 'history'>('pending');
-    const [requests, setRequests] = useState<any[]>([]);
+    const [requests, setRequests] = useState<RequestItem[]>([]);
     const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        if (isOpen && user?.store_id) {
-            fetchRequests();
-        }
-    }, [isOpen, view, user?.store_id]);
-
-    const fetchRequests = async () => {
+    const fetchRequests = React.useCallback(async () => {
         if (!user?.store_id) return;
 
         setLoading(true);
@@ -40,7 +45,7 @@ export const RequestsModal: React.FC<RequestsModalProps> = ({ isOpen, onClose })
                 query = query.neq('status', 'pendente');
             }
 
-            const { data, error } = await query;
+            const { data, error } = await query as { data: RequestItem[] | null, error: unknown };
 
             if (error) throw error;
             setRequests(data || []);
@@ -49,7 +54,15 @@ export const RequestsModal: React.FC<RequestsModalProps> = ({ isOpen, onClose })
         } finally {
             setLoading(false);
         }
-    };
+    }, [user?.store_id, view]);
+
+    useEffect(() => {
+        if (isOpen && user?.store_id) {
+            fetchRequests();
+        }
+    }, [isOpen, view, user?.store_id, fetchRequests]);
+
+
 
 
 

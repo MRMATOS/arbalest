@@ -13,9 +13,10 @@ import {
     AlertOctagon,
     Pen,
     Settings2,
-    History
+    History,
+    Info
 } from 'lucide-react';
-import { useValidityEntries } from '../../hooks/useValidityEntries';
+import { useValidityEntries, type ValidityEntry } from '../../hooks/useValidityEntries';
 import { useAuth } from '../../contexts/AuthContext';
 import { HistoryModal } from './HistoryModal';
 import { ConfirmModal } from '../../components/ConfirmModal';
@@ -65,14 +66,15 @@ export const ValidityList: React.FC<ValidityListProps> = ({
 
     // Filter data
     const [stores, setStores] = useState<Array<{ id: string, name: string }>>([]);
-    const [users, setUsers] = useState<Array<{ id: string, email?: string }>>([]);
+    const [users, setUsers] = useState<Array<{ id: string, name?: string, email?: string }>>([]);
 
     // Internal state for when not controlled, though we aim to control it from App.tsx
     const [internalSolicitationOpen, setInternalSolicitationOpen] = useState(false);
     const [isRequestsModalOpen, setIsRequestsModalOpen] = useState(false);
     const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+    const [pendingSolicitationsCount, setPendingSolicitationsCount] = useState(0);
 
-    // Fetch filter data
+    // Fetch filter data and pending solicitations
     useEffect(() => {
         const fetchFilterData = async () => {
             // Fetch stores
@@ -85,13 +87,52 @@ export const ValidityList: React.FC<ValidityListProps> = ({
             // Fetch encarregados
             const { data: usersData } = await supabase
                 .from('profiles')
-                .select('id, email')
+                .select('id, name, email')
                 .eq('role', 'encarregado')
-                .order('email');
+                .order('name');
             if (usersData) setUsers(usersData);
         };
+
+        const fetchPendingSolicitations = async () => {
+            if (!user?.store_id) return;
+
+            const { count, error } = await supabase
+                .schema('validity')
+                .from('solicitations_view')
+                .select('*', { count: 'exact', head: true })
+                .eq('store_id', user.store_id)
+                .eq('status', 'pendente');
+
+            if (!error && count !== null) {
+                setPendingSolicitationsCount(count);
+            }
+        };
+
+        // Realtime subscription for solicitations
+        const subscription = supabase
+            .channel('solicitations_changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'validity',
+                    table: 'solicitations'
+                },
+                () => {
+                    fetchPendingSolicitations();
+                }
+            )
+            .subscribe();
+
         fetchFilterData();
-    }, []);
+        if (user?.role === 'encarregado') {
+            fetchPendingSolicitations();
+        }
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, [user]);
 
     // Effective state (controlled takes precedence)
     const isSolicitationModalOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalSolicitationOpen;
@@ -121,10 +162,10 @@ export const ValidityList: React.FC<ValidityListProps> = ({
     } | null>(null);
 
     // Edit State
-    const [editEntry, setEditEntry] = useState<any | null>(null);
+    const [editEntry, setEditEntry] = useState<ValidityEntry | null>(null);
 
     // Mobile Options State
-    const [mobileOptionsEntry, setMobileOptionsEntry] = useState<any | null>(null);
+    const [mobileOptionsEntry, setMobileOptionsEntry] = useState<ValidityEntry | null>(null);
 
     const [copiedState, setCopiedState] = useState<{ id: string; type: 'code' | 'ean' } | null>(null);
 
@@ -204,13 +245,25 @@ export const ValidityList: React.FC<ValidityListProps> = ({
         }
     };
 
-    const getExpiryClass = (date: string) => {
+    const getExpiryClass = (item: ValidityEntry) => {
+        const { date, type, amount } = {
+            date: item.expires_at,
+            type: item.product.type,
+            amount: item.product.amount
+        };
+
         const diff = new Date(date).getTime() - new Date().getTime();
         const days = Math.ceil(diff / (1000 * 3600 * 24));
-        if (days < 0) return 'expired';
-        if (days <= 7) return 'critical';
-        if (days <= 30) return 'warning';
-        return '';
+
+        let effectiveDays = days;
+        if (type === 'farmacia' && (amount || 0) > 0) {
+            effectiveDays = days - (amount || 0);
+        }
+
+        if (effectiveDays < 0) return 'expiry-critical'; // Expired
+        if (effectiveDays <= 15) return 'expiry-critical'; // Critical
+        if (effectiveDays <= 30) return 'expiry-warning'; // Warning
+        return 'expiry-normal'; // Normal (Green)
     };
 
     const getExpiryDays = (date: string) => {
@@ -218,14 +271,22 @@ export const ValidityList: React.FC<ValidityListProps> = ({
         return Math.ceil(diff / (1000 * 3600 * 24));
     };
 
+    const getSalesDeadline = (item: ValidityEntry) => {
+        const diff = new Date(item.expires_at).getTime() - new Date().getTime();
+        const days = Math.ceil(diff / (1000 * 3600 * 24));
+        return days - (item.product.amount || 0);
+    };
+
     return (
         <div className="validity-container">
             <div className="page-header">
+                {/* ... existing header code ... */}
                 <div className="header-text">
                     <h1>Lista de Validades</h1>
                     <p>Gerencie os produtos próximos do vencimento</p>
                 </div>
                 <div className="header-actions">
+                    {/* ... existing header actions ... */}
                     {hasRole('encarregado') && (
                         <button className="add-btn" onClick={onAddClick}>
                             <Plus size={20} />
@@ -233,12 +294,12 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                         </button>
                     )}
 
-                    {canVerify && (
+                    {(canVerify || hasRole('encarregado')) && (
                         <>
                             <button
-                                className="validity-export-btn btn-exclusoes"
+                                className={`validity-export-btn btn-exclusoes ${hasRole('encarregado') ? 'mobile-order-first' : ''}`}
                                 onClick={() => setIsApprovalModalOpen(true)}
-                                title="Aprovar Exclusões"
+                                title={hasRole('encarregado') ? "Minhas Exclusões" : "Aprovar Exclusões"}
                                 style={{ position: 'relative' }}
                             >
                                 <Trash2 size={20} />
@@ -260,14 +321,16 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                 )}
                             </button>
 
-                            <button
-                                className="validity-export-btn btn-solicitar"
-                                onClick={() => setIsSolicitationModalOpen(true)}
-                                title="Solicitar Conferência"
-                            >
-                                <Send size={20} />
-                                <span>Solicitar</span>
-                            </button>
+                            {canVerify && (
+                                <button
+                                    className="validity-export-btn btn-solicitar"
+                                    onClick={() => setIsSolicitationModalOpen(true)}
+                                    title="Solicitar Conferência"
+                                >
+                                    <Send size={20} />
+                                    <span>Solicitar</span>
+                                </button>
+                            )}
                         </>
                     )}
 
@@ -276,9 +339,25 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                             className="validity-export-btn btn-solicitar"
                             onClick={() => setIsRequestsModalOpen(true)}
                             title="Ver Solicitações"
+                            style={{ position: 'relative' }}
                         >
                             <Send size={20} />
                             <span>Solicitações</span>
+                            {pendingSolicitationsCount > 0 && (
+                                <span className="notification-badge" style={{
+                                    position: 'absolute',
+                                    top: '-5px',
+                                    right: '-5px',
+                                    background: 'var(--error)',
+                                    color: 'white',
+                                    fontSize: '10px',
+                                    padding: '2px 6px',
+                                    borderRadius: '10px',
+                                    border: '2px solid var(--bg-primary)'
+                                }}>
+                                    {pendingSolicitationsCount}
+                                </span>
+                            )}
                         </button>
                     )}
 
@@ -292,6 +371,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
             {/* Filters */}
             <div className="filter-section glass" style={{ marginTop: '20px', padding: '20px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                    {/* ... existing filters ... */}
                     <div className="filter-group">
                         <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Loja</label>
                         <select
@@ -332,7 +412,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                             <option value="all">Todos os Encarregados</option>
                             {users.map(user => (
                                 <option key={user.id} value={user.id}>
-                                    {user.email}
+                                    {user.name || user.email}
                                 </option>
                             ))}
                         </select>
@@ -398,6 +478,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
             <div className="desktop-view glass">
                 <table className="validity-table">
                     <thead>
+                        {/* ... existing table head ... */}
                         <tr>
                             <th>Produto</th>
                             <th>Código / EAN</th>
@@ -435,15 +516,33 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                 <td>{getStatusBadge(item.status)}</td>
                                 <td><span className="quantity">{item.quantity}</span></td>
                                 <td>
-                                    <div className={`expiry-info ${getExpiryClass(item.expires_at)}`}>
-                                        <span className="date">{new Date(item.expires_at).toLocaleDateString()}</span>
+                                    <div className={`expiry-info ${getExpiryClass(item)}`}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span className="date">{new Date(item.expires_at).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
+                                            {item.product.type === 'farmacia' && (item.product.amount || 0) > 0 && (item.product.amount || 0) < getExpiryDays(item.expires_at) && (
+                                                <div className="info-icon-wrapper">
+                                                    <Info size={16} />
+                                                    <div className="validity-tooltip">
+                                                        <strong>Prazo de Venda</strong><br />
+                                                        {getSalesDeadline(item) <= 0 ? (
+                                                            <span style={{ color: 'var(--error)' }}>Prazo Encerrado</span>
+                                                        ) : (
+                                                            <span>Resta {getSalesDeadline(item)} dias para venda</span>
+                                                        )}
+                                                        <div style={{ marginTop: '8px', fontSize: '0.7rem', opacity: 0.8, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '4px' }}>
+                                                            Qtd. Frasco: {item.product.amount} un<br />
+                                                            Necessário {item.product.amount} dias para consumo.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                         <span className="days">{getExpiryDays(item.expires_at)}d restantes</span>
                                     </div>
                                 </td>
-                                <td><span className="lot-tag">{item.lot}</span></td>
+                                <td><span className="lot-tag">{item.lot || 'Não informado'}</span></td>
                                 <td className="actions-col">
-                                    {/* Action Logic */}
-
+                                    {/* ... existing actions ... */}
                                     {/* 1. Pending Request Actions (Conferente only) */}
                                     {item.has_pending_delete_request && canVerify ? (
                                         <>
@@ -536,20 +635,38 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                     </div>
                                     <div className="card-info">
                                         <label>Lote</label>
-                                        <span className="lot-tag">{item.lot}</span>
+                                        <span className="lot-tag">{item.lot || 'Não informado'}</span>
                                     </div>
                                 </div>
 
-                                <div className={`card-expiry ${getExpiryClass(item.expires_at)}`}>
+                                <div className={`card-expiry ${getExpiryClass(item)}`}>
                                     <div className="expiry-main">
                                         <Calendar size={16} />
-                                        <span>Vence em: {new Date(item.expires_at).toLocaleDateString()}</span>
+                                        <span>Vence em: {new Date(item.expires_at).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
+                                        {item.product.type === 'farmacia' && (item.product.amount || 0) > 0 && (item.product.amount || 0) < getExpiryDays(item.expires_at) && (
+                                            <div className="info-icon-wrapper">
+                                                <Info size={16} />
+                                                <div className="validity-tooltip">
+                                                    <strong>Prazo de Venda</strong><br />
+                                                    {getSalesDeadline(item) <= 0 ? (
+                                                        <span style={{ color: 'var(--error)' }}>Prazo Encerrado</span>
+                                                    ) : (
+                                                        <span>Resta {getSalesDeadline(item)} dias para venda</span>
+                                                    )}
+                                                    <div style={{ marginTop: '8px', fontSize: '0.7rem', opacity: 0.8, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '4px' }}>
+                                                        Qtd. Frasco: {item.product.amount} un<br />
+                                                        Necessário {item.product.amount} dias para consumo.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                     <span className="days-left">{getExpiryDays(item.expires_at)} dias</span>
                                 </div>
                             </div>
 
                             <div className="card-footer">
+                                {/* ... existing footer ... */}
                                 <button
                                     className="card-action secondary"
                                     onClick={() => {
@@ -585,8 +702,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                     ))}
                 </div>
             </div>
-
-            {/* Modals */}
+            {/* ... modals ... */}
             <HistoryModal
                 isOpen={!!selectedHistoryId}
                 onClose={() => setSelectedHistoryId(null)}
@@ -650,6 +766,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                 entries={entries}
                 onApprove={approveDeleteRequest}
                 onReject={rejectDeleteRequest}
+                user={user}
             />
 
             {/* Mobile Options Modal (Custom) */}
