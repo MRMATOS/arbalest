@@ -1,0 +1,114 @@
+Tabelas
+
+tabela: lojas
+
+Você precisa disso 100%.
+Contém:
+	•	id_loja
+	•	nome
+	•	código curto (01, 02, etc.)
+
+tabela: setores
+
+Você falou em “mantimentos, eletroportáteis, etc”.
+Isso é setor, não corredor.
+
+Corredor = localização linear
+Setor = grupo temático
+
+Modelo:
+	•	id_setor
+	•	nome (mantimentos, higiene, frios, etc.)
+	•	id_loja
+
+O setor aparece antes do corredor na navegação.
+
+tabela: corredores
+
+Corredor é o que realmente existe fisicamente.
+
+Campos:
+	•	id_corredor
+	•	nome (A, B, C ou 01, 02…)
+	•	id_loja
+	•	id_setor (opcional, mas útil)
+
+
+tabela: módulos
+
+Essa é a mais importante da sua vida.
+
+Campos essenciais:
+	•	id_modulo (o seu 001.01.130)
+	•	id_loja
+	•	id_corredor
+	•	lado (A ou B)
+	•	posição (numérica, opcional; ex: módulo 1, 2, 3)
+	•	largura (cm)
+	•	profundidade (cm)
+	•	altura_total (cm)
+	•	prateleiras (quantidade, aqui pode ser só número)
+	•	nome interno opcional (M35, M42, etc.)
+
+Aqui entra 100% o QR code apontando para id_modulo.
+
+Essa tabela é a base do universo. Nada de WebJasper dentro dela.
+
+dúvida: webjasper tem o número do módulo conforme seu planograma, então no café, por exemplo, tem o módulo 1, 2, 3 etc., ou seja, é possível pelo menos o número do módulo ser alimentado pela webjasper?
+
+tabela: prateleiras
+
+Você cogitou colocar prateleiras só como número dentro do módulo.
+Funciona, mas cuidado: você vai querer guardar informações por prateleira também.
+
+Minha sugestão mínima:
+
+tabela prateleiras
+	•	id_prateleira
+	•	id_modulo
+	•	número (1,2,3…)
+	•	altura_util (opcional para cálculos avançados)
+
+Se não quiser isso agora, pode começar sem, mas vai precisar depois.
+
+tabela: produtos (já existe)
+
+Perfeito.
+Você já tem dimensões via Simplus.
+
+Não precisa mexer.
+
+tabela: planograma
+
+Aqui entra o WebJasper.
+
+Essa tabela relaciona:
+	•	id_modulo
+	•	id_prateleira
+	•	ean
+	•	frentes (da WJ)
+	•	sobreposicao
+	•	categoria
+
+Você pode até chamar de webjasper_planograma para deixar claro que é fonte externa.
+
+Mais tarde, quando você tiver seu próprio planograma, você cria outra tabela:
+
+planograma_oficial
+
+Mas agora, começa com webjasper mesmo.
+
+⸻
+
+tabela: modulo_produto (seu planograma real)
+
+Quando você medir um módulo e cadastrar as quantidades reais e teóricas, isso vai para uma tabela própria:
+	•	id_modulo
+	•	ean
+	•	capacidade_calculada
+	•	capacidade_real (informada por você no piloto)
+	•	prateleiras_ocupadas
+	•	frente_ideal
+	•	observações
+
+Essa tabela é exclusivamente sua, sem dependência da WebJasper.

@@ -1,0 +1,207 @@
+Documento base
+
+o que você já tem hoje
+	1.	Dimensões de produto via Simplus
+	•	Você já:
+	•	consultou a API da Simplus
+	•	trouxe dimensões dos produtos
+	•	salvou isso no seu banco de dados
+	•	Ou seja: produtos já estão marcados com altura, largura e profundidade.
+	2.	Base de produtos
+	•	Cerca de 100 mil produtos cadastrados.
+	•	Já sabe quais têm dimensões preenchidas.
+	3.	Planograma WebJasper 
+	•	Você já entendeu e testou que a WebJasper fornece, veja aqui:
+	•	loja
+	•	categoria
+	•	EAN do produto
+	•	módulo em que o produto está
+	•	prateleira em que o produto está
+	•	Ela não traz:
+	•	posição exata na prateleira (esquerda, centro, direita)
+	•	conceito de corredor formalizado.
+
+1. módulo como entidade central
+
+Cada módulo de gôndola vira um “ser vivo” com identidade própria.
+	•	Atributos principais do módulo:
+	•	id único global (tipo RG do módulo)
+	•	loja atual
+	•	largura fixa
+	•	profundidade fixa
+	•	altura útil (pode variar, mas tende a ser estável)
+	•	Identificação física:
+	•	QR code ou tag NFC colada no módulo
+	•	Essa tag guarda o id do módulo
+
+Ideia importante:
+Mesmo que o módulo mude de lugar ou de loja, o id será o mesmo. Você muda o “endereço atual” dele no sistema, não a identidade.
+
+
+———————————
+
+	Sobre o ID:
+        - O ID do módulo deve ser montado da seguinte forma:Número do Módulo + Loja + Largura.[001.01.130]Nesse caso: módulo 1, da loja 01, com largura de 1,30 m.Porque da loja: Para filtrar facilmente e caso ele esteja em outro lugar, saber aonde pertence. Também pode mudar e, com isso, cria histórico.Porque da largura: É imutável e facilita o filtro e a visualização.
+	
+	Sobre a identificação física:
+        - Será feito com QR Code.
+        - NFC não será tão útil porque muitos celulares dos colaboradores não têm leitor. Eu pensei em usá-lo para não deixar o QR Code à mostra, mas no final, basta que as pessoas tenham o link e isso já resolve.
+
+		———————————
+
+⸻
+
+2. ligação módulo x produto x capacidade
+
+Com:
+	•	dimensões do produto (Simplus)
+	•	dimensões do módulo
+
+Você quer calcular:
+	•	quantos itens cabem:
+	•	por prateleira
+	•	por módulo inteiro
+	•	em diferentes configurações:
+	•	produto em pé
+	•	produto deitado
+	•	empilhado
+
+Isso serve para:
+	•	planejamento de exposição
+	•	saber a capacidade máxima teórica
+	•	alimentar regras de sugestão de compra
+	•	testar rearranjos: “E se eu colocasse feijão aqui, quanto caberia?”
+
+⸻
+
+3. superplanograma por loja
+
+Usando os dados da WebJasper como início, você quer criar um planograma próprio, que contém:
+	•	para cada loja:
+	•	lista de módulos
+	•	para cada módulo:
+	•	sua posição no mapa da loja
+	•	produtos alocados
+			•	prateleiras no módulo
+			•	quantidade exposta padrão
+			•	capacidade máxima
+			•	evolução futura:
+	•	mapa interativo
+	•	clicar em um módulo no mapa
+	•	ver produtos expostos e capacidade
+	•	simular trocas de produto
+
+Esse superplanograma é pensado para:
+	•	equipe interna:
+	•	encarregados, gerentes, repositores
+	•	possivelmente cliente no futuro:
+	•	localizar produtos no app do mercado
+
+⸻
+
+4. sugestão de compra usando capacidade
+
+Aqui entra o pedido do pessoal do Flow.
+
+Você quer separar dois conceitos:
+	•	quanto cabe no módulo
+	•	quanto deve ter no módulo
+
+O sistema de sugestão de compra deveria considerar pelo menos:
+	•	capacidade máxima física do módulo
+	•	política de exposição mínima ideal
+	•	giro do produto
+	•	estoque atual (loja + depósito)
+
+Seu sistema entra como “motor de capacidade”:
+	•	retorna para o Flow algo do tipo:
+	•	“Neste módulo cabem 60 pacotes desse produto; a política ideal é manter 40; hoje tem 18; falta X.”
+
+⸻
+
+5. controle de validade na gôndola
+
+Você quer reativar e integrar a ideia do app de validade, mas agora plugado no planograma.
+
+Fluxo desejado para validade:
+	•	encarregado na loja:
+	•	aponta o celular para o QR code do módulo
+	•	o sistema sabe:
+	•	qual loja
+	•	qual módulo
+	•	quais produtos deveriam estar ali
+	•	o usuário:
+	•	informa qual produto está com data crítica
+	•	informa quantas unidades
+	•	registra a data de validade
+	•	tira foto
+	•	o sistema:
+	•	registra tudo vinculado ao módulo
+	•	gera informação para o time de compras:
+	•	promoções
+	•	ações corretivas
+
+Ou seja, validade deixa de ser um caderninho aleatório e passa a ser dado estruturado, com localização precisa.
+
+⸻
+
+6. endereçamento do depósito
+
+É o “irmão mais difícil” do planograma da loja.
+
+Você quer criar:
+	•	um sistema de endereços tipo:
+	•	rua
+	•	prédio
+	•	nível
+	•	posição
+	•	cada posição de palete ou estante também terá:
+	•	id único
+	•	QR code ou NFC
+	•	relação com:
+	•	produtos armazenados
+	•	quantidades
+	•	datas de validade
+
+Diferença chave:
+No depósito você não terá WebJasper, então o mapeamento inicial é manual.
+
+Mas a lógica é a mesma:
+“pontos físicos com id único armazenando produtos com dimensões e saldos”.
+
+⸻
+
+fontes de dados e integrações
+
+WebJasper
+	•	Usa planograma deles só como:
+	•	fonte inicial de:
+	•	EAN
+	•	módulo
+	•	prateleira
+	•	loja
+	•	Pode ser consumido:
+	•	via edge function que chama a API deles sempre
+	•	ou num processo de importação que grava tudo no seu banco
+
+Você está inclinado a usar edge function, para ter dados atualizados sempre que eles mexerem.
+
+Simplus
+	•	Já é a fonte principal de:
+	•	dimensões: altura, largura, profundidade
+	•	possivelmente peso e outros detalhes
+	•	Já está integrada e armazenada no seu banco.
+
+mapa da loja
+	•	Hoje:
+	•	existe em AutoCAD, feito pelos engenheiros
+	•	Futuro:
+	•	exportar esse mapa para algum formato utilizável
+	•	reconstruir em um modelo de dados:
+	•	áreas
+	•	corredores
+	•	módulos
+	•	primeiro passo pode ser totalmente textual:
+	•	corredor A, módulo 1, módulo 2 etc.
+	•	depois virar visual:
+	•	o usuário clica no módulo no mapa interativo
