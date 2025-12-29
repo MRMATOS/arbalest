@@ -72,11 +72,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                         active={isActive('/validity')}
                         collapsed={!sidebarOpen}
                     />
-                    <NavItem
-                        icon={<Package size={20} />}
-                        label="Produtos"
-                        collapsed={!sidebarOpen}
-                    />
+
 
                     {user?.role === 'admin' && (
                         <NavItem
@@ -171,7 +167,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                 <Link to="/profile" className={`nav-btn ${isActive('/profile') ? 'active' : ''}`}>
                     <User size={24} /><span>Perfil</span>
                 </Link>
-                <button className="nav-btn"><Package size={24} /><span>Produtos</span></button>
+
 
                 <Link to="/validity" className={`nav-btn ${isActive('/validity') ? 'active' : ''}`}>
                     <Calendar size={24} /><span>Validade</span>
