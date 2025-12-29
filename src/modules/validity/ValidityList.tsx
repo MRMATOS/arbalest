@@ -336,13 +336,10 @@ export const ValidityList: React.FC<ValidityListProps> = ({
 
                     {(hasRole('encarregado') || hasRole('admin')) && (
                         <button
-                            className="validity-export-btn btn-solicitar"
+                            className="validity-export-btn btn-solicitacoes"
                             onClick={() => setIsRequestsModalOpen(true)}
                             title="Ver Solicitações"
-                            style={{
-                                position: 'relative',
-                                display: user?.role === 'admin' ? 'flex' : undefined
-                            }}
+                            style={{ position: 'relative' }}
                         >
                             <Send size={20} />
                             <span>Solicitações</span>

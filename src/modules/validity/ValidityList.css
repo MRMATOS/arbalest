@@ -449,6 +449,17 @@
     transform: translateY(-1px);
 }
 
+/* Copy styles from btn-solicitar to btn-solicitacoes */
+.btn-solicitacoes {
+    color: var(--warning);
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.btn-solicitacoes:hover {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: var(--warning);
+}
+
 /* Mobile Adjustments */
 @media (max-width: 768px) {
     .page-header {
@@ -457,7 +468,31 @@
         align-items: flex-start;
     }
 
-    /* Hide add button on mobile - will use bottom nav button */
+    /* Reduce header actions gap and sizing */
+    .header-actions {
+        gap: 6px;
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        /* Prevent wrapping */
+        overflow-x: auto;
+        /* Allow scroll if still needed, but try to fit */
+    }
+
+    .validity-export-btn {
+        padding: 6px 10px;
+        font-size: 0.7rem;
+        /* Smaller font */
+        gap: 4px;
+        white-space: nowrap;
+    }
+
+    .validity-export-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    /* Hide add button on mobile */
     .add-btn {
         display: none;
     }
@@ -470,8 +505,14 @@
         font-size: 0.875rem;
     }
 
+    /* Hide "Solicitar" (Make Request) button on mobile */
     .btn-solicitar {
         display: none;
+    }
+
+    /* Show "Solicitações" (View Requests) button on mobile */
+    .btn-solicitacoes {
+        display: flex;
     }
 }
 
