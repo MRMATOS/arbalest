@@ -530,6 +530,11 @@
     .btn-solicitacoes {
         display: flex;
     }
+
+    /* Hide embedded filters on mobile */
+    .desktop-filters {
+        display: none;
+    }
 }
 
 /* Responsive Switching */

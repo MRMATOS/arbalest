@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { Send } from 'lucide-react';
+import { Send, Filter } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Login } from './modules/Login';
 import { Register } from './modules/Register';
@@ -55,6 +55,7 @@ const RequireAdmin = () => {
 function ValidityPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSolicitationModalOpen, setIsSolicitationModalOpen] = useState(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { user } = useAuth();
@@ -118,6 +119,29 @@ function ValidityPage() {
             <span style={{ fontWeight: 500 }}>Solicitar</span>
           </button>
         ) : undefined}
+        filterMobileAction={
+          <button
+            onClick={() => setIsFilterModalOpen(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              height: '100%',
+              cursor: 'pointer',
+              gap: '4px',
+              color: 'var(--text-secondary)',
+              fontSize: '0.65rem',
+              padding: 0
+            }}
+          >
+            <Filter size={24} />
+            <span style={{ fontWeight: 500 }}>Filtrar</span>
+          </button>
+        }
       >
         <ValidityList
           key={refreshTrigger}
@@ -125,7 +149,8 @@ function ValidityPage() {
           isSolicitationModalOpen={isSolicitationModalOpen}
           onCloseSolicitationModal={() => setIsSolicitationModalOpen(false)}
           onOpenSolicitationModal={() => setIsSolicitationModalOpen(true)}
-
+          isFilterModalOpen={isFilterModalOpen}
+          onCloseFilterModal={() => setIsFilterModalOpen(false)}
         />
       </DashboardLayout>
 

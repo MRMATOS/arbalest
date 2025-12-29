@@ -26,6 +26,7 @@ import { SolicitationModal } from './SolicitationModal';
 import { EditValidityModal } from './EditValidityModal';
 import { DeleteRequestsApprovalModal } from './DeleteRequestsApprovalModal';
 import { RequestsModal } from './RequestsModal';
+import { FilterModal, type FilterState } from './FilterModal';
 import { supabase } from '../../services/supabase';
 import './ValidityList.css';
 
@@ -34,13 +35,17 @@ interface ValidityListProps {
     isSolicitationModalOpen?: boolean;
     onCloseSolicitationModal?: () => void;
     onOpenSolicitationModal?: () => void;
+    isFilterModalOpen?: boolean;
+    onCloseFilterModal?: () => void;
 }
 
 export const ValidityList: React.FC<ValidityListProps> = ({
     onAddClick,
     isSolicitationModalOpen: controlledIsOpen,
     onCloseSolicitationModal,
-    onOpenSolicitationModal
+    onOpenSolicitationModal,
+    isFilterModalOpen,
+    onCloseFilterModal
 }) => {
     const {
         entries,
@@ -238,6 +243,13 @@ export const ValidityList: React.FC<ValidityListProps> = ({
         }
     });
 
+    const handleFilterApply = (newFilters: FilterState) => {
+        setSelectedStore(newFilters.store);
+        setSelectedUser(newFilters.user);
+        setSelectedType(newFilters.type);
+        setSortBy(newFilters.sortBy);
+    };
+
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'conferido': return <span className="status-badge success"><CheckCircle2 size={14} /> Conferido</span>;
@@ -368,8 +380,9 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                 </div>
             </div>
 
-            {/* Filters */}
-            <div className="filter-section glass" style={{ marginTop: '20px', padding: '20px' }}>
+
+            {/* Desktop Filters (Hidden on Mobile) */}
+            <div className="filter-section glass desktop-filters" style={{ marginTop: '20px', padding: '20px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                     {/* ... existing filters ... */}
                     <div className="filter-group">
@@ -771,53 +784,69 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                 user={user}
             />
 
+            <FilterModal
+                isOpen={!!isFilterModalOpen}
+                onClose={onCloseFilterModal || (() => { })}
+                onApply={handleFilterApply}
+                currentFilters={{
+                    store: selectedStore,
+                    user: selectedUser,
+                    type: selectedType,
+                    sortBy: sortBy
+                }}
+                availableStores={stores}
+                availableUsers={users}
+            />
+
             {/* Mobile Options Modal (Custom) */}
-            {mobileOptionsEntry && (
-                <div className="modal-overlay" onClick={() => setMobileOptionsEntry(null)}>
-                    <div className="modal-content glass" style={{ maxWidth: '320px', padding: '24px' }}>
-                        <h3 style={{ marginBottom: '20px' }}>Opções do Registro</h3>
-                        <p style={{ marginBottom: '20px', color: 'var(--text-secondary)' }}>
-                            {mobileOptionsEntry.product.name}
-                        </p>
+            {
+                mobileOptionsEntry && (
+                    <div className="modal-overlay" onClick={() => setMobileOptionsEntry(null)}>
+                        <div className="modal-content glass" style={{ maxWidth: '320px', padding: '24px' }}>
+                            <h3 style={{ marginBottom: '20px' }}>Opções do Registro</h3>
+                            <p style={{ marginBottom: '20px', color: 'var(--text-secondary)' }}>
+                                {mobileOptionsEntry.product.name}
+                            </p>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            <button className="btn-primary" onClick={() => {
-                                setEditEntry(mobileOptionsEntry);
-                                setMobileOptionsEntry(null);
-                            }}>
-                                Editar Registro
-                            </button>
-
-                            <button
-                                className="btn-danger-outline"
-                                style={{
-                                    padding: '12px',
-                                    border: '1px solid var(--error)',
-                                    color: 'var(--error)',
-                                    background: 'transparent',
-                                    borderRadius: '8px',
-                                    fontWeight: 600
-                                }}
-                                onClick={() => {
-                                    setDeleteRequest({
-                                        isOpen: true,
-                                        entryId: mobileOptionsEntry.id,
-                                        productName: mobileOptionsEntry.product.name
-                                    });
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <button className="btn-primary" onClick={() => {
+                                    setEditEntry(mobileOptionsEntry);
                                     setMobileOptionsEntry(null);
-                                }}
-                                disabled={mobileOptionsEntry.has_pending_delete_request}
-                            >
-                                {mobileOptionsEntry.has_pending_delete_request ? 'Exclusão Pendente' : 'Solicitar Exclusão'}
-                            </button>
+                                }}>
+                                    Editar Registro
+                                </button>
 
-                            <button className="btn-secondary" onClick={() => setMobileOptionsEntry(null)}>
-                                Cancelar
-                            </button>
+                                <button
+                                    className="btn-danger-outline"
+                                    style={{
+                                        padding: '12px',
+                                        border: '1px solid var(--error)',
+                                        color: 'var(--error)',
+                                        background: 'transparent',
+                                        borderRadius: '8px',
+                                        fontWeight: 600
+                                    }}
+                                    onClick={() => {
+                                        setDeleteRequest({
+                                            isOpen: true,
+                                            entryId: mobileOptionsEntry.id,
+                                            productName: mobileOptionsEntry.product.name
+                                        });
+                                        setMobileOptionsEntry(null);
+                                    }}
+                                    disabled={mobileOptionsEntry.has_pending_delete_request}
+                                >
+                                    {mobileOptionsEntry.has_pending_delete_request ? 'Exclusão Pendente' : 'Solicitar Exclusão'}
+                                </button>
+
+                                <button className="btn-secondary" onClick={() => setMobileOptionsEntry(null)}>
+                                    Cancelar
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
