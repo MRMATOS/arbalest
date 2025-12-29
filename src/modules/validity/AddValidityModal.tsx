@@ -60,7 +60,7 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
                     store_id: user.store_id,
                     expires_at: formData.expires_at,
                     lot: formData.lot || null,
-                    quantity: parseFloat(formData.quantity),
+                    quantity: formData.quantity ? parseFloat(formData.quantity) : null,
                     created_by: user.id,
                     status: 'ativo'
                 });
@@ -198,13 +198,12 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
                             </div>
 
                             <div className="form-group">
-                                <label>Quantidade *</label>
+                                <label>Quantidade (Opcional)</label>
                                 <input
                                     type="number"
                                     value={formData.quantity}
                                     onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                                     placeholder="Ex: 24"
-                                    required
                                     min="0"
                                     step="1"
                                 />
@@ -246,7 +245,7 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
                             // Here I wrapped content in form.
                             handleSubmit(e);
                         }}
-                        disabled={saving || !formData.expires_at || !formData.quantity}
+                        disabled={saving || !formData.expires_at}
                     >
                         {saving ? 'Salvando...' : 'Salvar Registro'}
                     </button>
