@@ -470,26 +470,42 @@
 
     /* Reduce header actions gap and sizing */
     .header-actions {
-        gap: 6px;
+        display: flex;
+        gap: 8px;
         width: 100%;
-        justify-content: flex-start;
+        justify-content: space-between;
         flex-wrap: nowrap;
-        /* Prevent wrapping */
-        overflow-x: auto;
-        /* Allow scroll if still needed, but try to fit */
+        overflow-x: visible;
+        padding-bottom: 0px;
     }
 
     .validity-export-btn {
-        padding: 6px 10px;
-        font-size: 0.7rem;
-        /* Smaller font */
-        gap: 4px;
+        flex: 1;
+        /* Expand to fill space */
+        justify-content: center;
+        /* Center content */
+        padding: 10px 4px;
+        /* Reduced side padding */
+        font-size: 0.8rem;
+        /* Reasonable font size */
+        gap: 6px;
         white-space: nowrap;
+        text-align: center;
+        width: auto;
+        min-width: 0;
+        /* Allow shrinking */
+    }
+
+    /* Ensure text truncates if needed instead of breaking layout */
+    .validity-export-btn span {
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .validity-export-btn svg {
-        width: 16px;
-        height: 16px;
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
     }
 
     /* Hide add button on mobile */
