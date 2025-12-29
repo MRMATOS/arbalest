@@ -95,6 +95,29 @@ function ValidityPage() {
       <DashboardLayout
         onAddClick={!isConferente || user?.role === 'admin' ? handleOpenAdd : undefined}
         customMobileAction={customMobileAction}
+        secondaryMobileAction={user?.role === 'admin' ? (
+          <button
+            onClick={() => setIsSolicitationModalOpen(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              height: '100%',
+              cursor: 'pointer',
+              gap: '4px',
+              color: 'var(--text-secondary)',
+              fontSize: '0.65rem',
+              padding: 0
+            }}
+          >
+            <Send size={24} color="var(--warning)" />
+            <span style={{ fontWeight: 500 }}>Solicitar</span>
+          </button>
+        ) : undefined}
       >
         <ValidityList
           key={refreshTrigger}

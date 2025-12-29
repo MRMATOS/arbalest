@@ -339,7 +339,10 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                             className="validity-export-btn btn-solicitar"
                             onClick={() => setIsRequestsModalOpen(true)}
                             title="Ver Solicitações"
-                            style={{ position: 'relative' }}
+                            style={{
+                                position: 'relative',
+                                display: user?.role === 'admin' ? 'flex' : undefined
+                            }}
                         >
                             <Send size={20} />
                             <span>Solicitações</span>

@@ -20,6 +20,7 @@ interface DashboardLayoutProps {
     children?: React.ReactNode;
     onAddClick?: () => void;
     customMobileAction?: React.ReactNode;
+    secondaryMobileAction?: React.ReactNode;
 }
 
 interface NavItemProps {
@@ -29,7 +30,7 @@ interface NavItemProps {
     collapsed?: boolean;
 }
 
-export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAddClick, customMobileAction }) => {
+export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAddClick, customMobileAction, secondaryMobileAction }) => {
     const { user, logout } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -175,6 +176,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                 <Link to="/validity" className={`nav-btn ${isActive('/validity') ? 'active' : ''}`}>
                     <Calendar size={24} /><span>Validade</span>
                 </Link>
+
+                {secondaryMobileAction && (
+                    <div className="nav-btn">
+                        {secondaryMobileAction}
+                    </div>
+                )}
+
                 {customMobileAction ? (
                     <div className="nav-btn add-btn-mobile custom-action">
                         {customMobileAction}
