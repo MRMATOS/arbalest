@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useLocation } from 'react-router-dom';
 import {
-    BarChart3,
     Calendar,
     ChevronLeft,
     ChevronRight,
@@ -64,13 +63,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                 </div>
 
                 <nav className="sidebar-nav">
-                    <NavItem
-                        icon={<BarChart3 size={20} />}
-                        label="Dashboard"
-                        path="/"
-                        active={isActive('/') && location.pathname === '/'}
-                        collapsed={!sidebarOpen}
-                    />
+
                     <NavItem
                         icon={<Calendar size={20} />}
                         label="Validade"
@@ -137,7 +130,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                             <button onClick={toggleMobileMenu}><X size={24} /></button>
                         </div>
                         <nav className="mobile-nav">
-                            <NavItem icon={<BarChart3 size={20} />} label="Dashboard" path="/" active={isActive('/') && location.pathname === '/'} />
+
                             <NavItem icon={<Calendar size={20} />} label="Validade" path="/validity" active={isActive('/validity')} />
                             {user?.role === 'admin' && (
                                 <NavItem icon={<ShieldCheck size={20} />} label="Admin" path="/admin" active={isActive('/admin')} />
@@ -178,9 +171,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                     <User size={24} /><span>Perfil</span>
                 </Link>
                 <button className="nav-btn"><Package size={24} /><span>Produtos</span></button>
-                <Link to="/" className={`nav-btn ${isActive('/') && location.pathname === '/' ? 'active' : ''}`}>
-                    <BarChart3 size={24} /><span>Home</span>
-                </Link>
+
                 <Link to="/validity" className={`nav-btn ${isActive('/validity') ? 'active' : ''}`}>
                     <Calendar size={24} /><span>Validade</span>
                 </Link>
@@ -189,11 +180,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                         {customMobileAction}
                     </div>
                 ) : (
-                    onAddClick && (
-                        <button className="nav-btn add-btn-mobile" onClick={() => onAddClick?.()}>
-                            <PlusCircle size={28} color="var(--brand-primary)" />
-                        </button>
-                    )
+                    <button
+                        className={`nav-btn add-btn-mobile ${!onAddClick ? 'disabled' : ''}`}
+                        onClick={() => onAddClick?.()}
+                        disabled={!onAddClick}
+                        style={{ opacity: onAddClick ? 1 : 0.5, pointerEvents: onAddClick ? 'auto' : 'none' }}
+                    >
+                        <PlusCircle size={28} color={onAddClick ? "var(--brand-primary)" : "var(--text-tertiary)"} />
+                    </button>
                 )}
             </footer>
         </div>

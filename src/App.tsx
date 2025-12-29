@@ -10,9 +10,6 @@ import { ValidityList } from './modules/validity/ValidityList';
 import { AddValidityModal } from './modules/validity/AddValidityModal';
 import { AdminDashboard } from './modules/admin/AdminDashboard';
 import { Profile } from './modules/profile/Profile';
-import { DashboardHome } from './modules/dashboard/DashboardHome';
-import './styles/global.css';
-
 // Guard: Requires valid session only
 const RequireAuth = () => {
   const { user, loading } = useAuth();
@@ -142,11 +139,7 @@ function App() {
 
             {/* Approved Routes */}
             <Route element={<RequireApproval />}>
-              <Route path="/" element={
-                <DashboardLayout>
-                  <DashboardHome />
-                </DashboardLayout>
-              } />
+              <Route path="/" element={<Navigate to="/validity" replace />} />
 
               <Route path="/validity" element={<ValidityPage />} />
 
