@@ -93,7 +93,7 @@ function ValidityPage() {
   return (
     <>
       <DashboardLayout
-        onAddClick={!isConferente ? handleOpenAdd : undefined}
+        onAddClick={!isConferente || user?.role === 'admin' ? handleOpenAdd : undefined}
         customMobileAction={customMobileAction}
       >
         <ValidityList

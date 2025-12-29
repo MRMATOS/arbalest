@@ -125,7 +125,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
             .subscribe();
 
         fetchFilterData();
-        if (user?.role === 'encarregado') {
+        if (user?.role === 'encarregado' || user?.role === 'admin') {
             fetchPendingSolicitations();
         }
 
@@ -176,7 +176,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
     };
 
     const handleStatusToggle = (id: string, currentStatus: string) => {
-        if (!hasRole('conferente')) return; // Guard
+        if (!hasRole('conferente') && !hasRole('admin')) return; // Guard
         if (currentStatus === 'conferido') {
             setConfirmAction({
                 isOpen: true,
@@ -191,8 +191,8 @@ export const ValidityList: React.FC<ValidityListProps> = ({
     const hasRole = (role: string) => user?.role === role;
 
     // Permissions Logic
-    const canVerify = hasRole('conferente');
-    const canEdit = hasRole('encarregado');
+    const canVerify = hasRole('conferente') || hasRole('admin');
+    const canEdit = hasRole('encarregado') || hasRole('admin');
 
     const pendingRequestsCount = entries.filter(e => e.has_pending_delete_request).length;
 
@@ -287,19 +287,19 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                 </div>
                 <div className="header-actions">
                     {/* ... existing header actions ... */}
-                    {hasRole('encarregado') && (
+                    {(hasRole('encarregado') || hasRole('admin')) && (
                         <button className="add-btn" onClick={onAddClick}>
                             <Plus size={20} />
                             <span>Novo Registro</span>
                         </button>
                     )}
 
-                    {(canVerify || hasRole('encarregado')) && (
+                    {(canVerify || hasRole('encarregado') || hasRole('admin')) && (
                         <>
                             <button
-                                className={`validity-export-btn btn-exclusoes ${hasRole('encarregado') ? 'mobile-order-first' : ''}`}
+                                className={`validity-export-btn btn-exclusoes ${hasRole('encarregado') || hasRole('admin') ? 'mobile-order-first' : ''}`}
                                 onClick={() => setIsApprovalModalOpen(true)}
-                                title={hasRole('encarregado') ? "Minhas Exclusões" : "Aprovar Exclusões"}
+                                title={hasRole('encarregado') || hasRole('admin') ? "Minhas Exclusões" : "Aprovar Exclusões"}
                                 style={{ position: 'relative' }}
                             >
                                 <Trash2 size={20} />
@@ -334,7 +334,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                         </>
                     )}
 
-                    {hasRole('encarregado') && (
+                    {(hasRole('encarregado') || hasRole('admin')) && (
                         <button
                             className="validity-export-btn btn-solicitar"
                             onClick={() => setIsRequestsModalOpen(true)}
@@ -678,7 +678,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                 </button>
 
                                 {/* Mobile Actions based on Role */}
-                                {canVerify ? (
+                                {canVerify && (
                                     <button
                                         className={`card-action ${item.status === 'conferido' ? 'success' : 'warning'}`}
                                         onClick={() => handleStatusToggle(item.id, item.status)}
@@ -689,7 +689,9 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                             <>Conferir <CheckCircle2 size={16} /></>
                                         )}
                                     </button>
-                                ) : (
+                                )}
+
+                                {canEdit && (
                                     <button
                                         className="card-action primary"
                                         onClick={() => setMobileOptionsEntry(item)}
