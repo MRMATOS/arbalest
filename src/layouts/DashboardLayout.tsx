@@ -125,16 +125,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
 
             {/* Header Mobile */}
             <header className="mobile-header glass">
-                <button onClick={toggleMobileMenu} className="menu-btn">
-                    <Menu size={24} />
-                </button>
-                <div className="logo">
+                <Link to="/" className="logo" style={{ textDecoration: 'none', color: 'inherit' }}>
                     <Package size={24} color="var(--brand-primary)" />
                     <span>Arbalest</span>
-                </div>
-                <button className="user-btn">
-                    <User size={24} />
-                </button>
+                </Link>
             </header>
 
             {/* Mobile Menu Overlay */}
@@ -146,6 +140,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                             <button onClick={toggleMobileMenu}><X size={24} /></button>
                         </div>
                         <nav className="mobile-nav">
+                            <NavItem icon={<User size={20} />} label="Perfil" path="/profile" active={isActive('/profile')} />
                             <NavItem icon={<Home size={20} />} label="Início" path="/" active={isActive('/')} />
                             <NavItem icon={<Calendar size={20} />} label="Validade" path="/validity" active={isActive('/validity')} />
                             <NavItem icon={<Map size={20} />} label="Planogramas" path="/planogram" active={isActive('/planogram')} />
@@ -184,9 +179,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
 
             {/* Mobile Bottom Navigation (Instagram Style) */}
             <footer className="mobile-bottom-nav glass">
-                <Link to="/profile" className={`nav-btn ${isActive('/profile') ? 'active' : ''}`}>
-                    <User size={24} /><span>Perfil</span>
-                </Link>
+                <button className={`nav-btn ${isMobileMenuOpen ? 'active' : ''}`} onClick={toggleMobileMenu}>
+                    <Menu size={24} /><span>Menu</span>
+                </button>
 
 
                 {/* Dynamic Module Icon */}
