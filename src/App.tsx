@@ -11,6 +11,8 @@ import { AddValidityModal } from './modules/validity/AddValidityModal';
 import { AdminDashboard } from './modules/admin/AdminDashboard';
 import { Profile } from './modules/profile/Profile';
 import { ModuleHub } from './modules/ModuleHub';
+import { PlanogramDashboard } from './modules/planogram/PlanogramDashboard';
+import { ModulePatternsPage } from './modules/planogram/ModulePatternsPage';
 // Guard: Requires valid session only
 const RequireAuth = () => {
   const { user, loading } = useAuth();
@@ -193,12 +195,8 @@ function App() {
 
               <Route path="/validity/*" element={<ValidityPage />} />
 
-              <Route path="/planogram/*" element={
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'white', flexDirection: 'column' }}>
-                  <h1>Planogramas</h1>
-                  <p>Módulo em construção</p>
-                </div>
-              } />
+              <Route path="/planogram" element={<PlanogramDashboard />} />
+              <Route path="/planogram/patterns" element={<ModulePatternsPage />} />
 
               {/* Admin Routes */}
               <Route element={<RequireAdmin />}>
