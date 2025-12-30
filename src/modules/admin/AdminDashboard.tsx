@@ -188,6 +188,8 @@ export const AdminDashboard: React.FC = () => {
                                         className="role-select"
                                     >
                                         <option value="conferente">Conferente</option>
+                                        <option value="planogram_edit">Planograma (Editor)</option>
+                                        <option value="planogram_view">Planograma (Visualizador)</option>
                                         <option value="encarregado">Encarregado</option>
                                         <option value="admin">Admin</option>
                                     </select>

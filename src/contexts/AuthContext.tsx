@@ -10,7 +10,7 @@ export interface Store {
 
 export interface Profile {
     id: string;
-    role: 'admin' | 'encarregado' | 'conferente';
+    role: 'admin' | 'encarregado' | 'conferente' | 'planogram_edit' | 'planogram_view';
     store_id?: string;
     store?: Store;
     name?: string;

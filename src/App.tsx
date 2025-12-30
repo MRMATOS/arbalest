@@ -10,6 +10,7 @@ import { ValidityList } from './modules/validity/ValidityList';
 import { AddValidityModal } from './modules/validity/AddValidityModal';
 import { AdminDashboard } from './modules/admin/AdminDashboard';
 import { Profile } from './modules/profile/Profile';
+import { ModuleHub } from './modules/ModuleHub';
 // Guard: Requires valid session only
 const RequireAuth = () => {
   const { user, loading } = useAuth();
@@ -187,9 +188,17 @@ function App() {
 
             {/* Approved Routes */}
             <Route element={<RequireApproval />}>
-              <Route path="/" element={<Navigate to="/validity" replace />} />
+              <Route path="/" element={<ModuleHub />} />
+              <Route path="/hub" element={<Navigate to="/" replace />} />
 
-              <Route path="/validity" element={<ValidityPage />} />
+              <Route path="/validity/*" element={<ValidityPage />} />
+
+              <Route path="/planogram/*" element={
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'white', flexDirection: 'column' }}>
+                  <h1>Planogramas</h1>
+                  <p>Módulo em construção</p>
+                </div>
+              } />
 
               {/* Admin Routes */}
               <Route element={<RequireAdmin />}>

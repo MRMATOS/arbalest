@@ -12,7 +12,9 @@ import {
     Search,
     User,
     X,
-    ShieldCheck
+    ShieldCheck,
+    Home,
+    Map
 } from 'lucide-react';
 import './DashboardLayout.css';
 
@@ -67,10 +69,26 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                 <nav className="sidebar-nav">
 
                     <NavItem
+                        icon={<Home size={20} />}
+                        label="Início"
+                        path="/"
+                        active={isActive('/')}
+                        collapsed={!sidebarOpen}
+                    />
+
+                    <NavItem
                         icon={<Calendar size={20} />}
                         label="Validade"
                         path="/validity"
                         active={isActive('/validity')}
+                        collapsed={!sidebarOpen}
+                    />
+
+                    <NavItem
+                        icon={<Map size={20} />}
+                        label="Planogramas"
+                        path="/planogram"
+                        active={isActive('/planogram')}
                         collapsed={!sidebarOpen}
                     />
 
@@ -128,8 +146,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                             <button onClick={toggleMobileMenu}><X size={24} /></button>
                         </div>
                         <nav className="mobile-nav">
-
+                            <NavItem icon={<Home size={20} />} label="Início" path="/" active={isActive('/')} />
                             <NavItem icon={<Calendar size={20} />} label="Validade" path="/validity" active={isActive('/validity')} />
+                            <NavItem icon={<Map size={20} />} label="Planogramas" path="/planogram" active={isActive('/planogram')} />
                             {user?.role === 'admin' && (
                                 <NavItem icon={<ShieldCheck size={20} />} label="Admin" path="/admin" active={isActive('/admin')} />
                             )}
@@ -170,9 +189,16 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                 </Link>
 
 
-                <Link to="/validity" className={`nav-btn ${isActive('/validity') ? 'active' : ''}`}>
-                    <Calendar size={24} /><span>Validade</span>
-                </Link>
+                {/* Dynamic Module Icon */}
+                {location.pathname.startsWith('/planogram') ? (
+                    <Link to="/planogram" className="nav-btn active">
+                        <Map size={24} /><span>Mapa</span>
+                    </Link>
+                ) : (
+                    <Link to="/validity" className={`nav-btn ${isActive('/validity') ? 'active' : ''}`}>
+                        <Calendar size={24} /><span>Validade</span>
+                    </Link>
+                )}
 
                 {filterMobileAction && (
                     <div className="nav-btn">
