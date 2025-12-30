@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
 import { Store, Ruler, ChevronRight } from 'lucide-react';
-import { Store, Ruler, ChevronRight } from 'lucide-react';
+
 import { DashboardLayout } from '../../layouts/DashboardLayout';
 
 interface StoreType {

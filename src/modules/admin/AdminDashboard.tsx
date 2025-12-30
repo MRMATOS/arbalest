@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabase';
-import { Check, Pencil, X } from 'lucide-react';
+import { Check, Pencil, X, ChevronRight } from 'lucide-react';
 import './AdminDashboard.css';
 
 interface Profile {
@@ -106,9 +106,13 @@ export const AdminDashboard: React.FC = () => {
     return (
         <div className="admin-dashboard">
             <header className="page-header">
-                <div>
-                    <h1>Administração</h1>
-                    <p>Gerenciamento de Usuários e Acessos</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                        <span style={{ cursor: 'pointer' }} onClick={() => window.history.back()}>Configurações</span>
+                        <ChevronRight size={14} />
+                        <span style={{ color: 'white' }}>Usuários</span>
+                    </div>
+                    <h1>Permissões de Usuários</h1>
                 </div>
             </header>
 
@@ -195,22 +199,18 @@ export const AdminDashboard: React.FC = () => {
                                     </select>
                                 </td>
                                 <td>
-                                    {(user.role === 'encarregado' || user.role === 'admin') ? (
-                                        <select
-                                            value={user.store_id || ''}
-                                            onChange={(e) => handleUpdateUser(user.id, { store_id: e.target.value || null })}
-                                            className="store-select"
-                                        >
-                                            <option value="">Selecione...</option>
-                                            {stores.map(store => (
-                                                <option key={store.id} value={store.id}>
-                                                    {store.name} ({store.code})
-                                                </option>
-                                            ))}
-                                        </select>
-                                    ) : (
-                                        <span className="text-muted">-</span>
-                                    )}
+                                    <select
+                                        value={user.store_id || ''}
+                                        onChange={(e) => handleUpdateUser(user.id, { store_id: e.target.value || null })}
+                                        className="store-select"
+                                    >
+                                        <option value="">Selecione...</option>
+                                        {stores.map(store => (
+                                            <option key={store.id} value={store.id}>
+                                                {store.name} ({store.code})
+                                            </option>
+                                        ))}
+                                    </select>
                                 </td>
                                 <td>
                                     {!user.approved_at && (

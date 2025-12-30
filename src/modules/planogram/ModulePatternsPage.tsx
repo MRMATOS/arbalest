@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabase';
 import { PatternModal, type PatternData } from './PatternModal';
 import { DashboardLayout } from '../../layouts/DashboardLayout';
-import { ChevronRight, Trash2, Pencil, Ruler } from 'lucide-react';
+import { ChevronRight, Trash2, Pencil, Ruler, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const ModulePatternsPage: React.FC = () => {
@@ -19,6 +19,7 @@ export const ModulePatternsPage: React.FC = () => {
         try {
             setLoading(true);
             const { data, error } = await supabase
+                .schema('layout')
                 .from('module_patterns')
                 .select('*')
                 .order('created_at', { ascending: false });
@@ -47,6 +48,7 @@ export const ModulePatternsPage: React.FC = () => {
 
         try {
             const { error } = await supabase
+                .schema('layout')
                 .from('module_patterns')
                 .delete()
                 .eq('id', id);
@@ -61,49 +63,10 @@ export const ModulePatternsPage: React.FC = () => {
 
     const handleSuccess = async (data: PatternData) => {
         try {
-            // Need to specify schema 'layout' explicitly if not default? 
-            // OR use 'layout.module_patterns' in table name?
-            // Supabase client usually requires fully qualified name or schema change if not public.
-            // Assuming 'module_patterns' is in 'layout' schema, and search_path includes it OR we use fully qualified name.
-            // Based on docs provided earlier: Schema: `layout` (Modules & Planogram).
-            // NOTE: Supabase JS client defaults to 'public'. We might need to select schema.
-
-            // HOWEVER, previous code (App.tsx) didn't configure schema.
-            // I will assume for now 'public' OR layout is in search_path, 
-            // BUT usually with supabase-js allow specifying schema.
-            // Given the user context didn't specify custom supbase config, 
-            // I'll try 'module_patterns' but likely need to use `.schema('layout')` or rename table.
-            // Wait, previous prompt said "tabela 'layout.module_patterns'".
-            // I will use `supabase.schema('layout').from('module_patterns')` pattern if possible.
-            // Standard client: supabase.from('table') uses public.
-
-            // Checking how to switch schema is safer:
-            // But let's look at `supabase.ts`. It's likely a standard client.
-            // I will implement without `.schema` first (assuming synonym or public view) 
-            // BUT if it fails I'll need to fix.
-            // Wait, typically separating by schema is good practice.
-            // I will add `.schema('layout')` to be safe/correct given the doc explicitly said `layout.module_patterns`.
-
-            /* 
-               Actually, for this Write interaction, I will assume I need to handle the schema correctly.
-               If the previous `fetchPatterns` above used just `.from('module_patterns')`, it might fail if it's not in public.
-               Let's update both fetch and save to use simple table name first, 
-               but if I recall correctly, usually Supabase exposes tables on API 
-               based on "Exposed Schemas". If 'layout' is exposed, we query it. 
-               
-               For now, I'll stick to simple `.from('module_patterns')` assuming the user has configured it in valid search path 
-               OR exposed it. If strict mode, I'd need `.schema('layout')`.
-               
-               Let's stick to the simplest interpretation (table name unique) unless error.
-               
-               UPDATE: actually I should check if I should effectively use schema. 
-               But to avoid complexity with potential lack of .schema() method on some client versions (though standard),
-               I'll use what the user asked: "tabela 'layout.module_patterns'".
-            */
-
             let error;
             if (editingPattern?.id) {
                 const { error: updateError } = await supabase
+                    .schema('layout')
                     .from('module_patterns')
                     .update({
                         name: data.name,
@@ -116,6 +79,7 @@ export const ModulePatternsPage: React.FC = () => {
                 error = updateError;
             } else {
                 const { error: insertError } = await supabase
+                    .schema('layout')
                     .from('module_patterns')
                     .insert([{
                         name: data.name,
@@ -135,7 +99,6 @@ export const ModulePatternsPage: React.FC = () => {
             alert('Erro ao salvar padrão.');
         }
     };
-
     return (
         <DashboardLayout onAddClick={handleOpenAdd}>
             <div className="fade-in">
@@ -148,11 +111,19 @@ export const ModulePatternsPage: React.FC = () => {
                     <span style={{ color: 'var(--text-primary)' }}>Padrões</span>
                 </div>
 
-                <div className="header-actions" style={{ marginBottom: '24px', justifyContent: 'space-between' }}>
+                <div className="header-actions" style={{ marginBottom: '24px', justifyContent: 'space-between', display: 'flex', alignItems: 'center' }}>
                     <div>
                         <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Padrões de Módulos</h1>
                         <p style={{ color: 'var(--text-secondary)' }}>Gerencie as dimensões dos seus equipamentos</p>
                     </div>
+                    <button
+                        className="btn-primary"
+                        onClick={handleOpenAdd}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', borderRadius: '8px', background: 'var(--brand-primary)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                    >
+                        <Plus size={20} />
+                        <span>Novo Padrão</span>
+                    </button>
                 </div>
 
                 {loading ? (

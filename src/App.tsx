@@ -12,8 +12,9 @@ import { AdminDashboard } from './modules/admin/AdminDashboard';
 import { Profile } from './modules/profile/Profile';
 import { ModuleHub } from './modules/ModuleHub';
 import { PlanogramDashboard } from './modules/planogram/PlanogramDashboard';
+import { SettingsDashboard } from './modules/settings/SettingsDashboard';
 import { ModulePatternsPage } from './modules/planogram/ModulePatternsPage';
-// Guard: Requires valid session only
+import { StoresList } from './modules/settings/components/StoresList';
 const RequireAuth = () => {
   const { user, loading } = useAuth();
 
@@ -200,11 +201,13 @@ function App() {
 
               {/* Admin Routes */}
               <Route element={<RequireAdmin />}>
-                <Route path="/admin" element={
+                <Route path="/settings" element={<SettingsDashboard />} />
+                <Route path="/settings/users" element={
                   <DashboardLayout>
                     <AdminDashboard />
                   </DashboardLayout>
                 } />
+                <Route path="/settings/stores" element={<StoresList />} />
               </Route>
             </Route>
           </Route>

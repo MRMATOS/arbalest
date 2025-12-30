@@ -6,6 +6,8 @@ import type { Session } from '@supabase/supabase-js';
 export interface Store {
     id: string;
     name: string;
+    show_validity: boolean;
+    show_planogram: boolean;
 }
 
 export interface Profile {
@@ -66,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 .from('profiles')
                 .select(`
                     *,
-                    store:stores(id, name)
+                    store:stores(id, name, show_validity, show_planogram)
                 `)
                 .eq('id', userId)
                 .single();

@@ -12,9 +12,10 @@ import {
     Search,
     User,
     X,
-    ShieldCheck,
+
     Home,
-    Map
+    Map,
+    Settings
 } from 'lucide-react';
 import './DashboardLayout.css';
 
@@ -95,10 +96,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
 
                     {user?.role === 'admin' && (
                         <NavItem
-                            icon={<ShieldCheck size={20} />}
-                            label="Admin"
-                            path="/admin"
-                            active={isActive('/admin')}
+                            icon={<Settings size={20} />}
+                            label="Configurações"
+                            path="/settings"
+                            active={isActive('/settings')}
                             collapsed={!sidebarOpen}
                         />
                     )}
@@ -145,7 +146,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                             <NavItem icon={<Calendar size={20} />} label="Validade" path="/validity" active={isActive('/validity')} />
                             <NavItem icon={<Map size={20} />} label="Planogramas" path="/planogram" active={isActive('/planogram')} />
                             {user?.role === 'admin' && (
-                                <NavItem icon={<ShieldCheck size={20} />} label="Admin" path="/admin" active={isActive('/admin')} />
+                                <NavItem icon={<Settings size={20} />} label="Configurações" path="/settings" active={isActive('/settings')} />
                             )}
                         </nav>
                         <button onClick={logout} className="mobile-logout">

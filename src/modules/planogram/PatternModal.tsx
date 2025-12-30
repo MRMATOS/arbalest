@@ -121,7 +121,7 @@ export const PatternModal: React.FC<PatternModalProps> = ({ isOpen, onClose, onS
                     </div>
                 </div>
 
-                <div className="form-actions" style={{ marginTop: '10px' }}>
+                <div className="form-actions" style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
                     <button type="button" onClick={onClose} className="btn-secondary">
                         Cancelar
                     </button>
