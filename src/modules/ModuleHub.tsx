@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { DashboardLayout } from '../layouts/DashboardLayout';
-import { Calendar, Map, Settings } from 'lucide-react';
+import { Calendar, Map, Settings, Beef } from 'lucide-react';
 import '../modules/validity/ValidityList.css'; // Reuse existing glass styles
 
 export const ModuleHub = () => {
@@ -137,6 +137,52 @@ export const ModuleHub = () => {
                             <h2 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>Planogramas</h2>
                             <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
                                 Mapeamento de produtos, geração de etiquetas e gestão de layout.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Butcher Module Card */}
+                    {(user?.role === 'admin' || user?.butcher_role === 'requester' || user?.butcher_role === 'producer') && user?.store?.is_butcher_active !== false && (
+                        <div
+                            className="glass item-card"
+                            onClick={() => navigate('/butcher')}
+                            style={{
+                                padding: '32px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                border: '1px solid var(--glass-border)',
+                                borderRadius: '16px',
+                                background: 'var(--glass-bg)',
+                                minHeight: '300px'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-5px)';
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.background = 'var(--glass-bg)';
+                            }}
+                        >
+                            <div style={{
+                                background: '#f43f5e', // Rose 500
+                                width: '64px',
+                                height: '64px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: '50%',
+                                marginBottom: '20px',
+                                boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                            }}>
+                                <Beef size={32} color="white" />
+                            </div>
+                            <h2 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>Açougue</h2>
+                            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                                Gestão de pedidos de cortes, produção e histórico de entregas.
                             </p>
                         </div>
                     )}

@@ -10,6 +10,7 @@ interface Profile {
     role: string;
     store_id: string | null;
     approved_at: string | null;
+    butcher_role?: 'requester' | 'producer' | null;
 }
 
 interface StoreType {
@@ -124,6 +125,7 @@ export const AdminDashboard: React.FC = () => {
                             <th>Nome</th>
                             <th>Status</th>
                             <th>Cargo</th>
+                            <th>Nível Açougue</th>
                             <th>Loja Vinculada</th>
                             <th>Ações</th>
                         </tr>
@@ -196,6 +198,21 @@ export const AdminDashboard: React.FC = () => {
                                         <option value="planogram_view">Planograma (Visualizador)</option>
                                         <option value="encarregado">Encarregado</option>
                                         <option value="admin">Admin</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select
+                                        value={user.butcher_role || ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            handleUpdateUser(user.id, { butcher_role: val === '' ? null : val as 'requester' | 'producer' });
+                                        }}
+                                        className="role-select"
+                                        style={{ minWidth: '140px' }}
+                                    >
+                                        <option value="">Nenhum</option>
+                                        <option value="requester">Açougue Solicitante</option>
+                                        <option value="producer">Açougue Produção</option>
                                     </select>
                                 </td>
                                 <td>

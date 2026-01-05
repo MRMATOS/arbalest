@@ -15,6 +15,7 @@ import { PlanogramDashboard } from './modules/planogram/PlanogramDashboard';
 import { SettingsDashboard } from './modules/settings/SettingsDashboard';
 import { ModulePatternsPage } from './modules/planogram/ModulePatternsPage';
 import { StoresList } from './modules/settings/components/StoresList';
+import { ButcherDashboard } from './modules/butcher/ButcherDashboard';
 const RequireAuth = () => {
   const { user, loading } = useAuth();
 
@@ -197,7 +198,10 @@ function App() {
               <Route path="/validity/*" element={<ValidityPage />} />
 
               <Route path="/planogram" element={<PlanogramDashboard />} />
+              <Route path="/planogram" element={<PlanogramDashboard />} />
               <Route path="/planogram/patterns" element={<ModulePatternsPage />} />
+
+              <Route path="/butcher" element={<ButcherDashboard />} />
 
               {/* Admin Routes */}
               <Route element={<RequireAdmin />}>

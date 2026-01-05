@@ -1,0 +1,252 @@
+/* AddButcherOrderModal.css */
+
+.add-butcher-modal {
+    max-width: 500px;
+    width: 95%;
+}
+
+.search-step,
+.form-step {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.field-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.search-input-group {
+    display: flex;
+    gap: 12px;
+}
+
+.input-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 12px;
+    position: relative;
+}
+
+.input-wrapper .search-icon {
+    color: var(--text-tertiary);
+}
+
+.input-wrapper input {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1rem;
+    flex: 1;
+    outline: none;
+}
+
+.scan-btn {
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 0 16px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.scan-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+}
+
+/* Results List */
+.results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.result-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.result-item:hover {
+    border-color: var(--brand-primary);
+    background: var(--bg-hover);
+}
+
+.product-icon {
+    color: var(--brand-primary);
+}
+
+.product-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.product-info .name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.product-info .codes {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* Form Step Styles */
+.selected-product-summary {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: rgba(16, 185, 129, 0.1);
+    /* Success tint */
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 12px;
+}
+
+.summary-icon {
+    background: var(--success);
+    color: black;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+}
+
+.summary-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.change-product-btn {
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.qty-input,
+.text-input {
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    padding: 12px;
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    outline: none;
+}
+
+.qty-input:focus,
+.text-input:focus {
+    border-color: var(--brand-primary);
+}
+
+/* Unit Toggle */
+.unit-toggle {
+    display: flex;
+    background: var(--bg-secondary);
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+}
+
+.unit-toggle button {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.unit-toggle button.active {
+    background: var(--brand-primary);
+    color: white;
+}
+
+/* Modal Actions */
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 10px;
+    padding-top: 20px;
+    border-top: 1px solid var(--glass-border);
+}
+
+.cancel-btn {
+    padding: 12px 24px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.confirm-btn {
+    padding: 12px 24px;
+    background: var(--brand-primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.confirm-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 40px;
+    color: var(--text-tertiary);
+}

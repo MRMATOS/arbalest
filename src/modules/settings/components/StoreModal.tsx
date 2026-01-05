@@ -6,8 +6,11 @@ import { Modal } from '../../../components/Modal';
 interface Store {
     id: string;
     name: string;
+    code: string;
     show_validity: boolean;
     show_planogram: boolean;
+    is_butcher_active?: boolean;
+    is_butcher_production?: boolean;
 }
 
 interface StoreModalProps {
@@ -19,8 +22,12 @@ interface StoreModalProps {
 
 export const StoreModal: React.FC<StoreModalProps> = ({ isOpen, onClose, onSuccess, storeToEdit }) => {
     const [name, setName] = useState('');
+    const [code, setCode] = useState('');
     const [showValidity, setShowValidity] = useState(true);
     const [showPlanogram, setShowPlanogram] = useState(true);
+    const [isButcherActive, setIsButcherActive] = useState(false);
+    const [isButcherProduction, setIsButcherProduction] = useState(false);
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -28,12 +35,18 @@ export const StoreModal: React.FC<StoreModalProps> = ({ isOpen, onClose, onSucce
         if (isOpen) {
             if (storeToEdit) {
                 setName(storeToEdit.name);
+                setCode(storeToEdit.code || '');
                 setShowValidity(storeToEdit.show_validity);
                 setShowPlanogram(storeToEdit.show_planogram);
+                setIsButcherActive(storeToEdit.is_butcher_active || false);
+                setIsButcherProduction(storeToEdit.is_butcher_production || false);
             } else {
                 setName('');
+                setCode('');
                 setShowValidity(true);
                 setShowPlanogram(true);
+                setIsButcherActive(false);
+                setIsButcherProduction(false);
             }
             setError(null);
         }
@@ -44,14 +57,23 @@ export const StoreModal: React.FC<StoreModalProps> = ({ isOpen, onClose, onSucce
         setLoading(true);
         setError(null);
 
+        if (!code.trim()) {
+            setError('O Código da loja é obrigatório.');
+            setLoading(false);
+            return;
+        }
+
         try {
             if (storeToEdit) {
                 const { error } = await supabase
                     .from('stores')
                     .update({
                         name,
+                        code,
                         show_validity: showValidity,
-                        show_planogram: showPlanogram
+                        show_planogram: showPlanogram,
+                        is_butcher_active: isButcherActive,
+                        is_butcher_production: isButcherActive ? isButcherProduction : false
                     })
                     .eq('id', storeToEdit.id);
                 if (error) throw error;
@@ -60,8 +82,11 @@ export const StoreModal: React.FC<StoreModalProps> = ({ isOpen, onClose, onSucce
                     .from('stores')
                     .insert([{
                         name,
+                        code,
                         show_validity: showValidity,
-                        show_planogram: showPlanogram
+                        show_planogram: showPlanogram,
+                        is_butcher_active: isButcherActive,
+                        is_butcher_production: isButcherActive ? isButcherProduction : false
                     }]);
                 if (error) throw error;
             }
@@ -88,16 +113,29 @@ export const StoreModal: React.FC<StoreModalProps> = ({ isOpen, onClose, onSucce
                     </div>
                 )}
 
-                <div className="form-group">
-                    <label>Nome da Loja</label>
-                    <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        required
-                        placeholder="Ex: Loja 01 - Centro"
-                        className="glass-input"
-                    />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: '16px' }}>
+                    <div className="form-group">
+                        <label>Nome da Loja</label>
+                        <input
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            required
+                            placeholder="Ex: Loja 01 - Centro"
+                            className="glass-input"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Código</label>
+                        <input
+                            type="text"
+                            value={code}
+                            onChange={(e) => setCode(e.target.value)}
+                            required
+                            placeholder="Ex: 001"
+                            className="glass-input"
+                        />
+                    </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -125,6 +163,37 @@ export const StoreModal: React.FC<StoreModalProps> = ({ isOpen, onClose, onSucce
                             />
                             <span className="slider round"></span>
                         </label>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontWeight: 500 }}>Módulo de Açougue</span>
+                            <label className="switch">
+                                <input
+                                    type="checkbox"
+                                    checked={isButcherActive}
+                                    onChange={(e) => setIsButcherActive(e.target.checked)}
+                                />
+                                <span className="slider round"></span>
+                            </label>
+                        </div>
+
+                        {isButcherActive && (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', padding: '8px 0', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                    <span style={{ fontSize: '0.9rem' }}>Unidade de Produção?</span>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Esta loja receberá pedidos de outras unidades.</span>
+                                </div>
+                                <label className="switch" style={{ transform: 'scale(0.8)' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={isButcherProduction}
+                                        onChange={(e) => setIsButcherProduction(e.target.checked)}
+                                    />
+                                    <span className="slider round"></span>
+                                </label>
+                            </div>
+                        )}
                     </div>
                 </div>
 

@@ -8,6 +8,7 @@ export interface Store {
     name: string;
     show_validity: boolean;
     show_planogram: boolean;
+    is_butcher_active?: boolean;
 }
 
 export interface Profile {
@@ -19,6 +20,7 @@ export interface Profile {
     full_name?: string;
     email?: string;
     approved_at?: string | null;
+    butcher_role?: 'requester' | 'producer' | null;
 }
 
 interface AuthContextType {
