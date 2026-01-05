@@ -77,21 +77,25 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                         collapsed={!sidebarOpen}
                     />
 
-                    <NavItem
-                        icon={<Calendar size={20} />}
-                        label="Validade"
-                        path="/validity"
-                        active={isActive('/validity')}
-                        collapsed={!sidebarOpen}
-                    />
+                    {user?.store?.show_validity !== false && (
+                        <NavItem
+                            icon={<Calendar size={20} />}
+                            label="Validade"
+                            path="/validity"
+                            active={isActive('/validity')}
+                            collapsed={!sidebarOpen}
+                        />
+                    )}
 
-                    <NavItem
-                        icon={<Map size={20} />}
-                        label="Planogramas"
-                        path="/planogram"
-                        active={isActive('/planogram')}
-                        collapsed={!sidebarOpen}
-                    />
+                    {user?.store?.show_planogram !== false && (
+                        <NavItem
+                            icon={<Map size={20} />}
+                            label="Planogramas"
+                            path="/planogram"
+                            active={isActive('/planogram')}
+                            collapsed={!sidebarOpen}
+                        />
+                    )}
 
 
                     {user?.role === 'admin' && (
@@ -141,13 +145,17 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                             <button onClick={toggleMobileMenu}><X size={24} /></button>
                         </div>
                         <nav className="mobile-nav">
-                            <NavItem icon={<User size={20} />} label="Perfil" path="/profile" active={isActive('/profile')} />
                             <NavItem icon={<Home size={20} />} label="Início" path="/" active={isActive('/')} />
-                            <NavItem icon={<Calendar size={20} />} label="Validade" path="/validity" active={isActive('/validity')} />
-                            <NavItem icon={<Map size={20} />} label="Planogramas" path="/planogram" active={isActive('/planogram')} />
+                            {user?.store?.show_validity !== false && (
+                                <NavItem icon={<Calendar size={20} />} label="Validade" path="/validity" active={isActive('/validity')} />
+                            )}
+                            {user?.store?.show_planogram !== false && (
+                                <NavItem icon={<Map size={20} />} label="Planogramas" path="/planogram" active={isActive('/planogram')} />
+                            )}
                             {user?.role === 'admin' && (
                                 <NavItem icon={<Settings size={20} />} label="Configurações" path="/settings" active={isActive('/settings')} />
                             )}
+                            <NavItem icon={<User size={20} />} label="Perfil" path="/profile" active={isActive('/profile')} />
                         </nav>
                         <button onClick={logout} className="mobile-logout">
                             <LogOut size={20} /> Sair
@@ -223,7 +231,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                     </button>
                 )}
             </footer>
-        </div>
+        </div >
     );
 };
 

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { DashboardLayout } from '../layouts/DashboardLayout';
 import { Calendar, Map, Settings } from 'lucide-react';
 import '../modules/validity/ValidityList.css'; // Reuse existing glass styles
 
@@ -17,13 +18,13 @@ export const ModuleHub = () => {
     const isPlanogramVisible = user?.store?.show_planogram !== false;
 
     return (
-        <div className="layout-container">
+        <DashboardLayout>
             <div className="content-area" style={{
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                minHeight: '100vh',
+                minHeight: '80vh', // Reduced to account for layout headers
                 padding: '20px'
             }}>
                 <div style={{ textAlign: 'center', marginBottom: '32px' }}>
@@ -35,7 +36,7 @@ export const ModuleHub = () => {
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
                     gap: '24px',
-                    maxWidth: '1200px', // Increased width for 3 cards
+                    maxWidth: '1200px',
                     width: '100%'
                 }}>
                     {/* Validade Module Card */}
@@ -187,6 +188,6 @@ export const ModuleHub = () => {
                     )}
                 </div>
             </div>
-        </div>
+        </DashboardLayout>
     );
 };

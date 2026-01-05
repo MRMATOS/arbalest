@@ -289,6 +289,13 @@ export const ValidityList: React.FC<ValidityListProps> = ({
         return days - (item.product.amount || 0);
     };
 
+    const getExpiryText = (days: number) => {
+        if (days === 0) return 'Vence hoje';
+        if (days === -1) return 'Venceu ontem';
+        if (days < -1) return `Vencido há ${Math.abs(days)} dias`;
+        return `${days}d restantes`;
+    };
+
     return (
         <div className="validity-container">
             <div className="page-header">
@@ -550,13 +557,11 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                                 </div>
                                             )}
                                         </div>
-                                        <span className="days">{getExpiryDays(item.expires_at)}d restantes</span>
+                                        <span className="days">{getExpiryText(getExpiryDays(item.expires_at))}</span>
                                     </div>
                                 </td>
                                 <td><span className="lot-tag">{item.lot || 'Não informado'}</span></td>
                                 <td className="actions-col">
-                                    {/* ... existing actions ... */}
-                                    {/* 1. Pending Request Actions (Conferente only) */}
                                     {item.has_pending_delete_request && canVerify ? (
                                         <>
                                             <button className="icon-btn success" onClick={() => approveDeleteRequest(item.id)} title="Aprovar exclusão">
@@ -623,10 +628,10 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                         ))}
                     </tbody>
                 </table>
-            </div>
+            </div >
 
             {/* Mobile Card View */}
-            <div className="mobile-view">
+            < div className="mobile-view" >
                 <div className="card-list">
                     {filteredEntries.map(item => (
                         <div key={item.id} className="validity-card glass">
@@ -674,7 +679,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                             </div>
                                         )}
                                     </div>
-                                    <span className="days-left">{getExpiryDays(item.expires_at)} dias</span>
+                                    <span className="days-left">{getExpiryText(getExpiryDays(item.expires_at))}</span>
                                 </div>
                             </div>
 
@@ -716,9 +721,9 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                         </div>
                     ))}
                 </div>
-            </div>
+            </div >
             {/* ... modals ... */}
-            <HistoryModal
+            < HistoryModal
                 isOpen={!!selectedHistoryId}
                 onClose={() => setSelectedHistoryId(null)}
                 entryId={selectedHistoryId}

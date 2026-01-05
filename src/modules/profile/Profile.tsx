@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Shield, LogOut, User, Store, Pencil, Check, X } from 'lucide-react';
+import { Shield, User, Store, Pencil, Check, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
 import './Profile.css';
 
 export const Profile: React.FC = () => {
-    const { user, logout } = useAuth();
+    const { user } = useAuth();
     const [isEditingName, setIsEditingName] = useState(false);
     const [displayName, setDisplayName] = useState(user?.name || '');
     const [saving, setSaving] = useState(false);
@@ -116,11 +116,6 @@ export const Profile: React.FC = () => {
                             Acessar Painel Admin
                         </Link>
                     )}
-
-                    <button onClick={logout} className="action-button logout-btn">
-                        <LogOut size={20} />
-                        Sair da Conta
-                    </button>
                 </div>
             </div>
         </div>
