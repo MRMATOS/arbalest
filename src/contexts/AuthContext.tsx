@@ -9,6 +9,7 @@ export interface Store {
     show_validity: boolean;
     show_planogram: boolean;
     is_butcher_active?: boolean;
+    is_butcher_production?: boolean;
 }
 
 export interface Profile {
@@ -70,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 .from('profiles')
                 .select(`
                     *,
-                    store:stores(id, name, show_validity, show_planogram)
+                    store:stores(id, name, show_validity, show_planogram, is_butcher_active, is_butcher_production)
                 `)
                 .eq('id', userId)
                 .single();

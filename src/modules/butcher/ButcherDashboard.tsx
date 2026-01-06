@@ -43,10 +43,13 @@ export const ButcherDashboard: React.FC = () => {
     const [sortBy, setSortBy] = useState('recent'); // recent, oldest
 
     // Derived Data for Filters
-    const stores = Array.from(new Set(orders.map(o => JSON.stringify({ id: o.requester_store.id, name: o.requester_store.name }))))
-        .map(s => JSON.parse(s));
+    // Derived Data for Filters
+    const stores = Array.from(new Set(orders
+        .filter(o => o.requester_store)
+        .map(o => JSON.stringify({ id: o.requester_store.id, name: o.requester_store.name }))
+    )).map(s => JSON.parse(s));
 
-    const meatGroups = Array.from(new Set(orders.map(o => o.product.meat_group).filter(Boolean)));
+    const meatGroups = Array.from(new Set(orders.map(o => o.product?.meat_group).filter(Boolean)));
 
     // Determines if user handles production (can print/update status)
     const canProduce = user?.role === 'admin' || user?.butcher_role === 'producer';
@@ -72,27 +75,45 @@ export const ButcherDashboard: React.FC = () => {
     const fetchOrders = async () => {
         try {
             setLoading(true);
-            const { data, error } = await supabase
+
+            // 1. Fetch Orders from Butcher Schema
+            const { data: ordersData, error: ordersError } = await supabase
                 .schema('butcher')
                 .from('orders')
-                .select(`
-                    id,
-                    quantity,
-                    unit,
-                    status,
-                    sim_poa_code,
-                    created_at,
-                    product:products!butcher_orders_products_fk (name, code, ean, meat_group),
-                    requester_store:stores!butcher_orders_requester_store_fk (name, code, id)
-                `, { count: 'exact' })
+                .select('*')
                 .order('created_at', { ascending: false });
 
-            if (error) throw error;
+            if (ordersError) throw ordersError;
 
-            const formattedData = (data || []).map((item: any) => ({
-                ...item,
-                product: Array.isArray(item.product) ? item.product[0] : item.product,
-                requester_store: Array.isArray(item.requester_store) ? item.requester_store[0] : item.requester_store
+            // 2. Extract IDs for related data
+            const productIds = [...new Set((ordersData || []).map((o: any) => o.product_id).filter(Boolean))];
+            const storeIds = [...new Set((ordersData || []).map((o: any) => o.requester_store_id).filter(Boolean))];
+
+            // 3. Fetch Products (Public Schema)
+            const { data: productsData, error: productsError } = await supabase
+                .from('products')
+                .select('id, name, code, ean, meat_group')
+                .in('id', productIds.length > 0 ? productIds : ['00000000-0000-0000-0000-000000000000']);
+
+            if (productsError) throw productsError;
+
+            // 4. Fetch Stores (Public Schema)
+            const { data: storesData, error: storesError } = await supabase
+                .from('stores')
+                .select('id, name, code')
+                .in('id', storeIds.length > 0 ? storeIds : ['00000000-0000-0000-0000-000000000000']);
+
+            if (storesError) throw storesError;
+
+            // 5. Create Maps for fast lookup
+            const productsMap = new Map((productsData || []).map((p: any) => [p.id, p]));
+            const storesMap = new Map((storesData || []).map((s: any) => [s.id, s]));
+
+            // 6. Merge Data
+            const formattedData = (ordersData || []).map((order: any) => ({
+                ...order,
+                product: productsMap.get(order.product_id) || null,
+                requester_store: storesMap.get(order.requester_store_id) || null
             }));
 
             setOrders(formattedData);
@@ -119,14 +140,34 @@ export const ButcherDashboard: React.FC = () => {
         }
     };
 
-    const filteredOrders = orders.filter(order => {
-        const matchesSearch =
-            order.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.product.code.includes(searchTerm) ||
-            (order.product.ean && order.product.ean.includes(searchTerm));
+    const handleDeleteOrder = async (orderId: string) => {
+        if (!window.confirm('Tem certeza que deseja cancelar este pedido?')) return;
 
-        const matchesStore = selectedStore === 'all' || order.requester_store.id === selectedStore;
-        const matchesGroup = selectedMeatGroup === 'all' || order.product.meat_group === selectedMeatGroup;
+        try {
+            const { error } = await supabase
+                .schema('butcher')
+                .from('orders')
+                .delete()
+                .eq('id', orderId);
+
+            if (error) throw error;
+        } catch (error) {
+            console.error('Error deleting order:', error);
+            alert('Erro ao cancelar pedido');
+        }
+    };
+
+    const filteredOrders = orders.filter(order => {
+        const prod = order.product || {};
+        const store = order.requester_store || {};
+
+        const matchesSearch =
+            (prod.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (prod.code || '').includes(searchTerm) ||
+            (prod.ean && prod.ean.includes(searchTerm));
+
+        const matchesStore = selectedStore === 'all' || store.id === selectedStore;
+        const matchesGroup = selectedMeatGroup === 'all' || prod.meat_group === selectedMeatGroup;
 
         // Logic: Producers generally see "pending" and "production". "Received" goes to history.
         // Requesters see everything active.
@@ -264,15 +305,15 @@ export const ButcherDashboard: React.FC = () => {
                                     filteredOrders.map(order => (
                                         <tr key={order.id}>
                                             <td>
-                                                <span className="product-name">{order.product.name}</span>
+                                                <span className="product-name">{order.product?.name || 'Produto não encontrado'}</span>
                                                 <span className="code-info" style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                                                    {order.product.meat_group || 'Sem grupo'}
+                                                    {order.product?.meat_group || 'Sem grupo'}
                                                 </span>
                                             </td>
                                             <td>
                                                 <div className="code-info">
-                                                    <span className="code">{order.product.code}</span>
-                                                    <span className="ean">{order.product.ean || '-'}</span>
+                                                    <span className="code">{order.product?.code || '-'}</span>
+                                                    <span className="ean">{order.product?.ean || '-'}</span>
                                                 </div>
                                             </td>
                                             <td>
@@ -286,7 +327,7 @@ export const ButcherDashboard: React.FC = () => {
                                                 </span>
                                             </td>
                                             <td>
-                                                <span className="store-tag">{order.requester_store.name}</span>
+                                                <span className="store-tag">{order.requester_store?.name || 'Loja desconhecida'}</span>
                                             </td>
                                             <td>
                                                 <span className="lot-tag">{order.sim_poa_code || '-'}</span>
@@ -318,7 +359,7 @@ export const ButcherDashboard: React.FC = () => {
                                                         <button
                                                             className="butcher-action-btn danger"
                                                             title="Cancelar"
-                                                        // onClick={() => handleDelete(order.id)}
+                                                            onClick={() => handleDeleteOrder(order.id)}
                                                         >
                                                             <Trash2 size={18} />
                                                         </button>
@@ -339,7 +380,7 @@ export const ButcherDashboard: React.FC = () => {
                         {filteredOrders.map(order => (
                             <div key={order.id} className="butcher-card glass">
                                 <div className="card-header">
-                                    <span className="product-name" style={{ fontSize: '1rem' }}>{order.product.name}</span>
+                                    <span className="product-name" style={{ fontSize: '1rem' }}>{order.product?.name || 'Produto não encontrado'}</span>
                                     <span className={`status-pill ${order.status}`}>
                                         {getStatusLabel(order.status)}
                                     </span>
@@ -353,14 +394,14 @@ export const ButcherDashboard: React.FC = () => {
                                         </div>
                                         <div className="card-info">
                                             <label>Loja</label>
-                                            <span>{order.requester_store.name}</span>
+                                            <span>{order.requester_store?.name || 'Loja desconhecida'}</span>
                                         </div>
                                     </div>
 
                                     <div className="card-row">
                                         <div className="card-info">
                                             <label>Código / EAN</label>
-                                            <span>{order.product.code}</span>
+                                            <span>{order.product?.code || '-'}</span>
                                         </div>
                                         <div className="card-info">
                                             <label>SIM / POA</label>
@@ -385,6 +426,15 @@ export const ButcherDashboard: React.FC = () => {
                                             style={{ borderColor: 'var(--success)', color: 'var(--success)' }}
                                         >
                                             Confirmar Recebimento <Check size={16} />
+                                        </button>
+                                    )}
+                                    {canRequest && order.status === 'pending' && (
+                                        <button
+                                            className="card-action danger"
+                                            onClick={() => handleDeleteOrder(order.id)}
+                                            style={{ borderColor: 'var(--error)', color: 'var(--error)' }}
+                                        >
+                                            Cancelar Pedido <Trash2 size={16} />
                                         </button>
                                     )}
                                 </div>

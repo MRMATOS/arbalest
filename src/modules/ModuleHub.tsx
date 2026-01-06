@@ -142,7 +142,7 @@ export const ModuleHub = () => {
                     )}
 
                     {/* Butcher Module Card */}
-                    {(user?.role === 'admin' || user?.butcher_role === 'requester' || user?.butcher_role === 'producer') && user?.store?.is_butcher_active !== false && (
+                    {(user?.role === 'admin' || user?.butcher_role === 'requester' || user?.butcher_role === 'producer' || ((user?.role === 'encarregado' || user?.role === 'conferente') && user?.store?.is_butcher_active !== false)) && (
                         <div
                             className="glass item-card"
                             onClick={() => navigate('/butcher')}

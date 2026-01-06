@@ -194,7 +194,7 @@ export const AddButcherOrderModal: React.FC<AddButcherOrderModalProps> = ({ isOp
                                 <input
                                     type="number"
                                     value={quantity}
-                                    onChange={(e) => setQuantity(Number(e.target.value))}
+                                    onChange={(e) => setQuantity(e.target.value === '' ? '' : Number(e.target.value))}
                                     placeholder="0"
                                     min="1"
                                     className="qty-input"
