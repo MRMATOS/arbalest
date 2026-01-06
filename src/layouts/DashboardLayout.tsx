@@ -193,33 +193,25 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                 </button>
 
 
-                {/* Dynamic Module Icon */}
-                {location.pathname.startsWith('/planogram') ? (
-                    <Link to="/planogram" className="nav-btn active">
-                        <Map size={24} /><span>Mapa</span>
-                    </Link>
-                ) : (
-                    <Link to="/validity" className={`nav-btn ${isActive('/validity') ? 'active' : ''}`}>
-                        <Calendar size={24} /><span>Validade</span>
-                    </Link>
+                {/* Dynamic Module Icon - Hide in Butcher Module */}
+                {!location.pathname.startsWith('/butcher') && (
+                    location.pathname.startsWith('/planogram') ? (
+                        <Link to="/planogram" className="nav-btn active">
+                            <Map size={24} /><span>Mapa</span>
+                        </Link>
+                    ) : (
+                        <Link to="/validity" className={`nav-btn ${isActive('/validity') ? 'active' : ''}`}>
+                            <Calendar size={24} /><span>Validade</span>
+                        </Link>
+                    )
                 )}
 
-                {filterMobileAction && (
-                    <div className="nav-btn">
-                        {filterMobileAction}
-                    </div>
-                )}
+                {filterMobileAction}
 
-                {secondaryMobileAction && (
-                    <div className="nav-btn">
-                        {secondaryMobileAction}
-                    </div>
-                )}
+                {secondaryMobileAction}
 
                 {customMobileAction ? (
-                    <div className="nav-btn add-btn-mobile custom-action">
-                        {customMobileAction}
-                    </div>
+                    customMobileAction
                 ) : (
                     <button
                         className={`nav-btn add-btn-mobile ${!onAddClick ? 'disabled' : ''}`}

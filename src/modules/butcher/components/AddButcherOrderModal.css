@@ -250,3 +250,24 @@
     padding: 40px;
     color: var(--text-tertiary);
 }
+
+@media (max-width: 600px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    /* Make Quantity input smaller/balanced */
+    .form-group:first-child input {
+        width: auto;
+        /* Reduced width as requested */
+    }
+
+    /* Ensure Unit Toggle buttons are equal width */
+    .unit-toggle button {
+        flex: 1;
+        text-align: center;
+        width: 50%;
+        /* Establish equal basis */
+    }
+}

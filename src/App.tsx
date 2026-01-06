@@ -16,6 +16,8 @@ import { SettingsDashboard } from './modules/settings/SettingsDashboard';
 import { ModulePatternsPage } from './modules/planogram/ModulePatternsPage';
 import { StoresList } from './modules/settings/components/StoresList';
 import { ButcherDashboard } from './modules/butcher/ButcherDashboard';
+import { ButcherHistory } from './modules/butcher/ButcherHistory';
+
 const RequireAuth = () => {
   const { user, loading } = useAuth();
 
@@ -202,6 +204,7 @@ function App() {
               <Route path="/planogram/patterns" element={<ModulePatternsPage />} />
 
               <Route path="/butcher" element={<ButcherDashboard />} />
+              <Route path="/butcher/history" element={<ButcherHistory />} />
 
               {/* Admin Routes */}
               <Route element={<RequireAdmin />}>

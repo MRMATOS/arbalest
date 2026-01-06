@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { DashboardLayout } from '../../layouts/DashboardLayout';
-import { Search, History, Printer, Check, Settings2, Trash2, Plus } from 'lucide-react';
+import { Search, History, Printer, Check, Settings2, Trash2, Plus, PlusCircle, List } from 'lucide-react';
 import { PrintOrdersModal } from './components/PrintOrdersModal';
 import { AddButcherOrderModal } from './components/AddButcherOrderModal';
 import './styles/ButcherDashboard.css';
@@ -126,11 +126,19 @@ export const ButcherDashboard: React.FC = () => {
 
     const handleUpdateStatus = async (orderId: string, newStatus: string) => {
         try {
+            const updates: any = { status: newStatus };
+
+            if (newStatus === 'production' && user?.store_id) {
+                updates.production_store_id = user.store_id;
+            } else if (newStatus === 'received') {
+                updates.received_at = new Date().toISOString();
+            }
+
             const { error } = await supabase
                 .schema('butcher')
                 .from('orders')
-                .update({ status: newStatus })
-                .eq('id', orderId); // Removed .schema call from here, handled by client or previous context if needed, but standard update is fine on public if schema is set, but better be explicit if using custom schema client
+                .update(updates)
+                .eq('id', orderId);
 
             // Re-fetch handled by realtime subscription
             if (error) throw error;
@@ -188,8 +196,62 @@ export const ButcherDashboard: React.FC = () => {
         }
     };
 
+    // Logic for Mobile Action Button
+    let mobileActionButton = null;
+
+    if (canProduce) {
+        mobileActionButton = (
+            <button
+                className="nav-btn add-btn-mobile"
+                onClick={() => setIsPrintModalOpen(true)}
+                style={{ border: 'none', background: 'transparent' }}
+            >
+                <Printer size={24} />
+                <span>Imprimir</span>
+            </button>
+        );
+    } else if (canRequest) {
+        mobileActionButton = (
+            <button
+                className="nav-btn add-btn-mobile"
+                onClick={() => setIsAddOrderModalOpen(true)}
+                style={{ border: 'none', background: 'transparent' }}
+            >
+                <PlusCircle size={24} />
+                <span>Pedir</span>
+            </button>
+        );
+    }
+
+    // Navigation Links
+    const pedidosLink = (
+        <div
+            onClick={() => navigate('/butcher')}
+            className="nav-btn active"
+            style={{ cursor: 'pointer' }}
+        >
+            <List size={24} />
+            <span>Pedidos</span>
+        </div>
+    );
+
+    const historyLink = (
+        <div
+            onClick={() => navigate('/butcher/history')}
+            className="nav-btn"
+            style={{ cursor: 'pointer' }}
+        >
+            <History size={24} />
+            <span>Histórico</span>
+        </div>
+    );
+
     return (
-        <DashboardLayout>
+        <DashboardLayout
+            customMobileAction={mobileActionButton}
+            filterMobileAction={pedidosLink}
+            secondaryMobileAction={historyLink}
+        >
             <div className="butcher-container">
                 {/* Header */}
                 <div className="page-header">
@@ -221,7 +283,7 @@ export const ButcherDashboard: React.FC = () => {
                 </div>
 
                 {/* Desktop Filters */}
-                <div className="filter-section glass desktop-filters">
+                < div className="filter-section glass desktop-filters" >
                     <div className="filter-grid">
                         <div className="filter-group">
                             <label>Loja</label>
@@ -259,10 +321,10 @@ export const ButcherDashboard: React.FC = () => {
                             </select>
                         </div>
                     </div>
-                </div>
+                </div >
 
                 {/* Search Bar (Separate Section) */}
-                <div className="filter-section glass" style={{ marginTop: 0, paddingTop: '12px', paddingBottom: '12px' }}>
+                < div className="filter-section glass" style={{ marginTop: 0, paddingTop: '12px', paddingBottom: '12px' }}>
                     <div className="search-wrapper">
                         <Search size={18} />
                         <input
@@ -272,110 +334,111 @@ export const ButcherDashboard: React.FC = () => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                </div>
+                </div >
 
                 {/* Desktop Table */}
-                <div className="desktop-view glass">
-                    {loading ? (
-                        <div className="loading-state">
-                            <div className="spinner" />
-                            <p>Carregando pedidos...</p>
-                        </div>
-                    ) : (
-                        <table className="butcher-table">
-                            <thead>
-                                <tr>
-                                    <th>Produto</th>
-                                    <th>Cód / EAN</th>
-                                    <th>Status</th>
-                                    <th>Qtd.</th>
-                                    <th>Loja</th>
-                                    <th>SIM/POA</th>
-                                    <th className="actions-col"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredOrders.length === 0 ? (
+                < div className="desktop-view glass" >
+                    {
+                        loading ? (
+                            <div className="loading-state" >
+                                <div className="spinner" />
+                                <p>Carregando pedidos...</p>
+                            </div>
+                        ) : (
+                            <table className="butcher-table">
+                                <thead>
                                     <tr>
-                                        <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-                                            Nenhum pedido encontrado.
-                                        </td>
+                                        <th>Produto</th>
+                                        <th>Cód / EAN</th>
+                                        <th>Status</th>
+                                        <th>Qtd.</th>
+                                        <th>Loja</th>
+                                        <th>SIM/POA</th>
+                                        <th className="actions-col"></th>
                                     </tr>
-                                ) : (
-                                    filteredOrders.map(order => (
-                                        <tr key={order.id}>
-                                            <td>
-                                                <span className="product-name">{order.product?.name || 'Produto não encontrado'}</span>
-                                                <span className="code-info" style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                                                    {order.product?.meat_group || 'Sem grupo'}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div className="code-info">
-                                                    <span className="code">{order.product?.code || '-'}</span>
-                                                    <span className="ean">{order.product?.ean || '-'}</span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className={`status-pill ${order.status}`}>
-                                                    {getStatusLabel(order.status)}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span className="quantity-badge">
-                                                    {order.quantity} <span style={{ fontSize: '0.75rem', fontWeight: 400 }}>{order.unit}</span>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span className="store-tag">{order.requester_store?.name || 'Loja desconhecida'}</span>
-                                            </td>
-                                            <td>
-                                                <span className="lot-tag">{order.sim_poa_code || '-'}</span>
-                                            </td>
-                                            <td className="actions-col">
-                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                                    {/* Actions logic */}
-                                                    {canProduce && order.status === 'pending' && (
-                                                        <button
-                                                            className="butcher-action-btn"
-                                                            title="Produzir"
-                                                            onClick={() => handleUpdateStatus(order.id, 'production')}
-                                                        >
-                                                            <Settings2 size={18} />
-                                                        </button>
-                                                    )}
-
-                                                    {canRequest && order.status === 'production' && (
-                                                        <button
-                                                            className="butcher-action-btn success"
-                                                            title="Confirmar Recebimento"
-                                                            onClick={() => handleUpdateStatus(order.id, 'received')}
-                                                        >
-                                                            <Check size={18} />
-                                                        </button>
-                                                    )}
-
-                                                    {canRequest && order.status === 'pending' && (
-                                                        <button
-                                                            className="butcher-action-btn danger"
-                                                            title="Cancelar"
-                                                            onClick={() => handleDeleteOrder(order.id)}
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
-                                                    )}
-                                                </div>
+                                </thead>
+                                <tbody>
+                                    {filteredOrders.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+                                                Nenhum pedido encontrado.
                                             </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
+                                    ) : (
+                                        filteredOrders.map(order => (
+                                            <tr key={order.id}>
+                                                <td>
+                                                    <span className="product-name">{order.product?.name || 'Produto não encontrado'}</span>
+                                                    <span className="code-info" style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                                                        {order.product?.meat_group || 'Sem grupo'}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div className="code-info">
+                                                        <span className="code">{order.product?.code || '-'}</span>
+                                                        <span className="ean">{order.product?.ean || '-'}</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span className={`status-pill ${order.status}`}>
+                                                        {getStatusLabel(order.status)}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span className="quantity-badge">
+                                                        {order.quantity} <span style={{ fontSize: '0.75rem', fontWeight: 400 }}>{order.unit}</span>
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span className="store-tag">{order.requester_store?.name || 'Loja desconhecida'}</span>
+                                                </td>
+                                                <td>
+                                                    <span className="lot-tag">{order.sim_poa_code || '-'}</span>
+                                                </td>
+                                                <td className="actions-col">
+                                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                        {/* Actions logic */}
+                                                        {canProduce && order.status === 'pending' && (
+                                                            <button
+                                                                className="butcher-action-btn warning"
+                                                                title="Produzir"
+                                                                onClick={() => handleUpdateStatus(order.id, 'production')}
+                                                            >
+                                                                <Settings2 size={18} />
+                                                            </button>
+                                                        )}
+
+                                                        {canRequest && order.status === 'production' && (
+                                                            <button
+                                                                className="butcher-action-btn success"
+                                                                title="Confirmar Recebimento"
+                                                                onClick={() => handleUpdateStatus(order.id, 'received')}
+                                                            >
+                                                                <Check size={18} />
+                                                            </button>
+                                                        )}
+
+                                                        {canRequest && order.status === 'pending' && (
+                                                            <button
+                                                                className="butcher-action-btn danger"
+                                                                title="Cancelar"
+                                                                onClick={() => handleDeleteOrder(order.id)}
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        )}
+                </div >
 
                 {/* Mobile Card View */}
-                <div className="mobile-view">
+                < div className="mobile-view" >
                     <div className="card-list">
                         {filteredOrders.map(order => (
                             <div key={order.id} className="butcher-card glass">
@@ -423,7 +486,6 @@ export const ButcherDashboard: React.FC = () => {
                                         <button
                                             className="card-action success"
                                             onClick={() => handleUpdateStatus(order.id, 'received')}
-                                            style={{ borderColor: 'var(--success)', color: 'var(--success)' }}
                                         >
                                             Confirmar Recebimento <Check size={16} />
                                         </button>
@@ -432,7 +494,6 @@ export const ButcherDashboard: React.FC = () => {
                                         <button
                                             className="card-action danger"
                                             onClick={() => handleDeleteOrder(order.id)}
-                                            style={{ borderColor: 'var(--error)', color: 'var(--error)' }}
                                         >
                                             Cancelar Pedido <Trash2 size={16} />
                                         </button>
@@ -441,17 +502,17 @@ export const ButcherDashboard: React.FC = () => {
                             </div>
                         ))}
                     </div>
-                </div>
+                </div >
 
-            </div>
+            </div >
 
             {/* Print Modal */}
-            <PrintOrdersModal
+            < PrintOrdersModal
                 isOpen={isPrintModalOpen}
                 onClose={() => setIsPrintModalOpen(false)}
             />
 
-            <AddButcherOrderModal
+            < AddButcherOrderModal
                 isOpen={isAddOrderModalOpen}
                 onClose={() => setIsAddOrderModalOpen(false)}
                 onSuccess={() => {
@@ -459,6 +520,6 @@ export const ButcherDashboard: React.FC = () => {
                     fetchOrders();
                 }}
             />
-        </DashboardLayout>
+        </DashboardLayout >
     );
 };

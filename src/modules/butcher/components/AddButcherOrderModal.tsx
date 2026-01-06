@@ -110,7 +110,7 @@ export const AddButcherOrderModal: React.FC<AddButcherOrderModalProps> = ({ isOp
                     unit: unit,
                     sim_poa_code: simPoa || null,
                     status: 'pending',
-                    // requested_by: user.id // Schema might verify this via trigger or RLS, simpler to just insert basics
+                    created_by: user.id
                 });
 
             if (error) throw error;

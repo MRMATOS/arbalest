@@ -95,28 +95,8 @@
     border-color: var(--error);
 }
 
-.butcher-action-btn.warning {
-    color: var(--warning);
-    border-color: rgba(245, 158, 11, 0.3);
-}
-
-.butcher-action-btn.warning:hover {
-    background: rgba(245, 158, 11, 0.1);
-    border-color: var(--warning);
-}
-
 
 /* Filter Section */
-.butcher-action-btn.success {
-    color: var(--success);
-    border-color: rgba(16, 185, 129, 0.3);
-}
-
-.butcher-action-btn.success:hover {
-    background: rgba(16, 185, 129, 0.1);
-    border-color: var(--success);
-}
-
 .filter-section {
     padding: 20px;
     background: var(--bg-secondary);
@@ -406,23 +386,5 @@
         white-space: nowrap;
         flex: 1;
         justify-content: center;
-    }
-
-    .card-action.success {
-        background: rgba(16, 185, 129, 0.1);
-        /* Light green bg matching status */
-        color: var(--success);
-        border: 1px solid var(--success);
-    }
-
-    .card-action.success:hover {
-        background: var(--success);
-        color: white;
-    }
-
-    .card-action.danger {
-        background: rgba(239, 68, 68, 0.1);
-        color: var(--error);
-        border: 1px solid var(--error);
     }
 }

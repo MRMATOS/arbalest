@@ -24,6 +24,7 @@ interface PrintableOrder {
         name: string;
     };
     created_at: string;
+    status: string;
 }
 
 export const PrintOrdersModal: React.FC<PrintOrdersModalProps> = ({ isOpen, onClose }) => {
@@ -47,7 +48,7 @@ export const PrintOrdersModal: React.FC<PrintOrdersModalProps> = ({ isOpen, onCl
                 .schema('butcher')
                 .from('orders')
                 .select('*')
-                .eq('status', 'pending')
+                .in('status', ['pending', 'production'])
                 .order('created_at', { ascending: true }); // Oldest first for production priority
 
             if (ordersError) throw ordersError;
@@ -164,7 +165,7 @@ export const PrintOrdersModal: React.FC<PrintOrdersModalProps> = ({ isOpen, onCl
                             </div>
                         ) : orders.length === 0 ? (
                             <div className="empty-state">
-                                <p>Não há pedidos pendentes para impressão.</p>
+                                <p>Não há pedidos para impressão.</p>
                             </div>
                         ) : (
                             orders.map(order => {
@@ -181,9 +182,23 @@ export const PrintOrdersModal: React.FC<PrintOrdersModalProps> = ({ isOpen, onCl
 
                                         <div className="order-details">
                                             <div className="main-row">
-                                                <span className="product-name">
-                                                    {order.product?.name || 'Produto Desconhecido'}
-                                                </span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <span className="product-name">
+                                                        {order.product?.name || 'Produto Desconhecido'}
+                                                    </span>
+                                                    {order.status === 'production' && (
+                                                        <span style={{
+                                                            fontSize: '0.65rem',
+                                                            padding: '2px 6px',
+                                                            borderRadius: '4px',
+                                                            background: '#e0f2fe',
+                                                            color: '#0284c7',
+                                                            border: '1px solid #bae6fd'
+                                                        }}>
+                                                            Já Impresso
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <span className="quantity-pill">
                                                     {order.quantity} {order.unit}
                                                 </span>

@@ -5,7 +5,7 @@
     height: 60vh;
     /* Fixed height for consistency */
     max-height: 600px;
-    min-width: 600px;
+    width: 100%;
 }
 
 .modal-header-actions {
