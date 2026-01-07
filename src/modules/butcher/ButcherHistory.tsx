@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { DashboardLayout } from '../../layouts/DashboardLayout';
-import { Search, Filter, Calendar, Printer, PlusCircle, List, History } from 'lucide-react';
-import './styles/ButcherHistory.css';
+import { Search, Printer, PlusCircle, FileText, Filter, History, Copy } from 'lucide-react';
+import { ButcherFilterModal } from './components/ButcherFilterModal';
 import { PrintOrdersModal } from './components/PrintOrdersModal';
 import { AddButcherOrderModal } from './components/AddButcherOrderModal';
 
@@ -33,6 +33,7 @@ interface Order {
 export const ButcherHistory: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
+    // ... (state remains same)
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -43,20 +44,22 @@ export const ButcherHistory: React.FC = () => {
     const [selectedPeriod, setSelectedPeriod] = useState('7_days'); // today, 7_days, 30_days, all
     const [selectedStore, setSelectedStore] = useState('all');
     const [selectedMeatGroup, setSelectedMeatGroup] = useState('all');
+    const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
-    // Derived Data for Filter Options
+    // ... (derived data remains same)
     const stores = Array.from(new Set(orders
         .filter(o => o.requester_store)
         .map(o => JSON.stringify({ id: o.requester_store.id, name: o.requester_store.name }))
     )).map(s => JSON.parse(s));
 
-    const meatGroups = Array.from(new Set(orders.map(o => o.product?.meat_group).filter(Boolean)));
+    const meatGroups = Array.from(new Set(orders.map(o => o.product?.meat_group).filter(Boolean))) as string[];
 
     useEffect(() => {
         fetchHistory();
     }, [selectedPeriod]); // Refetch when date range changes (optimization)
 
     const fetchHistory = async () => {
+        // ... (fetch logic remains same)
         try {
             setLoading(true);
 
@@ -129,6 +132,7 @@ export const ButcherHistory: React.FC = () => {
         }
     };
 
+    // ... (rest of logic remains same)
     const filteredOrders = orders.filter(order => {
         const prod = order.product || {};
         const store = order.requester_store || {};
@@ -149,6 +153,11 @@ export const ButcherHistory: React.FC = () => {
             case 'cancelled': return 'Cancelado';
             default: return status;
         }
+    };
+
+    const handleCopy = (text: string) => {
+        navigator.clipboard.writeText(text);
+        // Optional: toast notification
     };
 
     // Logic for Mobile Action Button (Same as Dashboard for consistency)
@@ -182,37 +191,48 @@ export const ButcherHistory: React.FC = () => {
     }
 
     // Navigation Links
-    const pedidosLink = (
-        <div
-            onClick={() => navigate('/butcher')}
-            className="nav-btn"
-            style={{ cursor: 'pointer' }}
-        >
-            <List size={24} />
-            <span>Pedidos</span>
-        </div>
-    );
-
     const historyLink = (
         <div
-            onClick={() => navigate('/butcher/history')}
             className="nav-btn active"
-            style={{ cursor: 'pointer' }}
+            style={{ cursor: 'default' }}
         >
             <History size={24} />
             <span>Histórico</span>
         </div>
     );
 
+    const filterButton = (
+        <div
+            onClick={() => setIsFilterModalOpen(true)}
+            className="nav-btn"
+            style={{ cursor: 'pointer' }}
+        >
+            <Filter size={24} />
+            <span>Filtrar</span>
+        </div>
+    );
+
+    const pedidosLink = (
+        <div
+            onClick={() => navigate('/butcher')}
+            className="nav-btn"
+            style={{ cursor: 'pointer' }}
+        >
+            <FileText size={24} />
+            <span>Pedidos</span>
+        </div>
+    );
+
     return (
         <DashboardLayout
             customMobileAction={mobileActionButton}
-            filterMobileAction={pedidosLink}
-            secondaryMobileAction={historyLink}
+            filterMobileAction={historyLink}
+            secondaryMobileAction={filterButton}
+            tertiaryMobileAction={pedidosLink}
         >
-            <div className="butcher-container">
+            <div className="arbalest-layout-container">
                 {/* Header */}
-                <div className="page-header">
+                <div className="arbalest-header">
                     <div className="header-text" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         {/* Back Arrow Removed */}
                         <div>
@@ -223,51 +243,11 @@ export const ButcherHistory: React.FC = () => {
                 </div>
 
                 {/* Filters */}
-                <div className="filter-section glass desktop-filters">
-                    <div className="filter-grid">
-                        <div className="filter-group">
-                            <label>Período</label>
-                            <select
-                                className="filter-select text-select"
-                                value={selectedPeriod}
-                                onChange={(e) => setSelectedPeriod(e.target.value)}
-                            >
-                                <option value="today">Hoje</option>
-                                <option value="7_days">Últimos 7 Dias</option>
-                                <option value="30_days">Últimos 30 Dias</option>
-                                <option value="all">Todo o Período</option>
-                            </select>
-                        </div>
-
-                        <div className="filter-group">
-                            <label>Loja</label>
-                            <select
-                                className="filter-select"
-                                value={selectedStore}
-                                onChange={(e) => setSelectedStore(e.target.value)}
-                            >
-                                <option value="all">Todas as Lojas</option>
-                                {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                            </select>
-                        </div>
-
-                        <div className="filter-group">
-                            <label>Grupo de Carne</label>
-                            <select
-                                className="filter-select"
-                                value={selectedMeatGroup}
-                                onChange={(e) => setSelectedMeatGroup(e.target.value)}
-                            >
-                                <option value="all">Todos os Grupos</option>
-                                {meatGroups.map(g => <option key={g} value={g}>{g}</option>)}
-                            </select>
-                        </div>
-                    </div>
-                </div>
+                {/* Filters (Moved to Modal) */}
 
                 {/* Search */}
-                <div className="filter-section glass" style={{ marginTop: 0, paddingTop: '12px', paddingBottom: '12px' }}>
-                    <div className="search-wrapper">
+                <div className="arbalest-filter-section arbalest-glass" style={{ marginTop: 0, paddingTop: '12px', paddingBottom: '12px' }}>
+                    <div className="arbalest-search-wrapper">
                         <Search size={18} />
                         <input
                             type="text"
@@ -279,57 +259,81 @@ export const ButcherHistory: React.FC = () => {
                 </div>
 
                 {/* Table */}
-                <div className="desktop-view glass">
+                <div className="arbalest-table-container arbalest-glass">
                     {loading ? (
-                        <div className="loading-state">
-                            <div className="spinner" />
+                        <div className="arbalest-loading-state">
+                            <div className="arbalest-spinner" />
                             <p>Carregando histórico...</p>
                         </div>
                     ) : (
-                        <table className="butcher-table">
+                        <table className="arbalest-table">
                             <thead>
                                 <tr>
-                                    <th>Data</th>
                                     <th>Produto</th>
-                                    <th>Qtd.</th>
+                                    <th>Código</th>
                                     <th>Loja</th>
+                                    <th>Quantidade</th>
                                     <th>Solicitante</th>
+                                    <th>Pedido Em</th>
+                                    <th>Recebido Em</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredOrders.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+                                        <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
                                             Nenhum registro encontrado neste período.
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredOrders.map(order => (
                                         <tr key={order.id}>
-                                            <td style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                                                {new Date(order.created_at).toLocaleDateString()} <br />
-                                                <small>{new Date(order.created_at).toLocaleTimeString().slice(0, 5)}</small>
-                                            </td>
                                             <td>
                                                 <span className="product-name">{order.product?.name}</span>
-                                                <span className="code-info" style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                                            </td>
+                                            <td>
+                                                <div
+                                                    onClick={() => handleCopy(order.product?.code)}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '6px',
+                                                        cursor: 'pointer',
+                                                        color: 'var(--text-secondary)',
+                                                        fontSize: '0.85rem'
+                                                    }}
+                                                    title="Clique para copiar"
+                                                >
                                                     {order.product?.code}
-                                                </span>
+                                                    <Copy size={12} strokeWidth={1.5} />
+                                                </div>
                                             </td>
                                             <td>
-                                                <span className="quantity-badge" style={{ fontSize: '0.9rem' }}>
-                                                    {order.quantity} {order.unit}
-                                                </span>
+                                                <span className="arbalest-badge arbalest-badge-neutral">{order.requester_store?.name}</span>
                                             </td>
                                             <td>
-                                                <span className="store-tag">{order.requester_store?.name}</span>
+                                                <span className="arbalest-badge arbalest-badge-neutral" style={{ fontSize: '0.9rem' }}>
+                                                    {order.quantity} {order.unit === 'bandeja' ? 'bandejas' : order.unit}
+                                                </span>
                                             </td>
                                             <td>
                                                 <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{order.requester_user?.name || '-'}</span>
                                             </td>
+                                            <td style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                                                {new Date(order.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })} {' '}
+                                                {new Date(order.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                            </td>
+                                            <td style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                                                {order.received_at ? (
+                                                    <>
+                                                        {new Date(order.received_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })} {' '}
+                                                        {new Date(order.received_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                    </>
+                                                ) : '-'}
+                                            </td>
                                             <td>
-                                                <span className={`status-pill ${order.status}`}>
+                                                <span className={`arbalest-badge ${order.status === 'received' ? 'arbalest-badge-success' : 'arbalest-badge-danger'}`}>
                                                     {getStatusLabel(order.status)}
                                                 </span>
                                             </td>
@@ -346,32 +350,58 @@ export const ButcherHistory: React.FC = () => {
                 <div className="mobile-view">
                     <div className="card-list">
                         {filteredOrders.map(order => (
-                            <div key={order.id} className="butcher-card glass">
-                                <div className="card-header">
+                            <div key={order.id} className="arbalest-card arbalest-glass">
+                                <div className="arbalest-card-header">
                                     <span className="product-name">{order.product?.name}</span>
-                                    <span className={`status-pill ${order.status}`}>
+                                    <span className={`arbalest-badge ${order.status === 'received' ? 'arbalest-badge-success' : 'arbalest-badge-danger'}`}>
                                         {getStatusLabel(order.status)}
                                     </span>
                                 </div>
-                                <div className="card-body">
-                                    <div className="card-row">
-                                        <div className="card-info">
-                                            <label>Data</label>
-                                            <span>{new Date(order.created_at).toLocaleDateString()}</span>
+                                <div className="arbalest-card-body">
+                                    <div className="arbalest-card-row">
+                                        <div className="arbalest-card-info">
+                                            <label className="arbalest-label">Código</label>
+                                            <div
+                                                onClick={() => handleCopy(order.product?.code)}
+                                                style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                                            >
+                                                <span>{order.product?.code}</span>
+                                                <Copy size={12} strokeWidth={1.5} color="var(--text-tertiary)" />
+                                            </div>
                                         </div>
-                                        <div className="card-info">
-                                            <label>Qtd</label>
-                                            <span>{order.quantity} {order.unit}</span>
-                                        </div>
-                                    </div>
-                                    <div className="card-row">
-                                        <div className="card-info">
-                                            <label>Loja</label>
+                                        <div className="arbalest-card-info">
+                                            <label className="arbalest-label">Loja</label>
                                             <span>{order.requester_store?.name}</span>
                                         </div>
-                                        <div className="card-info">
-                                            <label>Solicitante</label>
+                                    </div>
+                                    <div className="arbalest-card-row">
+                                        <div className="arbalest-card-info">
+                                            <label className="arbalest-label">Quantidade</label>
+                                            <span>{order.quantity} {order.unit === 'bandeja' ? 'bandejas' : order.unit}</span>
+                                        </div>
+                                        <div className="arbalest-card-info">
+                                            <label className="arbalest-label">Solicitante</label>
                                             <span>{order.requester_user?.name || '-'}</span>
+                                        </div>
+                                    </div>
+                                    <div className="arbalest-card-row">
+                                        <div className="arbalest-card-info">
+                                            <label className="arbalest-label">Pedido Em</label>
+                                            <span>
+                                                {new Date(order.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })} {' '}
+                                                {new Date(order.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                        <div className="arbalest-card-info">
+                                            <label className="arbalest-label">Recebido Em</label>
+                                            <span>
+                                                {order.received_at ? (
+                                                    <>
+                                                        {new Date(order.received_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })} {' '}
+                                                        {new Date(order.received_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                    </>
+                                                ) : '-'}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -379,8 +409,23 @@ export const ButcherHistory: React.FC = () => {
                         ))}
                     </div>
                 </div>
-
             </div>
+
+            {/* Filter Modal */}
+            <ButcherFilterModal
+                isOpen={isFilterModalOpen}
+                onClose={() => setIsFilterModalOpen(false)}
+                filters={{ store: selectedStore, meatGroup: selectedMeatGroup, period: selectedPeriod }}
+                setFilter={(key, value) => {
+                    if (key === 'store') setSelectedStore(value);
+                    if (key === 'meatGroup') setSelectedMeatGroup(value);
+                    if (key === 'period') setSelectedPeriod(value);
+                }}
+                stores={stores}
+                meatGroups={meatGroups}
+                type="history"
+            />
+
             {/* Modals for Mobile Actions */}
             <PrintOrdersModal
                 isOpen={isPrintModalOpen}
@@ -395,6 +440,6 @@ export const ButcherHistory: React.FC = () => {
                     fetchHistory();
                 }}
             />
-        </DashboardLayout>
+        </DashboardLayout >
     );
 };

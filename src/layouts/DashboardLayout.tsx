@@ -25,6 +25,7 @@ interface DashboardLayoutProps {
     customMobileAction?: React.ReactNode;
     secondaryMobileAction?: React.ReactNode;
     filterMobileAction?: React.ReactNode;
+    tertiaryMobileAction?: React.ReactNode;
 }
 
 interface NavItemProps {
@@ -34,7 +35,7 @@ interface NavItemProps {
     collapsed?: boolean;
 }
 
-export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAddClick, customMobileAction, secondaryMobileAction, filterMobileAction }) => {
+export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAddClick, customMobileAction, secondaryMobileAction, filterMobileAction, tertiaryMobileAction }) => {
     const { user, logout } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -209,6 +210,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                 {filterMobileAction}
 
                 {secondaryMobileAction}
+
+                {tertiaryMobileAction}
 
                 {customMobileAction ? (
                     customMobileAction

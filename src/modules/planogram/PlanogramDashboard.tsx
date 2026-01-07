@@ -41,14 +41,14 @@ export const PlanogramDashboard: React.FC = () => {
 
     return (
         <DashboardLayout>
-            <div className="fade-in">
+            <div className="arbalest-layout-container fade-in">
                 {/* Header */}
-                <div className="header-actions" style={{ marginBottom: '24px', justifyContent: 'space-between' }}>
-                    <div>
-                        <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Planogramas</h1>
+                <header className="arbalest-header">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <h1>Planogramas</h1>
                         <p style={{ color: 'var(--text-secondary)' }}>Gerencie o layout das lojas</p>
                     </div>
-                </div>
+                </header>
 
                 {/* Quick Actions */}
                 <div style={{ marginBottom: '32px' }}>
@@ -56,25 +56,22 @@ export const PlanogramDashboard: React.FC = () => {
                         Configurações
                     </h3>
                     <div
-                        className="glass"
+                        className="arbalest-card"
                         onClick={() => navigate('/planogram/patterns')}
                         style={{
-                            padding: '20px',
-                            borderRadius: '16px',
                             display: 'flex',
                             alignItems: 'center',
                             cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            border: '1px solid var(--glass-border)'
+                            flexDirection: 'row', // Override default column if needed, or rely on card-body structure if I used strict structure. But arbalest-card is generic container.
+                            gap: '16px'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'var(--glass-bg)'}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
                     >
                         <div style={{
                             background: 'rgba(16, 185, 129, 0.1)',
                             padding: '12px',
                             borderRadius: '12px',
-                            marginRight: '16px'
                         }}>
                             <Ruler size={24} color="#10b981" />
                         </div>
@@ -93,7 +90,10 @@ export const PlanogramDashboard: React.FC = () => {
                     </h3>
 
                     {loading ? (
-                        <div className="spinner" />
+                        <div className="arbalest-loading-state">
+                            <div className="spinner" />
+                            <p>Carregando lojas...</p>
+                        </div>
                     ) : (
                         <div style={{
                             display: 'grid',
@@ -103,27 +103,21 @@ export const PlanogramDashboard: React.FC = () => {
                             {stores.map(store => (
                                 <div
                                     key={store.id}
-                                    className="glass"
+                                    className="arbalest-card"
                                     style={{
-                                        padding: '24px',
-                                        borderRadius: '16px',
-                                        border: '1px solid var(--glass-border)',
                                         opacity: 0.7, // Visual indication that it's read-only for now
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '8px'
                                     }}
                                 >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                                         <Store size={20} color="var(--text-secondary)" />
-                                        <span style={{
-                                            background: 'var(--bg-accent)',
-                                            padding: '4px 8px',
-                                            borderRadius: '6px',
-                                            fontSize: '0.75rem',
-                                            fontWeight: 600
-                                        }}>
+                                        <span className="arbalest-badge arbalest-badge-neutral">
                                             {store.code}
                                         </span>
                                     </div>
-                                    <h3 style={{ fontSize: '1.2rem', marginBottom: '4px' }}>{store.name}</h3>
+                                    <h3 style={{ fontSize: '1.2rem', fontWeight: 600 }}>{store.name}</h3>
                                     <p style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>Visualização indisponível</p>
                                 </div>
                             ))}

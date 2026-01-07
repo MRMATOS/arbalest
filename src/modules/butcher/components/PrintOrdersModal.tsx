@@ -258,7 +258,6 @@ export const PrintOrdersModal: React.FC<PrintOrdersModalProps> = ({ isOpen, onCl
                             <th>Cód. / EAN</th>
                             <th>Loja</th>
                             <th style={{ textAlign: 'right' }}>Qtd</th>
-                            <th>SIM/POA</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -268,7 +267,6 @@ export const PrintOrdersModal: React.FC<PrintOrdersModalProps> = ({ isOpen, onCl
                                 <td>{order.product.code}{order.product.ean ? ` / ${order.product.ean}` : ''}</td>
                                 <td>{order.requester_store.name}</td>
                                 <td className="qty-col" style={{ textAlign: 'right' }}>{order.quantity} {order.unit}</td>
-                                <td>{order.sim_poa_code || '-'}</td>
                             </tr>
                         ))}
                     </tbody>

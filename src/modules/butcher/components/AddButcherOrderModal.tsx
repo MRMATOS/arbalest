@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Loader, Package, Camera } from 'lucide-react';
+import { Search, Loader, Package } from 'lucide-react';
 import { Modal } from '../../../components/Modal';
 import { supabase } from '../../../services/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -26,7 +26,7 @@ export const AddButcherOrderModal: React.FC<AddButcherOrderModalProps> = ({ isOp
     // Form Data
     const [quantity, setQuantity] = useState<number | ''>('');
     const [unit, setUnit] = useState<'bandeja' | 'kg'>('bandeja');
-    const [simPoa, setSimPoa] = useState('');
+
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
@@ -41,7 +41,7 @@ export const AddButcherOrderModal: React.FC<AddButcherOrderModalProps> = ({ isOp
         setSelectedProduct(null);
         setQuantity('');
         setUnit('bandeja');
-        setSimPoa('');
+
         setSubmitting(false);
     };
 
@@ -108,7 +108,6 @@ export const AddButcherOrderModal: React.FC<AddButcherOrderModalProps> = ({ isOp
                     product_id: selectedProduct.id,
                     quantity: Number(quantity),
                     unit: unit,
-                    sim_poa_code: simPoa || null,
                     status: 'pending',
                     created_by: user.id
                 });
@@ -148,9 +147,7 @@ export const AddButcherOrderModal: React.FC<AddButcherOrderModalProps> = ({ isOp
                                 />
                                 {searchLoading && <Loader className="spinner" size={18} />}
                             </div>
-                            <button className="scan-btn" onClick={() => setIsScannerOpen(true)}>
-                                <Camera size={20} />
-                            </button>
+
                         </div>
 
                         <div className="results-list">
@@ -220,16 +217,7 @@ export const AddButcherOrderModal: React.FC<AddButcherOrderModalProps> = ({ isOp
                             </div>
                         </div>
 
-                        <div className="form-group full-width">
-                            <label>SIM / POA (Opcional)</label>
-                            <input
-                                type="text"
-                                value={simPoa}
-                                onChange={(e) => setSimPoa(e.target.value)}
-                                placeholder="Ex: 1234/2024"
-                                className="text-input"
-                            />
-                        </div>
+
 
                         <div className="modal-actions">
                             <button className="cancel-btn" onClick={onClose} disabled={submitting}>

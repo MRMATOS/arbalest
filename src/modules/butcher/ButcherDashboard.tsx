@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { DashboardLayout } from '../../layouts/DashboardLayout';
-import { Search, History, Printer, Check, Settings2, Trash2, Plus, PlusCircle, List } from 'lucide-react';
+import { Search, History, Printer, Check, Settings2, Trash2, PlusCircle, FileText, Filter } from 'lucide-react';
+import { ButcherFilterModal } from './components/ButcherFilterModal';
 import { PrintOrdersModal } from './components/PrintOrdersModal';
 import { AddButcherOrderModal } from './components/AddButcherOrderModal';
-import './styles/ButcherDashboard.css';
+
 
 interface Order {
     id: string;
@@ -40,7 +41,9 @@ export const ButcherDashboard: React.FC = () => {
     // Filters State
     const [selectedStore, setSelectedStore] = useState('all');
     const [selectedMeatGroup, setSelectedMeatGroup] = useState('all');
-    const [sortBy, setSortBy] = useState('recent'); // recent, oldest
+    const [selectedPeriod, setSelectedPeriod] = useState('today');
+    const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+    const [sortBy] = useState('recent'); // recent, oldest
 
     // Derived Data for Filters
     // Derived Data for Filters
@@ -49,7 +52,7 @@ export const ButcherDashboard: React.FC = () => {
         .map(o => JSON.stringify({ id: o.requester_store.id, name: o.requester_store.name }))
     )).map(s => JSON.parse(s));
 
-    const meatGroups = Array.from(new Set(orders.map(o => o.product?.meat_group).filter(Boolean)));
+    const meatGroups = Array.from(new Set(orders.map(o => o.product?.meat_group).filter(Boolean))) as string[];
 
     // Determines if user handles production (can print/update status)
     const canProduce = user?.role === 'admin' || user?.butcher_role === 'producer';
@@ -177,11 +180,30 @@ export const ButcherDashboard: React.FC = () => {
         const matchesStore = selectedStore === 'all' || store.id === selectedStore;
         const matchesGroup = selectedMeatGroup === 'all' || prod.meat_group === selectedMeatGroup;
 
+        let matchesPeriod = true;
+        if (selectedPeriod !== 'all') {
+            const date = new Date(order.created_at);
+            const now = new Date();
+            date.setHours(0, 0, 0, 0);
+            now.setHours(0, 0, 0, 0);
+
+            if (selectedPeriod === 'today') {
+                matchesPeriod = date.getTime() === now.getTime();
+            } else if (selectedPeriod === 'week') {
+                const oneWeekAgo = new Date(now);
+                oneWeekAgo.setDate(now.getDate() - 7);
+                matchesPeriod = date >= oneWeekAgo;
+            } else if (selectedPeriod === 'month') {
+                const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                matchesPeriod = date >= firstDayOfMonth;
+            }
+        }
+
         // Logic: Producers generally see "pending" and "production". "Received" goes to history.
         // Requesters see everything active.
         const isActive = order.status !== 'received';
 
-        return matchesSearch && matchesStore && matchesGroup && isActive;
+        return matchesSearch && matchesStore && matchesGroup && matchesPeriod && isActive;
     }).sort((a, b) => {
         if (sortBy === 'recent') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
@@ -190,7 +212,7 @@ export const ButcherDashboard: React.FC = () => {
     const getStatusLabel = (status: string) => {
         switch (status) {
             case 'pending': return 'Pendente';
-            case 'production': return 'Em Produção';
+            case 'production': return 'Produzindo';
             case 'received': return 'Entregue';
             default: return status;
         }
@@ -223,17 +245,16 @@ export const ButcherDashboard: React.FC = () => {
         );
     }
 
-    // Navigation Links
-    const pedidosLink = (
-        <div
-            onClick={() => navigate('/butcher')}
-            className="nav-btn active"
-            style={{ cursor: 'pointer' }}
-        >
-            <List size={24} />
-            <span>Pedidos</span>
-        </div>
-    );
+    // Navigation Links (Reordered per request: History -> Filter -> Orders -> Action)
+
+    // 1. History Link (goes to History page) - Will be in 'filterMobileAction' slot (first on left) based on Layout
+    // Wait, Layout is: Filter -> Secondary -> Tertiary -> Custom.
+    // User wants: Menu - Histórico - Filtrar - Pedidos - Pedir
+    // So: 
+    // FilterSlot = Historico
+    // SecondarySlot = Filtrar
+    // TertiarySlot = Pedidos (Active)
+    // CustomSlot = Pedir/Imprimir
 
     const historyLink = (
         <div
@@ -246,86 +267,122 @@ export const ButcherDashboard: React.FC = () => {
         </div>
     );
 
+    const filterButton = (
+        <div
+            onClick={() => setIsFilterModalOpen(true)}
+            className="nav-btn"
+            style={{ cursor: 'pointer' }}
+        >
+            <Filter size={24} />
+            <span>Filtrar</span>
+        </div>
+    );
+
+    const pedidosLink = (
+        <div
+            className="nav-btn active"
+            style={{ cursor: 'default' }}
+        >
+            <FileText size={24} />
+            <span>Pedidos</span>
+        </div>
+    );
+
     return (
         <DashboardLayout
+            filterMobileAction={historyLink}
+            secondaryMobileAction={filterButton}
+            tertiaryMobileAction={pedidosLink}
             customMobileAction={mobileActionButton}
-            filterMobileAction={pedidosLink}
-            secondaryMobileAction={historyLink}
         >
-            <div className="butcher-container">
+            <div className="arbalest-layout-container">
                 {/* Header */}
-                <div className="page-header">
+                <div className="arbalest-header">
                     <div className="header-text">
                         <h1>Pedidos do Açougue</h1>
                         <p>Gerencie solicitações e produção de cortes</p>
                     </div>
-                    <div className="header-actions">
-                        <button className="butcher-action-btn btn-secondary" onClick={() => navigate('/butcher/history')}>
+                    <div className="arbalest-header-actions hide-mobile">
+                        <button
+                            className="arbalest-btn arbalest-btn-neutral"
+                            onClick={() => navigate('/butcher/history')}
+                        >
                             <History size={20} />
                             <span>Histórico</span>
                         </button>
 
                         {canProduce && (
-                            <button className="butcher-action-btn btn-primary" onClick={() => setIsPrintModalOpen(true)}>
+                            <button
+                                className="arbalest-btn arbalest-btn-primary"
+                                onClick={() => setIsPrintModalOpen(true)}
+                            >
                                 <Printer size={20} />
-                                <span>Imprimir Pedidos</span>
+                                <span>Imprimir pedidos</span>
                             </button>
                         )}
 
-                        {/* Novo Pedido (Requester Only) */}
                         {canRequest && (
-                            <button className="butcher-action-btn btn-primary" onClick={() => setIsAddOrderModalOpen(true)}>
-                                <Plus size={20} />
-                                <span>Novo Pedido</span>
+                            <button
+                                className="arbalest-btn arbalest-btn-primary"
+                                onClick={() => setIsAddOrderModalOpen(true)}
+                            >
+                                <PlusCircle size={20} />
+                                <span>Fazer pedido</span>
                             </button>
                         )}
                     </div>
                 </div>
 
                 {/* Desktop Filters */}
-                < div className="filter-section glass desktop-filters" >
-                    <div className="filter-grid">
+                <div className="arbalest-filter-section arbalest-glass desktop-filters hide-mobile" style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                         <div className="filter-group">
-                            <label>Loja</label>
+                            <label className="arbalest-label">Loja</label>
                             <select
-                                className="filter-select"
                                 value={selectedStore}
                                 onChange={(e) => setSelectedStore(e.target.value)}
+                                className="arbalest-select"
                             >
                                 <option value="all">Todas as Lojas</option>
-                                {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                {stores.map(store => (
+                                    <option key={store.id} value={store.id}>{store.name}</option>
+                                ))}
                             </select>
                         </div>
 
                         <div className="filter-group">
-                            <label>Grupo de Carne</label>
+                            <label className="arbalest-label">Grupo</label>
                             <select
-                                className="filter-select"
                                 value={selectedMeatGroup}
                                 onChange={(e) => setSelectedMeatGroup(e.target.value)}
+                                className="arbalest-select"
                             >
                                 <option value="all">Todos os Grupos</option>
-                                {meatGroups.map(g => <option key={g} value={g}>{g}</option>)}
+                                {meatGroups.map(group => (
+                                    <option key={group} value={group}>{group}</option>
+                                ))}
                             </select>
                         </div>
 
                         <div className="filter-group">
-                            <label>Ordenar</label>
+                            <label className="arbalest-label">Período</label>
                             <select
-                                className="filter-select"
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value)}
+                                value={selectedPeriod}
+                                onChange={(e) => setSelectedPeriod(e.target.value as any)}
+                                className="arbalest-select"
                             >
-                                <option value="recent">Mais Recentes</option>
-                                <option value="oldest">Mais Antigos</option>
+                                <option value="today">Hoje</option>
+                                <option value="week">Esta Semana</option>
+                                <option value="month">Este Mês</option>
+                                <option value="all">Todo o Período</option>
                             </select>
                         </div>
                     </div>
-                </div >
+                </div>
 
                 {/* Search Bar (Separate Section) */}
-                < div className="filter-section glass" style={{ marginTop: 0, paddingTop: '12px', paddingBottom: '12px' }}>
-                    <div className="search-wrapper">
+                <div className="arbalest-filter-section arbalest-glass">
+                    <div className="arbalest-search-wrapper">
                         <Search size={18} />
                         <input
                             type="text"
@@ -334,33 +391,34 @@ export const ButcherDashboard: React.FC = () => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                </div >
+                </div>
 
                 {/* Desktop Table */}
-                < div className="desktop-view glass" >
+                <div className="desktop-view arbalest-table-container">
                     {
                         loading ? (
-                            <div className="loading-state" >
+                            <div className="arbalest-loading-state" >
                                 <div className="spinner" />
                                 <p>Carregando pedidos...</p>
                             </div>
                         ) : (
-                            <table className="butcher-table">
+                            <table className="arbalest-table">
                                 <thead>
                                     <tr>
                                         <th>Produto</th>
+                                        <th>Grupo</th>
                                         <th>Cód / EAN</th>
                                         <th>Status</th>
                                         <th>Qtd.</th>
                                         <th>Loja</th>
-                                        <th>SIM/POA</th>
+                                        <th>Pedido Em</th>
                                         <th className="actions-col"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {filteredOrders.length === 0 ? (
                                         <tr>
-                                            <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+                                            <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
                                                 Nenhum pedido encontrado.
                                             </td>
                                         </tr>
@@ -369,6 +427,8 @@ export const ButcherDashboard: React.FC = () => {
                                             <tr key={order.id}>
                                                 <td>
                                                     <span className="product-name">{order.product?.name || 'Produto não encontrado'}</span>
+                                                </td>
+                                                <td>
                                                     <span className="code-info" style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
                                                         {order.product?.meat_group || 'Sem grupo'}
                                                     </span>
@@ -380,7 +440,10 @@ export const ButcherDashboard: React.FC = () => {
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <span className={`status-pill ${order.status}`}>
+                                                    <span className={`arbalest-badge ${order.status === 'pending' ? 'arbalest-badge-warning' :
+                                                        order.status === 'production' ? 'arbalest-badge-info' :
+                                                            'arbalest-badge-success'
+                                                        }`}>
                                                         {getStatusLabel(order.status)}
                                                     </span>
                                                 </td>
@@ -393,14 +456,17 @@ export const ButcherDashboard: React.FC = () => {
                                                     <span className="store-tag">{order.requester_store?.name || 'Loja desconhecida'}</span>
                                                 </td>
                                                 <td>
-                                                    <span className="lot-tag">{order.sim_poa_code || '-'}</span>
+                                                    <span className="date-tag" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                                        {new Date(order.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })} {' '}
+                                                        {new Date(order.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
                                                 </td>
                                                 <td className="actions-col">
                                                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                                         {/* Actions logic */}
                                                         {canProduce && order.status === 'pending' && (
                                                             <button
-                                                                className="butcher-action-btn warning"
+                                                                className="arbalest-icon-btn arbalest-btn-primary"
                                                                 title="Produzir"
                                                                 onClick={() => handleUpdateStatus(order.id, 'production')}
                                                             >
@@ -410,7 +476,7 @@ export const ButcherDashboard: React.FC = () => {
 
                                                         {canRequest && order.status === 'production' && (
                                                             <button
-                                                                className="butcher-action-btn success"
+                                                                className="arbalest-icon-btn arbalest-btn-primary"
                                                                 title="Confirmar Recebimento"
                                                                 onClick={() => handleUpdateStatus(order.id, 'received')}
                                                             >
@@ -420,7 +486,8 @@ export const ButcherDashboard: React.FC = () => {
 
                                                         {canRequest && order.status === 'pending' && (
                                                             <button
-                                                                className="butcher-action-btn danger"
+                                                                className="arbalest-icon-btn arbalest-btn-danger"
+                                                                style={{ color: 'var(--error)' }}
                                                                 title="Cancelar"
                                                                 onClick={() => handleDeleteOrder(order.id)}
                                                             >
@@ -435,76 +502,110 @@ export const ButcherDashboard: React.FC = () => {
                                 </tbody>
                             </table>
                         )}
-                </div >
+                </div>
 
                 {/* Mobile Card View */}
-                < div className="mobile-view" >
+                <div className="mobile-view">
                     <div className="card-list">
                         {filteredOrders.map(order => (
-                            <div key={order.id} className="butcher-card glass">
-                                <div className="card-header">
-                                    <span className="product-name" style={{ fontSize: '1rem' }}>{order.product?.name || 'Produto não encontrado'}</span>
-                                    <span className={`status-pill ${order.status}`}>
+                            <div key={order.id} className="arbalest-card">
+                                <div className="arbalest-card-header">
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <span className="product-name" style={{ fontSize: '1rem' }}>
+                                            {order.product?.name || 'Produto não encontrado'}
+                                        </span>
+                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
+                                            {order.product?.meat_group || 'Sem grupo'}
+                                        </span>
+                                    </div>
+                                    <span className={`arbalest-badge ${order.status === 'pending' ? 'arbalest-badge-warning' :
+                                        order.status === 'production' ? 'arbalest-badge-info' :
+                                            'arbalest-badge-success'
+                                        }`}>
                                         {getStatusLabel(order.status)}
                                     </span>
                                 </div>
 
-                                <div className="card-body">
-                                    <div className="card-row">
-                                        <div className="card-info">
+                                <div className="arbalest-card-body">
+                                    <div className="arbalest-card-row">
+                                        <div className="arbalest-card-info">
                                             <label>Quantidade</label>
                                             <span className="quantity-badge">{order.quantity} {order.unit}</span>
                                         </div>
-                                        <div className="card-info">
+                                        <div className="arbalest-card-info">
                                             <label>Loja</label>
                                             <span>{order.requester_store?.name || 'Loja desconhecida'}</span>
                                         </div>
                                     </div>
 
-                                    <div className="card-row">
-                                        <div className="card-info">
+                                    <div className="arbalest-card-row">
+                                        <div className="arbalest-card-info">
                                             <label>Código / EAN</label>
                                             <span>{order.product?.code || '-'}</span>
                                         </div>
-                                        <div className="card-info">
-                                            <label>SIM / POA</label>
-                                            <span>{order.sim_poa_code || '-'}</span>
+                                        <div className="arbalest-card-info">
+                                            <label>Pedido Em</label>
+                                            <span>
+                                                {new Date(order.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })} {' '}
+                                                {new Date(order.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="card-footer">
-                                    {canProduce && order.status === 'pending' && (
-                                        <button
-                                            className="card-action primary"
-                                            onClick={() => handleUpdateStatus(order.id, 'production')}
-                                        >
-                                            Iniciar Produção <Settings2 size={16} />
-                                        </button>
-                                    )}
-                                    {canRequest && order.status === 'production' && (
-                                        <button
-                                            className="card-action success"
-                                            onClick={() => handleUpdateStatus(order.id, 'received')}
-                                        >
-                                            Confirmar Recebimento <Check size={16} />
-                                        </button>
-                                    )}
-                                    {canRequest && order.status === 'pending' && (
-                                        <button
-                                            className="card-action danger"
-                                            onClick={() => handleDeleteOrder(order.id)}
-                                        >
-                                            Cancelar Pedido <Trash2 size={16} />
-                                        </button>
-                                    )}
-                                </div>
+                                {/* Action Footer - Only render if there are actions available */}
+                                {(canProduce && order.status === 'pending') ||
+                                    (canRequest && order.status === 'production') ||
+                                    (canRequest && order.status === 'pending') ? (
+                                    <div className="arbalest-card-footer">
+                                        {canProduce && order.status === 'pending' && (
+                                            <button
+                                                className="arbalest-btn arbalest-btn-primary"
+                                                onClick={() => handleUpdateStatus(order.id, 'production')}
+                                            >
+                                                Iniciar Produção <Settings2 size={16} />
+                                            </button>
+                                        )}
+                                        {canRequest && order.status === 'production' && (
+                                            <button
+                                                className="arbalest-btn arbalest-btn-primary"
+                                                onClick={() => handleUpdateStatus(order.id, 'received')}
+                                            >
+                                                Confirmar Recebimento <Check size={16} />
+                                            </button>
+                                        )}
+                                        {canRequest && order.status === 'pending' && (
+                                            <button
+                                                className="arbalest-btn arbalest-btn-outline"
+                                                style={{ borderColor: 'var(--error)', color: 'var(--error)' }}
+                                                onClick={() => handleDeleteOrder(order.id)}
+                                            >
+                                                Cancelar Pedido <Trash2 size={16} />
+                                            </button>
+                                        )}
+                                    </div>
+                                ) : null}
                             </div>
                         ))}
                     </div>
-                </div >
+                </div>
 
-            </div >
+            </div>
+
+            {/* Filter Modal */}
+            <ButcherFilterModal
+                isOpen={isFilterModalOpen}
+                onClose={() => setIsFilterModalOpen(false)}
+                filters={{ store: selectedStore, meatGroup: selectedMeatGroup, period: selectedPeriod }}
+                setFilter={(key, value) => {
+                    if (key === 'store') setSelectedStore(value);
+                    if (key === 'meatGroup') setSelectedMeatGroup(value);
+                    if (key === 'period') setSelectedPeriod(value);
+                }}
+                stores={stores}
+                meatGroups={meatGroups}
+                type="dashboard"
+            />
 
             {/* Print Modal */}
             < PrintOrdersModal

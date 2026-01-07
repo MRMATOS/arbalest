@@ -14,7 +14,8 @@ import {
     Pen,
     Settings2,
     History,
-    Info
+    Info,
+    AlertTriangle
 } from 'lucide-react';
 import { useValidityEntries, type ValidityEntry } from '../../hooks/useValidityEntries';
 import { useAuth } from '../../contexts/AuthContext';
@@ -252,8 +253,8 @@ export const ValidityList: React.FC<ValidityListProps> = ({
 
     const getStatusBadge = (status: string) => {
         switch (status) {
-            case 'conferido': return <span className="status-badge success"><CheckCircle2 size={14} /> Conferido</span>;
-            default: return <span className="status-badge info">Ativo</span>;
+            case 'conferido': return <span className="arbalest-badge arbalest-badge-success"><CheckCircle2 size={14} /> Conferido</span>;
+            default: return <span className="arbalest-badge arbalest-badge-info">Ativo</span>;
         }
     };
 
@@ -297,17 +298,17 @@ export const ValidityList: React.FC<ValidityListProps> = ({
     };
 
     return (
-        <div className="validity-container">
-            <div className="page-header">
+        <div className="arbalest-layout-container">
+            <div className="arbalest-header">
                 {/* ... existing header code ... */}
                 <div className="header-text">
                     <h1>Lista de Validades</h1>
                     <p>Gerencie os produtos próximos do vencimento</p>
                 </div>
-                <div className="header-actions">
+                <div className="arbalest-header-actions">
                     {/* ... existing header actions ... */}
                     {(hasRole('encarregado') || hasRole('admin')) && (
-                        <button className="add-btn" onClick={onAddClick}>
+                        <button className="arbalest-btn arbalest-btn-primary" onClick={onAddClick}>
                             <Plus size={20} />
                             <span>Novo Registro</span>
                         </button>
@@ -316,15 +317,15 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                     {(canVerify || hasRole('encarregado') || hasRole('admin')) && (
                         <>
                             <button
-                                className={`validity-export-btn btn-exclusoes ${hasRole('encarregado') || hasRole('admin') ? 'mobile-order-first' : ''}`}
+                                className={`arbalest-btn arbalest-btn-outline-danger ${hasRole('encarregado') || hasRole('admin') ? 'mobile-order-first' : ''}`}
                                 onClick={() => setIsApprovalModalOpen(true)}
                                 title={hasRole('encarregado') || hasRole('admin') ? "Minhas Exclusões" : "Aprovar Exclusões"}
                                 style={{ position: 'relative' }}
                             >
                                 <Trash2 size={20} />
-                                <span>Exclusões</span>
+                                <span className="hide-mobile">Exclusões</span>
                                 {pendingRequestsCount > 0 && (
-                                    <span className="notification-badge" style={{
+                                    <span className="arbalest-badge arbalest-badge-danger" style={{
                                         position: 'absolute',
                                         top: '-5px',
                                         right: '-5px',
@@ -342,12 +343,12 @@ export const ValidityList: React.FC<ValidityListProps> = ({
 
                             {canVerify && (
                                 <button
-                                    className="validity-export-btn btn-solicitar"
+                                    className="arbalest-btn arbalest-btn-outline-warning"
                                     onClick={() => setIsSolicitationModalOpen(true)}
                                     title="Solicitar Conferência"
                                 >
                                     <Send size={20} />
-                                    <span>Solicitar</span>
+                                    <span className="hide-mobile">Solicitar</span>
                                 </button>
                             )}
                         </>
@@ -355,24 +356,21 @@ export const ValidityList: React.FC<ValidityListProps> = ({
 
                     {(hasRole('encarregado') || hasRole('admin')) && (
                         <button
-                            className="validity-export-btn btn-solicitacoes"
+                            className="arbalest-btn arbalest-btn-outline-warning"
                             onClick={() => setIsRequestsModalOpen(true)}
                             title="Ver Solicitações"
                             style={{ position: 'relative' }}
                         >
                             <Send size={20} />
-                            <span>Solicitações</span>
+                            <span className="hide-mobile">Solicitações</span>
                             {pendingSolicitationsCount > 0 && (
-                                <span className="notification-badge" style={{
+                                <span className="arbalest-badge arbalest-badge-danger" style={{
                                     position: 'absolute',
                                     top: '-5px',
                                     right: '-5px',
-                                    background: 'var(--error)',
-                                    color: 'white',
-                                    fontSize: '10px',
-                                    padding: '2px 6px',
                                     borderRadius: '10px',
-                                    border: '2px solid var(--bg-primary)'
+                                    padding: '2px 6px',
+                                    fontSize: '10px'
                                 }}>
                                     {pendingSolicitationsCount}
                                 </span>
@@ -380,32 +378,24 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                         </button>
                     )}
 
-                    <button className="validity-export-btn btn-exportar" onClick={() => setIsExportModalOpen(true)}>
+                    <button className="arbalest-btn arbalest-btn-outline-success" onClick={() => setIsExportModalOpen(true)}>
                         <Copy size={20} />
-                        <span>Exportar</span>
+                        <span className="hide-mobile">Exportar</span>
                     </button>
                 </div>
             </div>
 
 
             {/* Desktop Filters (Hidden on Mobile) */}
-            <div className="filter-section glass desktop-filters" style={{ marginTop: '20px', padding: '20px' }}>
+            <div className="arbalest-filter-section arbalest-glass desktop-filters" style={{ marginTop: '20px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                     {/* ... existing filters ... */}
                     <div className="filter-group">
-                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Loja</label>
+                        <label className="arbalest-label">Loja</label>
                         <select
                             value={selectedStore}
                             onChange={(e) => setSelectedStore(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '10px',
-                                borderRadius: '8px',
-                                border: '1px solid var(--glass-border)',
-                                background: 'var(--bg-secondary)',
-                                color: 'var(--text-primary)',
-                                fontSize: '0.9rem'
-                            }}
+                            className="arbalest-select"
                         >
                             <option value="all">Todas as Lojas</option>
                             {stores.map(store => (
@@ -415,19 +405,11 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                     </div>
 
                     <div className="filter-group">
-                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Encarregado</label>
+                        <label className="arbalest-label">Encarregado</label>
                         <select
                             value={selectedUser}
                             onChange={(e) => setSelectedUser(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '10px',
-                                borderRadius: '8px',
-                                border: '1px solid var(--glass-border)',
-                                background: 'var(--bg-secondary)',
-                                color: 'var(--text-primary)',
-                                fontSize: '0.9rem'
-                            }}
+                            className="arbalest-select"
                         >
                             <option value="all">Todos os Encarregados</option>
                             {users.map(user => (
@@ -439,19 +421,11 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                     </div>
 
                     <div className="filter-group">
-                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Tipo</label>
+                        <label className="arbalest-label">Tipo</label>
                         <select
                             value={selectedType}
                             onChange={(e) => setSelectedType(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '10px',
-                                borderRadius: '8px',
-                                border: '1px solid var(--glass-border)',
-                                background: 'var(--bg-secondary)',
-                                color: 'var(--text-primary)',
-                                fontSize: '0.9rem'
-                            }}
+                            className="arbalest-select"
                         >
                             <option value="all">Todos os Tipos</option>
                             <option value="mercado">Mercado</option>
@@ -460,19 +434,11 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                     </div>
 
                     <div className="filter-group">
-                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Ordenar</label>
+                        <label className="arbalest-label">Ordenar</label>
                         <select
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '10px',
-                                borderRadius: '8px',
-                                border: '1px solid var(--glass-border)',
-                                background: 'var(--bg-secondary)',
-                                color: 'var(--text-primary)',
-                                fontSize: '0.9rem'
-                            }}
+                            className="arbalest-select"
                         >
                             <option value="recent">Últimos Registrados</option>
                             <option value="expires_soon">Vence Mais Cedo</option>
@@ -482,8 +448,8 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                 </div>
             </div>
 
-            <div className="filter-section glass">
-                <div className="search-wrapper">
+            <div className="arbalest-filter-section arbalest-glass">
+                <div className="arbalest-search-wrapper">
                     <Search size={18} />
                     <input
                         type="text"
@@ -494,56 +460,216 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                 </div>
             </div>
 
+            {/* Conditional rendering for loading and error states */}
+            {loading && (
+                <div className="arbalest-loading-state">
+                    <div className="spinner" />
+                    <p>Carregando validades...</p>
+                </div>
+            )}
+
+            {error && (
+                <div className="arbalest-error-state">
+                    <AlertTriangle size={48} color="var(--error)" />
+                    <h3>Erro ao carregar dados</h3>
+                    <p>{error}</p>
+                    <button className="arbalest-btn arbalest-btn-neutral" onClick={() => refresh()}>
+                        Tentar Novamente
+                    </button>
+                </div>
+            )}
+
             {/* Desktop Table View */}
-            <div className="desktop-view glass">
-                <table className="validity-table">
-                    <thead>
-                        {/* ... existing table head ... */}
-                        <tr>
-                            <th>Produto</th>
-                            <th>Código / EAN</th>
-                            <th>Status</th>
-                            <th>Qtd.</th>
-                            <th>Validade</th>
-                            <th>Lote</th>
-                            <th className="actions-col"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
+            {!loading && !error && (
+                <div className="desktop-view arbalest-table-container">
+                    <table className="arbalest-table">
+                        <thead>
+                            {/* ... existing table head ... */}
+                            <tr>
+                                <th>Produto</th>
+                                <th>Código / EAN</th>
+                                <th>Status</th>
+                                <th>Qtd.</th>
+                                <th>Validade</th>
+                                <th>Lote</th>
+                                <th className="actions-col"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredEntries.map(item => (
+                                <tr key={item.id}>
+                                    <td className="product-col">
+                                        <span className="product-name">{item.product.name}</span>
+                                    </td>
+                                    <td className="code-col">
+                                        <div className="code-info">
+                                            <span
+                                                className={`code clickable-copy ${copiedState?.id === item.id && copiedState?.type === 'code' ? 'copied' : ''}`}
+                                                onClick={() => handleCopy(item.product.code, item.id, 'code')}
+                                                title="Clique para copiar código"
+                                            >
+                                                {copiedState?.id === item.id && copiedState?.type === 'code' ? 'Copiado!' : item.product.code}
+                                            </span>
+                                            <span
+                                                className={`ean clickable-copy ${copiedState?.id === item.id && copiedState?.type === 'ean' ? 'copied' : ''}`}
+                                                onClick={() => handleCopy(item.product.ean || '', item.id, 'ean')}
+                                                title="Clique para copiar EAN"
+                                            >
+                                                {copiedState?.id === item.id && copiedState?.type === 'ean' ? 'Copiado!' : (item.product.ean || '-')}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td>{getStatusBadge(item.status)}</td>
+                                    <td><span className="quantity">{item.quantity}</span></td>
+                                    <td>
+                                        <div className={`expiry-info ${getExpiryClass(item)}`}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <span className="date">{new Date(item.expires_at).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
+                                                {item.product.type === 'farmacia' && (item.product.amount || 0) > 0 && (item.product.amount || 0) < getExpiryDays(item.expires_at) && (
+                                                    <div className="arbalest-tooltip-wrapper">
+                                                        <Info size={16} />
+                                                        <div className="arbalest-tooltip">
+                                                            <strong>Prazo de Venda</strong>
+                                                            {getSalesDeadline(item) <= 0 ? (
+                                                                <span style={{ color: 'var(--error)' }}>Prazo Encerrado</span>
+                                                            ) : (
+                                                                <span>Resta {getSalesDeadline(item)} dias para venda</span>
+                                                            )}
+                                                            <div style={{ marginTop: '8px', fontSize: '0.7rem', opacity: 0.8, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '4px' }}>
+                                                                Qtd. Frasco: {item.product.amount} un<br />
+                                                                Necessário {item.product.amount} dias para consumo.
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <span className="days">{getExpiryText(getExpiryDays(item.expires_at))}</span>
+                                        </div>
+                                    </td>
+                                    <td><span className="lot-tag">{item.lot || 'Não informado'}</span></td>
+                                    <td className="actions-col">
+                                        {item.has_pending_delete_request && canVerify ? (
+                                            <>
+                                                <button className="arbalest-icon-btn arbalest-btn-primary" onClick={() => approveDeleteRequest(item.id)} title="Aprovar exclusão">
+                                                    <CheckCircle2 size={18} />
+                                                </button>
+                                                <button className="arbalest-icon-btn arbalest-btn-danger" style={{ color: 'var(--error)' }} onClick={() => rejectDeleteRequest(item.id)} title="Rejeitar exclusão">
+                                                    <X size={18} />
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                {/* 2. Verification Actions (Conferente only) */}
+                                                {canVerify && (
+                                                    <>
+
+                                                        <button
+                                                            className={`arbalest-icon-btn ${item.status === 'conferido' ? 'arbalest-btn-primary' : ''}`}
+                                                            onClick={() => handleStatusToggle(item.id, item.status)}
+                                                            title={item.status === 'conferido' ? "Desmarcar" : "Confirmar"}
+                                                        >
+                                                            <CheckCircle2 size={18} />
+                                                        </button>
+                                                    </>
+                                                )}
+
+                                                {/* 3. Common Actions */}
+                                                <button
+                                                    className="arbalest-icon-btn"
+                                                    onClick={() => {
+                                                        setSelectedHistoryId(item.id);
+                                                        setSelectedHistoryName(item.product.name);
+                                                    }}
+                                                    title="Histórico"
+                                                >
+                                                    <History size={18} />
+                                                </button>
+
+                                                {/* 4. Edit/Delete (Encarregado Only) */}
+                                                {canEdit && (
+                                                    <>
+                                                        <button
+                                                            className="arbalest-icon-btn"
+                                                            onClick={() => setEditEntry(item)}
+                                                            title="Editar"
+                                                        >
+                                                            <Pen size={18} />
+                                                        </button>
+
+                                                        <button
+                                                            className="arbalest-icon-btn"
+                                                            onClick={() => setDeleteRequest({ isOpen: true, entryId: item.id, productName: item.product.name })}
+                                                            disabled={item.has_pending_delete_request}
+                                                            title={item.has_pending_delete_request ? "Solicitado" : "Excluir"}
+                                                            style={{ opacity: item.has_pending_delete_request ? 0.5 : 1, color: 'var(--error)' }}
+                                                        >
+                                                            {item.has_pending_delete_request ? <AlertOctagon size={18} /> : <Trash2 size={18} />}
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div >
+            )}
+
+
+            {/* Mobile Card View */}
+            {/* Mobile Card View */}
+            {!loading && !error && (
+                <div className="mobile-view">
+                    <div className="card-list">
                         {filteredEntries.map(item => (
-                            <tr key={item.id}>
-                                <td className="product-col">
+                            <div key={item.id} className="arbalest-card">
+                                <div className="arbalest-card-header">
                                     <span className="product-name">{item.product.name}</span>
-                                </td>
-                                <td className="code-col">
-                                    <div className="code-info">
-                                        <span
-                                            className={`code clickable-copy ${copiedState?.id === item.id && copiedState?.type === 'code' ? 'copied' : ''}`}
-                                            onClick={() => handleCopy(item.product.code, item.id, 'code')}
-                                            title="Clique para copiar código"
-                                        >
-                                            {copiedState?.id === item.id && copiedState?.type === 'code' ? 'Copiado!' : item.product.code}
-                                        </span>
-                                        <span
-                                            className={`ean clickable-copy ${copiedState?.id === item.id && copiedState?.type === 'ean' ? 'copied' : ''}`}
-                                            onClick={() => handleCopy(item.product.ean || '', item.id, 'ean')}
-                                            title="Clique para copiar EAN"
-                                        >
-                                            {copiedState?.id === item.id && copiedState?.type === 'ean' ? 'Copiado!' : (item.product.ean || '-')}
-                                        </span>
+                                    {getStatusBadge(item.status)}
+                                </div>
+
+                                <div className="arbalest-card-body">
+                                    <div className="arbalest-card-info">
+                                        <label>EAN / CÓD</label>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <span
+                                                className={`clickable-copy ${copiedState?.id === item.id && copiedState?.type === 'ean' ? 'copied' : ''}`}
+                                                onClick={() => handleCopy(item.product.ean || '', item.id, 'ean')}
+                                            >
+                                                {item.product.ean || '-'}
+                                            </span>
+                                            <span>/</span>
+                                            <span
+                                                className={`clickable-copy ${copiedState?.id === item.id && copiedState?.type === 'code' ? 'copied' : ''}`}
+                                                onClick={() => handleCopy(item.product.code, item.id, 'code')}
+                                            >
+                                                {item.product.code}
+                                            </span>
+                                        </div>
                                     </div>
-                                </td>
-                                <td>{getStatusBadge(item.status)}</td>
-                                <td><span className="quantity">{item.quantity}</span></td>
-                                <td>
-                                    <div className={`expiry-info ${getExpiryClass(item)}`}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <span className="date">{new Date(item.expires_at).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
+
+                                    <div className="arbalest-card-row">
+                                        <div className="arbalest-card-info">
+                                            <label>Quantidade</label>
+                                            <span className="quantity-val">{item.quantity} un</span>
+                                        </div>
+                                        <div className="arbalest-card-info">
+                                            <label>Lote</label>
+                                            <span className="lot-tag">{item.lot || 'Não informado'}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className={`card-expiry ${getExpiryClass(item)}`}>
+                                        <div className="expiry-main">
+                                            <Calendar size={16} />
+                                            <span>Vence em: {new Date(item.expires_at).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
                                             {item.product.type === 'farmacia' && (item.product.amount || 0) > 0 && (item.product.amount || 0) < getExpiryDays(item.expires_at) && (
-                                                <div className="info-icon-wrapper">
+                                                <div className="arbalest-tooltip-wrapper">
                                                     <Info size={16} />
-                                                    <div className="validity-tooltip">
-                                                        <strong>Prazo de Venda</strong><br />
+                                                    <div className="arbalest-tooltip">
+                                                        <strong>Prazo de Venda</strong>
                                                         {getSalesDeadline(item) <= 0 ? (
                                                             <span style={{ color: 'var(--error)' }}>Prazo Encerrado</span>
                                                         ) : (
@@ -559,169 +685,47 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                         </div>
                                         <span className="days">{getExpiryText(getExpiryDays(item.expires_at))}</span>
                                     </div>
-                                </td>
-                                <td><span className="lot-tag">{item.lot || 'Não informado'}</span></td>
-                                <td className="actions-col">
-                                    {item.has_pending_delete_request && canVerify ? (
-                                        <>
-                                            <button className="icon-btn success" onClick={() => approveDeleteRequest(item.id)} title="Aprovar exclusão">
-                                                <CheckCircle2 size={18} />
-                                            </button>
-                                            <button className="icon-btn danger" onClick={() => rejectDeleteRequest(item.id)} title="Rejeitar exclusão">
-                                                <X size={18} />
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            {/* 2. Verification Actions (Conferente only) */}
-                                            {canVerify && (
-                                                <>
+                                </div>
 
-                                                    <button
-                                                        className={`icon-btn ${item.status === 'conferido' ? 'success' : ''}`}
-                                                        onClick={() => handleStatusToggle(item.id, item.status)}
-                                                        title={item.status === 'conferido' ? "Desmarcar" : "Confirmar"}
-                                                    >
-                                                        <CheckCircle2 size={18} />
-                                                    </button>
-                                                </>
+                                <div className="arbalest-card-footer">
+                                    <button
+                                        className="arbalest-btn arbalest-btn-neutral"
+                                        onClick={() => {
+                                            setSelectedHistoryId(item.id);
+                                            setSelectedHistoryName(item.product.name);
+                                        }}
+                                    >
+                                        <MoreVertical size={16} /> Histórico
+                                    </button>
+
+                                    {/* Mobile Actions based on Role */}
+                                    {canVerify && (
+                                        <button
+                                            className={`arbalest-btn ${item.status === 'conferido' ? 'arbalest-btn-primary' : 'arbalest-btn-outline'}`}
+                                            onClick={() => handleStatusToggle(item.id, item.status)}
+                                        >
+                                            {item.status === 'conferido' ? (
+                                                <>Conferido <CheckCircle2 size={16} /></>
+                                            ) : (
+                                                <>Conferir <CheckCircle2 size={16} /></>
                                             )}
-
-                                            {/* 3. Common Actions */}
-                                            <button
-                                                className="icon-btn"
-                                                onClick={() => {
-                                                    setSelectedHistoryId(item.id);
-                                                    setSelectedHistoryName(item.product.name);
-                                                }}
-                                                title="Histórico"
-                                            >
-                                                <History size={18} />
-                                            </button>
-
-                                            {/* 4. Edit/Delete (Encarregado Only) */}
-                                            {canEdit && (
-                                                <>
-                                                    <button
-                                                        className="icon-btn"
-                                                        onClick={() => setEditEntry(item)}
-                                                        title="Editar"
-                                                    >
-                                                        <Pen size={18} />
-                                                    </button>
-
-                                                    <button
-                                                        className="icon-btn danger"
-                                                        onClick={() => setDeleteRequest({ isOpen: true, entryId: item.id, productName: item.product.name })}
-                                                        disabled={item.has_pending_delete_request}
-                                                        title={item.has_pending_delete_request ? "Solicitado" : "Excluir"}
-                                                        style={{ opacity: item.has_pending_delete_request ? 0.5 : 1 }}
-                                                    >
-                                                        {item.has_pending_delete_request ? <AlertOctagon size={18} /> : <Trash2 size={18} />}
-                                                    </button>
-                                                </>
-                                            )}
-                                        </>
+                                        </button>
                                     )}
-                                </td>
-                            </tr>
+
+                                    {canEdit && (
+                                        <button
+                                            className="arbalest-btn arbalest-btn-primary"
+                                            onClick={() => setMobileOptionsEntry(item)}
+                                        >
+                                            Opções <Settings2 size={16} />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
                         ))}
-                    </tbody>
-                </table>
-            </div >
-
-            {/* Mobile Card View */}
-            < div className="mobile-view" >
-                <div className="card-list">
-                    {filteredEntries.map(item => (
-                        <div key={item.id} className="validity-card glass">
-                            <div className="card-header">
-                                <span className="product-name">{item.product.name}</span>
-                                {getStatusBadge(item.status)}
-                            </div>
-
-                            <div className="card-body">
-                                <div className="card-info">
-                                    <label>EAN / CÓD</label>
-                                    <span>{item.product.ean} / {item.product.code}</span>
-                                </div>
-
-                                <div className="card-row">
-                                    <div className="card-info">
-                                        <label>Quantidade</label>
-                                        <span className="quantity-val">{item.quantity} un</span>
-                                    </div>
-                                    <div className="card-info">
-                                        <label>Lote</label>
-                                        <span className="lot-tag">{item.lot || 'Não informado'}</span>
-                                    </div>
-                                </div>
-
-                                <div className={`card-expiry ${getExpiryClass(item)}`}>
-                                    <div className="expiry-main">
-                                        <Calendar size={16} />
-                                        <span>Vence em: {new Date(item.expires_at).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
-                                        {item.product.type === 'farmacia' && (item.product.amount || 0) > 0 && (item.product.amount || 0) < getExpiryDays(item.expires_at) && (
-                                            <div className="info-icon-wrapper">
-                                                <Info size={16} />
-                                                <div className="validity-tooltip">
-                                                    <strong>Prazo de Venda</strong><br />
-                                                    {getSalesDeadline(item) <= 0 ? (
-                                                        <span style={{ color: 'var(--error)' }}>Prazo Encerrado</span>
-                                                    ) : (
-                                                        <span>Resta {getSalesDeadline(item)} dias para venda</span>
-                                                    )}
-                                                    <div style={{ marginTop: '8px', fontSize: '0.7rem', opacity: 0.8, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '4px' }}>
-                                                        Qtd. Frasco: {item.product.amount} un<br />
-                                                        Necessário {item.product.amount} dias para consumo.
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <span className="days-left">{getExpiryText(getExpiryDays(item.expires_at))}</span>
-                                </div>
-                            </div>
-
-                            <div className="card-footer">
-                                {/* ... existing footer ... */}
-                                <button
-                                    className="card-action secondary"
-                                    onClick={() => {
-                                        setSelectedHistoryId(item.id);
-                                        setSelectedHistoryName(item.product.name);
-                                    }}
-                                >
-                                    <MoreVertical size={16} /> Histórico
-                                </button>
-
-                                {/* Mobile Actions based on Role */}
-                                {canVerify && (
-                                    <button
-                                        className={`card-action ${item.status === 'conferido' ? 'success' : 'warning'}`}
-                                        onClick={() => handleStatusToggle(item.id, item.status)}
-                                    >
-                                        {item.status === 'conferido' ? (
-                                            <>Conferido <CheckCircle2 size={16} /></>
-                                        ) : (
-                                            <>Conferir <CheckCircle2 size={16} /></>
-                                        )}
-                                    </button>
-                                )}
-
-                                {canEdit && (
-                                    <button
-                                        className="card-action primary"
-                                        onClick={() => setMobileOptionsEntry(item)}
-                                    >
-                                        Opções <Settings2 size={16} />
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    ))}
+                    </div>
                 </div>
-            </div >
+            )}
             {/* ... modals ... */}
             < HistoryModal
                 isOpen={!!selectedHistoryId}

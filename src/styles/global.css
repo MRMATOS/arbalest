@@ -5,18 +5,19 @@
   --bg-accent: #1e1e1e;
   --glass-bg: rgba(255, 255, 255, 0.03);
   --glass-border: rgba(255, 255, 255, 0.08);
-  
-  --brand-primary: #3ecf8e; /* Supabase Green */
+
+  --brand-primary: #3ecf8e;
+  /* Supabase Green */
   --brand-secondary: #30a46c;
-  
+
   --text-primary: #ffffff;
   --text-secondary: #a0a0a0;
   --text-tertiary: #666666;
-  
+
   --error: #f43f5e;
   --warning: #f59e0b;
   --success: #10b981;
-  
+
   /* Layout */
   --sidebar-width: 260px;
   --header-height: 70px;
@@ -70,4 +71,471 @@ input {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--brand-primary);
+}
+
+/* ==========================================================================
+   ARBALEST DESIGN SYSTEM (Global)
+   ========================================================================== */
+
+/* Layout & Containers */
+.arbalest-layout-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  animation: fadeIn 0.5s ease-out;
+  padding-bottom: 80px;
+  /* Space for mobile nav */
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Glass Effect */
+.arbalest-glass {
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--glass-border);
+  /* Optional: real glass effect if desired, but using solid/border matches current design */
+  /* backdrop-filter: blur(10px); */
+}
+
+/* Page Header */
+.arbalest-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.arbalest-header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.arbalest-header p {
+  color: var(--text-secondary);
+}
+
+.arbalest-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Cards (Mobile/Grid) */
+.arbalest-card {
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--glass-border);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  gap: 16px;
+}
+
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.arbalest-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.arbalest-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.arbalest-card-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.arbalest-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.arbalest-card-info label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  letter-spacing: 0.5px;
+}
+
+.arbalest-card-info span {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.arbalest-card-footer {
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.arbalest-card-footer button {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Tables (Desktop) */
+.arbalest-table-container {
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+}
+
+.arbalest-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.arbalest-table th {
+  padding: 16px 24px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.arbalest-table td {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--glass-border);
+  vertical-align: middle;
+}
+
+/* Inputs & Form Elements */
+.arbalest-filter-section {
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--glass-border);
+  display: grid;
+  gap: 16px;
+}
+
+.arbalest-search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  /* Ensure bg matches */
+  border: 1px solid var(--glass-border);
+  /* Consistent styling */
+  padding: 10px 14px;
+  border-radius: 8px;
+}
+
+.arbalest-search-wrapper input {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  flex: 1;
+  font-size: 1rem;
+  width: 100%;
+}
+
+.arbalest-select,
+.arbalest-input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.arbalest-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Buttons */
+/* Global Buttons - Validity Style */
+.arbalest-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--transition);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.arbalest-btn-primary {
+  background: var(--brand-primary);
+  color: #000000;
+}
+
+.arbalest-btn-primary:hover {
+  background: var(--brand-hover);
+  transform: translateY(-1px);
+}
+
+.arbalest-btn-neutral {
+  background: var(--bg-accent);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+}
+
+.arbalest-btn-neutral:hover {
+  background: var(--glass-bg);
+  transform: translateY(-1px);
+}
+
+.arbalest-btn-outline {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+}
+
+.arbalest-btn-outline:hover {
+  border-color: var(--text-secondary);
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+}
+
+/* Specific Action Variants (Validity Style) */
+.arbalest-btn-outline-danger {
+  background: transparent;
+  color: var(--error);
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+.arbalest-btn-outline-danger:hover {
+  background: rgba(244, 63, 94, 0.1);
+  border-color: var(--error);
+  transform: translateY(-1px);
+}
+
+.arbalest-btn-outline-warning {
+  background: transparent;
+  color: var(--warning);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.arbalest-btn-outline-warning:hover {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: var(--warning);
+  transform: translateY(-1px);
+}
+
+.arbalest-btn-outline-success {
+  background: transparent;
+  color: var(--success);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.arbalest-btn-outline-success:hover {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: var(--success);
+  transform: translateY(-1px);
+}
+
+/* Icon Buttons */
+.arbalest-icon-btn {
+  padding: 8px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arbalest-icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  transform: scale(1.05);
+}
+
+.arbalest-icon-btn.arbalest-btn-primary {
+  background: var(--brand-primary);
+  color: #000;
+}
+
+.arbalest-icon-btn.arbalest-btn-danger {
+  color: var(--error);
+}
+
+.arbalest-icon-btn.arbalest-btn-danger:hover {
+  background: rgba(244, 63, 94, 0.1);
+}
+
+/* Badges */
+.arbalest-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.arbalest-badge-success {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+}
+
+.arbalest-badge-warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+}
+
+.arbalest-badge-danger {
+  background: rgba(244, 63, 94, 0.1);
+  color: var(--error);
+}
+
+.arbalest-badge-info {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.arbalest-badge-neutral {
+  background: var(--bg-accent);
+  color: var(--text-secondary);
+}
+
+/* Mobile Responsiveness for Global Components */
+/* Default Mobile View State (Hidden on Desktop) */
+.mobile-view {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .arbalest-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .arbalest-header-actions {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    justify-content: space-between;
+  }
+
+  .arbalest-table-container {
+    display: none;
+    /* Hide Desktop Table */
+  }
+
+  .mobile-view {
+    display: block;
+  }
+
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+
+/* Loading & Error States */
+.arbalest-loading-state,
+.arbalest-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 80px 20px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.arbalest-error-state {
+  border: 1px solid rgba(244, 63, 94, 0.2);
+  border-radius: var(--border-radius);
+  background: rgba(244, 63, 94, 0.05);
+}
+
+/* Tooltips */
+.arbalest-tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: help;
+}
+
+.arbalest-tooltip {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a1a;
+  border: 1px solid var(--glass-border);
+  padding: 12px;
+  border-radius: 8px;
+  width: max-content;
+  max-width: 250px;
+  font-size: 0.8rem;
+  z-index: 100;
+  margin-top: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  display: none;
+  text-align: left;
+}
+
+.arbalest-tooltip-wrapper:hover .arbalest-tooltip {
+  display: block;
+}
+
+.arbalest-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 0 6px 6px;
+  border-style: solid;
+  border-color: transparent transparent var(--glass-border);
+}
+
+.arbalest-tooltip strong {
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 4px;
 }

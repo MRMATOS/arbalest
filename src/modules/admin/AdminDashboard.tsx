@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabase';
 import { Check, Pencil, X, ChevronRight } from 'lucide-react';
-import './AdminDashboard.css';
+
 
 interface Profile {
     id: string;
@@ -102,11 +102,18 @@ export const AdminDashboard: React.FC = () => {
         setEditingNameValue('');
     };
 
-    if (loading) return <div className="loading-state"><div className="spinner" /></div>;
+    if (loading) return (
+        <div className="arbalest-layout-container">
+            <div className="arbalest-loading-state">
+                <div className="spinner" />
+                <p>Carregando dados...</p>
+            </div>
+        </div>
+    );
 
     return (
-        <div className="admin-dashboard">
-            <header className="page-header">
+        <div className="arbalest-layout-container">
+            <header className="arbalest-header">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
                         <span style={{ cursor: 'pointer' }} onClick={() => window.history.back()}>Configurações</span>
@@ -117,8 +124,8 @@ export const AdminDashboard: React.FC = () => {
                 </div>
             </header>
 
-            <div className="admin-content glass">
-                <table className="admin-table">
+            <div className="arbalest-table-container">
+                <table className="arbalest-table">
                     <thead>
                         <tr>
                             <th>Usuário</th>
@@ -134,45 +141,45 @@ export const AdminDashboard: React.FC = () => {
                         {profiles.map(user => (
                             <tr key={user.id}>
                                 <td>
-                                    <div className="user-cell">
-                                        <span className="email">{user.email}</span>
-                                        <span className="id-sub">{user.id.slice(0, 8)}...</span>
+                                    <div className="user-cell" style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <span className="email" style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{user.email}</span>
+                                        <span className="id-sub" style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{user.id.slice(0, 8)}...</span>
                                     </div>
                                 </td>
                                 <td>
                                     {editingNameId === user.id ? (
-                                        <div className="name-edit-cell">
+                                        <div className="name-edit-cell" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             <input
                                                 type="text"
                                                 value={editingNameValue}
                                                 onChange={(e) => setEditingNameValue(e.target.value)}
                                                 placeholder="Nome..."
-                                                className="name-input"
+                                                className="arbalest-input"
                                                 autoFocus
                                             />
                                             <button
                                                 onClick={() => handleSaveName(user.id)}
-                                                className="action-btn save"
+                                                className="arbalest-icon-btn arbalest-btn-primary"
                                                 title="Salvar"
                                             >
                                                 <Check size={16} />
                                             </button>
                                             <button
                                                 onClick={handleCancelEditName}
-                                                className="action-btn cancel"
+                                                className="arbalest-icon-btn"
                                                 title="Cancelar"
                                             >
                                                 <X size={16} />
                                             </button>
                                         </div>
                                     ) : (
-                                        <div className="name-display-cell">
-                                            <span className={user.name ? '' : 'text-muted'}>
+                                        <div className="name-display-cell" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span className={user.name ? '' : 'text-muted'} style={{ color: user.name ? 'inherit' : 'var(--text-tertiary)' }}>
                                                 {user.name || 'Não definido'}
                                             </span>
                                             <button
                                                 onClick={() => handleStartEditName(user)}
-                                                className="action-btn edit-mini"
+                                                className="arbalest-icon-btn"
                                                 title="Editar nome"
                                             >
                                                 <Pencil size={14} />
@@ -182,16 +189,16 @@ export const AdminDashboard: React.FC = () => {
                                 </td>
                                 <td>
                                     {user.approved_at ? (
-                                        <span className="status-badge success">Aprovado</span>
+                                        <span className="arbalest-badge arbalest-badge-success">Aprovado</span>
                                     ) : (
-                                        <span className="status-badge warning">Pendente</span>
+                                        <span className="arbalest-badge arbalest-badge-warning">Pendente</span>
                                     )}
                                 </td>
                                 <td>
                                     <select
                                         value={user.role}
                                         onChange={(e) => handleUpdateUser(user.id, { role: e.target.value })}
-                                        className="role-select"
+                                        className="arbalest-select"
                                     >
                                         <option value="conferente">Conferente</option>
                                         <option value="planogram_edit">Planograma (Editor)</option>
@@ -207,7 +214,7 @@ export const AdminDashboard: React.FC = () => {
                                             const val = e.target.value;
                                             handleUpdateUser(user.id, { butcher_role: val === '' ? null : val as 'requester' | 'producer' });
                                         }}
-                                        className="role-select"
+                                        className="arbalest-select"
                                         style={{ minWidth: '140px' }}
                                     >
                                         <option value="">Nenhum</option>
@@ -219,7 +226,7 @@ export const AdminDashboard: React.FC = () => {
                                     <select
                                         value={user.store_id || ''}
                                         onChange={(e) => handleUpdateUser(user.id, { store_id: e.target.value || null })}
-                                        className="store-select"
+                                        className="arbalest-select"
                                     >
                                         <option value="">Selecione...</option>
                                         {stores.map(store => (
@@ -233,7 +240,7 @@ export const AdminDashboard: React.FC = () => {
                                     {!user.approved_at && (
                                         <button
                                             onClick={() => handleApprove(user.id)}
-                                            className="action-btn approve"
+                                            className="arbalest-icon-btn arbalest-btn-primary"
                                             title="Aprovar Acesso"
                                         >
                                             <Check size={18} />
