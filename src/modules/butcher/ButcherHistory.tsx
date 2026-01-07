@@ -5,7 +5,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { DashboardLayout } from '../../layouts/DashboardLayout';
 import { Search, Printer, PlusCircle, FileText, Filter, History, Copy } from 'lucide-react';
 import { ButcherFilterModal } from './components/ButcherFilterModal';
-import { PrintOrdersModal } from './components/PrintOrdersModal';
 import { AddButcherOrderModal } from './components/AddButcherOrderModal';
 
 interface Order {
@@ -37,7 +36,6 @@ export const ButcherHistory: React.FC = () => {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
     const [isAddOrderModalOpen, setIsAddOrderModalOpen] = useState(false);
 
     // Filters
@@ -167,14 +165,15 @@ export const ButcherHistory: React.FC = () => {
     let mobileActionButton = null;
 
     if (canProduce) {
+        // Production users in History view see disabled Print button
         mobileActionButton = (
             <button
                 className="nav-btn add-btn-mobile"
-                onClick={() => setIsPrintModalOpen(true)}
-                style={{ border: 'none', background: 'transparent' }}
+                disabled={true}
+                style={{ border: 'none', background: 'transparent', opacity: 0.5, cursor: 'not-allowed' }}
             >
-                <Printer size={24} />
-                <span>Imprimir</span>
+                <Printer size={24} color="var(--text-tertiary)" />
+                <span style={{ color: "var(--text-tertiary)" }}>Imprimir</span>
             </button>
         );
     } else if (canRequest) {
@@ -427,10 +426,7 @@ export const ButcherHistory: React.FC = () => {
             />
 
             {/* Modals for Mobile Actions */}
-            <PrintOrdersModal
-                isOpen={isPrintModalOpen}
-                onClose={() => setIsPrintModalOpen(false)}
-            />
+
 
             <AddButcherOrderModal
                 isOpen={isAddOrderModalOpen}

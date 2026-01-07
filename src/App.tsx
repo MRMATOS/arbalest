@@ -186,11 +186,7 @@ function App() {
           {/* Authenticated Routes */}
           <Route element={<RequireAuth />}>
             <Route path="/aguardando-aprovacao" element={<WaitingApproval />} />
-            <Route path="/profile" element={
-              <DashboardLayout>
-                <Profile />
-              </DashboardLayout>
-            } />
+            <Route path="/profile" element={<Profile />} />
 
             {/* Approved Routes */}
             <Route element={<RequireApproval />}>

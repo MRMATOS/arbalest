@@ -194,8 +194,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                 </button>
 
 
-                {/* Dynamic Module Icon - Hide in Butcher Module */}
-                {!location.pathname.startsWith('/butcher') && (
+                {/* Dynamic Module Icon - Hide in Butcher Module, Hub and Profile */}
+                {!location.pathname.startsWith('/butcher') && location.pathname !== '/' && location.pathname !== '/profile' && (
                     location.pathname.startsWith('/planogram') ? (
                         <Link to="/planogram" className="nav-btn active">
                             <Map size={24} /><span>Mapa</span>

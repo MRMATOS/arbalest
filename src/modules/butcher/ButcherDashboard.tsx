@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { DashboardLayout } from '../../layouts/DashboardLayout';
-import { Search, History, Printer, Check, Settings2, Trash2, PlusCircle, FileText, Filter } from 'lucide-react';
+import { Search, History, Printer, Check, Trash2, PlusCircle, FileText, Filter } from 'lucide-react';
 import { ButcherFilterModal } from './components/ButcherFilterModal';
-import { PrintOrdersModal } from './components/PrintOrdersModal';
 import { AddButcherOrderModal } from './components/AddButcherOrderModal';
 
 
@@ -35,8 +34,9 @@ export const ButcherDashboard: React.FC = () => {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
     const [isAddOrderModalOpen, setIsAddOrderModalOpen] = useState(false);
+    const [printQueue, setPrintQueue] = useState<string[]>([]);
+    const [isPrinting, setIsPrinting] = useState(false);
 
     // Filters State
     const [selectedStore, setSelectedStore] = useState('all');
@@ -145,9 +145,60 @@ export const ButcherDashboard: React.FC = () => {
 
             // Re-fetch handled by realtime subscription
             if (error) throw error;
+            if (error) throw error;
         } catch (error) {
             console.error('Error updating status:', error);
             alert('Erro ao atualizar status');
+        }
+    };
+
+    const handleToggleQueue = (orderId: string) => {
+        setPrintQueue(prev => {
+            if (prev.includes(orderId)) {
+                return prev.filter(id => id !== orderId);
+            }
+            return [...prev, orderId];
+        });
+    };
+
+    const handlePrintQueue = async () => {
+        if (printQueue.length === 0) return;
+        setIsPrinting(true);
+
+        try {
+            // 1. Update statuses to 'production' (if not already)
+            // We only need to update 'pending' orders. 'production' orders are re-prints.
+            const ordersToUpdate = orders
+                .filter(o => printQueue.includes(o.id) && o.status === 'pending')
+                .map(o => o.id);
+
+            if (ordersToUpdate.length > 0) {
+                const { error } = await supabase
+                    .schema('butcher')
+                    .from('orders')
+                    .update({
+                        status: 'production',
+                        production_store_id: user?.store_id
+                    })
+                    .in('id', ordersToUpdate);
+
+                if (error) throw error;
+            }
+
+            // 2. Refresh local state immediately for UI feedback (though realtime might handle it)
+            // Better to wait for realtime or optimistically update? Realtime is fast usually.
+            // We'll proceed to print.
+
+            // 3. Trigger Print
+            setTimeout(() => {
+                window.print();
+                setIsPrinting(false);
+                setPrintQueue([]); // Clear queue after print? User didn't specify, but standard flow.
+            }, 500); // Small delay to allow React to render any print updates if needed
+        } catch (error) {
+            console.error('Error processing print queue:', error);
+            alert('Erro ao processar fila de impressão');
+            setIsPrinting(false);
         }
     };
 
@@ -225,11 +276,12 @@ export const ButcherDashboard: React.FC = () => {
         mobileActionButton = (
             <button
                 className="nav-btn add-btn-mobile"
-                onClick={() => setIsPrintModalOpen(true)}
-                style={{ border: 'none', background: 'transparent' }}
+                onClick={handlePrintQueue}
+                style={{ border: 'none', background: 'transparent', opacity: printQueue.length === 0 ? 0.5 : 1 }}
+                disabled={printQueue.length === 0 || isPrinting}
             >
-                <Printer size={24} />
-                <span>Imprimir</span>
+                <Printer size={24} color={printQueue.length > 0 ? "var(--brand-primary)" : "var(--text-tertiary)"} />
+                <span style={{ color: printQueue.length > 0 ? "var(--brand-primary)" : "var(--text-tertiary)" }}>Imprimir</span>
             </button>
         );
     } else if (canRequest) {
@@ -313,11 +365,13 @@ export const ButcherDashboard: React.FC = () => {
 
                         {canProduce && (
                             <button
-                                className="arbalest-btn arbalest-btn-primary"
-                                onClick={() => setIsPrintModalOpen(true)}
+                                className={`arbalest-btn arbalest-btn-primary ${printQueue.length === 0 ? 'disabled' : ''}`}
+                                onClick={handlePrintQueue}
+                                disabled={printQueue.length === 0 || isPrinting}
+                                style={{ opacity: printQueue.length === 0 ? 0.5 : 1, cursor: printQueue.length === 0 ? 'not-allowed' : 'pointer' }}
                             >
                                 <Printer size={20} />
-                                <span>Imprimir pedidos</span>
+                                <span>{isPrinting ? 'Imprimindo...' : `Imprimir Selecionados (${printQueue.length})`}</span>
                             </button>
                         )}
 
@@ -464,13 +518,14 @@ export const ButcherDashboard: React.FC = () => {
                                                 <td className="actions-col">
                                                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                                         {/* Actions logic */}
-                                                        {canProduce && order.status === 'pending' && (
+                                                        {canProduce && (
                                                             <button
-                                                                className="arbalest-icon-btn arbalest-btn-primary"
-                                                                title="Produzir"
-                                                                onClick={() => handleUpdateStatus(order.id, 'production')}
+                                                                className={`arbalest-icon-btn ${printQueue.includes(order.id) ? 'arbalest-btn-primary' : 'arbalest-btn-neutral'}`}
+                                                                title={printQueue.includes(order.id) ? "Remover da fila" : "Adicionar à fila de impressão"}
+                                                                onClick={() => handleToggleQueue(order.id)}
+                                                                style={{ opacity: printQueue.includes(order.id) ? 1 : 0.6 }}
                                                             >
-                                                                <Settings2 size={18} />
+                                                                <Printer size={18} />
                                                             </button>
                                                         )}
 
@@ -553,17 +608,19 @@ export const ButcherDashboard: React.FC = () => {
                                     </div>
                                 </div>
 
+
                                 {/* Action Footer - Only render if there are actions available */}
                                 {(canProduce && order.status === 'pending') ||
                                     (canRequest && order.status === 'production') ||
+                                    (canProduce && order.status === 'production') ||
                                     (canRequest && order.status === 'pending') ? (
                                     <div className="arbalest-card-footer">
-                                        {canProduce && order.status === 'pending' && (
+                                        {canProduce && (
                                             <button
-                                                className="arbalest-btn arbalest-btn-primary"
-                                                onClick={() => handleUpdateStatus(order.id, 'production')}
+                                                className={`arbalest-btn mobile-no-hover ${printQueue.includes(order.id) ? 'arbalest-btn-outline-warning' : 'arbalest-btn-primary'}`}
+                                                onClick={() => handleToggleQueue(order.id)}
                                             >
-                                                Iniciar Produção <Settings2 size={16} />
+                                                {printQueue.includes(order.id) ? 'Remover da impressão' : 'Adicionar à impressão'} <Printer size={16} />
                                             </button>
                                         )}
                                         {canRequest && order.status === 'production' && (
@@ -607,13 +664,7 @@ export const ButcherDashboard: React.FC = () => {
                 type="dashboard"
             />
 
-            {/* Print Modal */}
-            < PrintOrdersModal
-                isOpen={isPrintModalOpen}
-                onClose={() => setIsPrintModalOpen(false)}
-            />
-
-            < AddButcherOrderModal
+            <AddButcherOrderModal
                 isOpen={isAddOrderModalOpen}
                 onClose={() => setIsAddOrderModalOpen(false)}
                 onSuccess={() => {
@@ -621,6 +672,94 @@ export const ButcherDashboard: React.FC = () => {
                     fetchOrders();
                 }}
             />
+
+            {/* Hidden Print Area */}
+            <div id="print-area" className="print-only">
+                <style>
+                    {`
+                    @media print {
+                        body * {
+                            visibility: hidden;
+                        }
+                        #print-area, #print-area * {
+                            visibility: visible;
+                        }
+                        #print-area {
+                            position: absolute;
+                            left: 0;
+                            top: 0;
+                            width: 100%;
+                            background: white;
+                            color: black;
+                            padding: 20px;
+                        }
+                        .print-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 20px;
+                        }
+                        .print-table th, .print-table td {
+                            border: 1px solid #ddd;
+                            padding: 8px;
+                            text-align: left;
+                            font-size: 12px;
+                        }
+                        .print-table th {
+                            background-color: #f2f2f2;
+                            font-weight: bold;
+                        }
+                        .qty-col {
+                            font-weight: bold;
+                            font-size: 14px;
+                        }
+                    }
+                    .print-only {
+                        display: none;
+                    }
+                    @media print {
+                        .print-only {
+                            display: block;
+                        }
+                    }
+                    @media (max-width: 768px) {
+                        .mobile-no-hover:hover {
+                            transform: none !important;
+                        }
+                        .mobile-no-hover.arbalest-btn-primary:hover {
+                            background: var(--brand-primary) !important;
+                        }
+                        .mobile-no-hover.arbalest-btn-outline-warning:hover {
+                            background: transparent !important;
+                            border-color: rgba(245, 158, 11, 0.3) !important;
+                        }
+                    }
+                    `}
+                </style>
+                <div className="print-header" style={{ marginBottom: '20px', textAlign: 'center' }}>
+                    <h1 style={{ fontSize: '18px', margin: 0 }}>Lista de Produção - Açougue</h1>
+                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>Gerado em: {new Date().toLocaleString('pt-BR')}</p>
+                </div>
+                <table className="print-table">
+                    <thead>
+                        <tr>
+                            <th>Produto</th>
+                            <th>Cód. / EAN</th>
+                            <th>Loja</th>
+                            <th style={{ textAlign: 'right' }}>Qtd</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {orders.filter(o => printQueue.includes(o.id)).map(order => (
+                            <tr key={order.id}>
+                                <td>{order.product.name}</td>
+                                <td>{order.product.code}{order.product.ean ? ` / ${order.product.ean}` : ''}</td>
+                                <td>{order.requester_store.name}</td>
+                                <td className="qty-col" style={{ textAlign: 'right' }}>{order.quantity} {order.unit}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </DashboardLayout >
     );
 };

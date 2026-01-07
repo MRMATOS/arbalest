@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { DashboardLayout } from '../layouts/DashboardLayout';
-import { Calendar, Map, Settings, Beef } from 'lucide-react';
+import { Calendar, Map, Settings, Beef, User } from 'lucide-react';
 import '../modules/validity/ValidityList.css'; // Reuse existing glass styles
 
 export const ModuleHub = () => {
@@ -17,8 +17,20 @@ export const ModuleHub = () => {
     const isValidityVisible = user?.store?.show_validity !== false;
     const isPlanogramVisible = user?.store?.show_planogram !== false;
 
+    // Mobile Action for Hub: Profile Link
+    const profileMobileAction = (
+        <div
+            className="nav-btn"
+            onClick={() => navigate('/profile')}
+            style={{ cursor: 'pointer' }}
+        >
+            <User size={24} />
+            <span>Perfil</span>
+        </div>
+    );
+
     return (
-        <DashboardLayout>
+        <DashboardLayout customMobileAction={profileMobileAction}>
             <div className="content-area" style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -45,17 +57,17 @@ export const ModuleHub = () => {
                             className={`glass item-card ${!hasValidityAccess ? 'disabled' : ''}`}
                             onClick={() => hasValidityAccess && navigate('/validity')}
                             style={{
-                                padding: '32px',
+                                padding: '24px',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                alignItems: 'center',
+                                alignItems: 'flex-start', // Left align
                                 cursor: hasValidityAccess ? 'pointer' : 'not-allowed',
                                 opacity: hasValidityAccess ? 1 : 0.5,
                                 transition: 'all 0.3s ease',
                                 border: '1px solid var(--glass-border)',
                                 borderRadius: '16px',
                                 background: 'var(--glass-bg)',
-                                minHeight: '300px'
+                                minHeight: '160px' // Reduced height
                             }}
                             onMouseEnter={(e) => {
                                 if (hasValidityAccess) {
@@ -70,21 +82,22 @@ export const ModuleHub = () => {
                                 }
                             }}
                         >
-                            <div style={{
-                                background: 'var(--brand-primary)',
-                                width: '64px',
-                                height: '64px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                borderRadius: '50%',
-                                marginBottom: '20px',
-                                boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-                            }}>
-                                <Calendar size={32} color="white" />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px', width: '100%' }}>
+                                <div style={{
+                                    background: 'var(--brand-primary)',
+                                    width: '48px', // Smaller icon container
+                                    height: '48px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    borderRadius: '50%',
+                                    boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                                }}>
+                                    <Calendar size={24} color="white" />
+                                </div>
+                                <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 600 }}>Gestão de Validade</h2>
                             </div>
-                            <h2 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>Gestão de Validade</h2>
-                            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                            <p style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.4' }}>
                                 Controle de vencimentos, auditorias e solicitações de produtos.
                             </p>
                         </div>
@@ -96,17 +109,17 @@ export const ModuleHub = () => {
                             className={`glass item-card ${!hasPlanogramAccess ? 'disabled' : ''}`}
                             onClick={() => hasPlanogramAccess && navigate('/planogram')}
                             style={{
-                                padding: '32px',
+                                padding: '24px',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                alignItems: 'center',
+                                alignItems: 'flex-start',
                                 cursor: hasPlanogramAccess ? 'pointer' : 'not-allowed',
                                 opacity: hasPlanogramAccess ? 1 : 0.5,
                                 transition: 'all 0.3s ease',
                                 border: '1px solid var(--glass-border)',
                                 borderRadius: '16px',
                                 background: 'var(--glass-bg)',
-                                minHeight: '300px'
+                                minHeight: '160px'
                             }}
                             onMouseEnter={(e) => {
                                 if (hasPlanogramAccess) {
@@ -121,21 +134,22 @@ export const ModuleHub = () => {
                                 }
                             }}
                         >
-                            <div style={{
-                                background: '#10b981', // Emerald 500
-                                width: '64px',
-                                height: '64px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                borderRadius: '50%',
-                                marginBottom: '20px',
-                                boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-                            }}>
-                                <Map size={32} color="white" />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px', width: '100%' }}>
+                                <div style={{
+                                    background: '#10b981', // Emerald 500
+                                    width: '48px',
+                                    height: '48px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    borderRadius: '50%',
+                                    boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                                }}>
+                                    <Map size={24} color="white" />
+                                </div>
+                                <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 600 }}>Planogramas</h2>
                             </div>
-                            <h2 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>Planogramas</h2>
-                            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                            <p style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.4' }}>
                                 Mapeamento de produtos, geração de etiquetas e gestão de layout.
                             </p>
                         </div>
@@ -147,16 +161,16 @@ export const ModuleHub = () => {
                             className="glass item-card"
                             onClick={() => navigate('/butcher')}
                             style={{
-                                padding: '32px',
+                                padding: '24px',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                alignItems: 'center',
+                                alignItems: 'flex-start',
                                 cursor: 'pointer',
                                 transition: 'all 0.3s ease',
                                 border: '1px solid var(--glass-border)',
                                 borderRadius: '16px',
                                 background: 'var(--glass-bg)',
-                                minHeight: '300px'
+                                minHeight: '160px'
                             }}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.transform = 'translateY(-5px)';
@@ -167,22 +181,23 @@ export const ModuleHub = () => {
                                 e.currentTarget.style.background = 'var(--glass-bg)';
                             }}
                         >
-                            <div style={{
-                                background: '#f43f5e', // Rose 500
-                                width: '64px',
-                                height: '64px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                borderRadius: '50%',
-                                marginBottom: '20px',
-                                boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-                            }}>
-                                <Beef size={32} color="white" />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px', width: '100%' }}>
+                                <div style={{
+                                    background: '#ef4444', // Red 500
+                                    width: '48px',
+                                    height: '48px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    borderRadius: '50%',
+                                    boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                                }}>
+                                    <Beef size={24} color="white" />
+                                </div>
+                                <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 600 }}>Açougue</h2>
                             </div>
-                            <h2 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>Açougue</h2>
-                            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                                Gestão de pedidos de cortes, produção e histórico de entregas.
+                            <p style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.4' }}>
+                                Gestão de produção e pedidos de cortes.
                             </p>
                         </div>
                     )}

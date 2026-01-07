@@ -336,9 +336,7 @@
     color: var(--brand-primary);
 }
 
-.nav-btn:hover {
-    color: var(--text-primary);
-}
+
 
 .add-btn-mobile {
     transform: translateY(-2px);
@@ -374,7 +372,7 @@
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
-    z-index: 1000;
+    z-index: 1100;
 }
 
 .mobile-menu {
