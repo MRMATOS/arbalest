@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { Send, Filter } from 'lucide-react';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, Link } from 'react-router-dom';
+import { PlusCircle, Calendar, Filter, History, Send } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Login } from './modules/Login';
 import { Register } from './modules/Register';
 import { WaitingApproval } from './modules/WaitingApproval';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ValidityList } from './modules/validity/ValidityList';
+import { ValidityHistoryPage } from './modules/validity/ValidityHistoryPage';
 import { AddValidityModal } from './modules/validity/AddValidityModal';
 import { AdminDashboard } from './modules/admin/AdminDashboard';
 import { Profile } from './modules/profile/Profile';
@@ -20,7 +21,6 @@ import { ButcherHistory } from './modules/butcher/ButcherHistory';
 
 const RequireAuth = () => {
   const { user, loading } = useAuth();
-
   if (loading) {
     return (
       <div className="loading-screen">
@@ -28,127 +28,89 @@ const RequireAuth = () => {
       </div>
     );
   }
-
   if (!user) {
     return <Navigate to="/login" replace />;
   }
-
   return <Outlet />;
 };
 
 // Guard: Requires approved profile
 const RequireApproval = () => {
   const { user } = useAuth();
-
   if (!user?.approved_at && user?.role !== 'admin') {
     return <Navigate to="/aguardando-aprovacao" replace />;
   }
-
   return <Outlet />;
 };
 
 // Guard: Requires Admin Role
 const RequireAdmin = () => {
   const { user } = useAuth();
-
   if (user?.role !== 'admin') {
     return <Navigate to="/" replace />;
   }
-
   return <Outlet />;
 };
 
-// Rename CreateDashboard to ValidityPage for clarity
+// Previous CreateDashboard/ValidityPage
 function ValidityPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSolicitationModalOpen, setIsSolicitationModalOpen] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { user } = useAuth();
 
-  const isConferente = user?.role === 'conferente';
+  const isConferente = user?.role?.toLowerCase() === 'conferente';
 
-  // Custom action for Conferente (Yellow Send Button)
-  const customMobileAction = isConferente ? (
+  const filterAction = (
+    <button
+      onClick={() => setIsFilterModalOpen(true)}
+      className="nav-btn"
+    >
+      <Filter size={24} />
+      <span>Filtrar</span>
+    </button>
+  );
+
+  const validityAction = (
+    <Link
+      to="/validity"
+      className="nav-btn active"
+    >
+      <Calendar size={24} />
+      <span>Validade</span>
+    </Link>
+  );
+
+  const historyAction = (
+    <Link to="/validity/history" className="nav-btn">
+      <History size={24} />
+      <span>Histórico</span>
+    </Link>
+  );
+
+  const solicitAction = (
     <button
       onClick={() => setIsSolicitationModalOpen(true)}
-      style={{
-        background: 'none',
-        border: 'none',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%',
-        height: '100%',
-        cursor: 'pointer',
-        gap: '4px',
-        color: 'var(--text-secondary)',
-        fontSize: '0.65rem',
-        padding: 0
-      }}
+      className="nav-btn"
     >
       <Send size={24} color="var(--warning)" />
-      <span style={{ fontWeight: 500 }}>Solicitar</span>
+      <span>Solicitar</span>
     </button>
-  ) : undefined;
+  );
 
-  const handleOpenAdd = () => {
-    setIsModalOpen(true);
-  };
+  const handleOpenAdd = () => setIsModalOpen(true);
 
   return (
     <>
       <DashboardLayout
         onAddClick={!isConferente || user?.role === 'admin' ? handleOpenAdd : undefined}
-        customMobileAction={customMobileAction}
-        secondaryMobileAction={user?.role === 'admin' ? (
-          <button
-            onClick={() => setIsSolicitationModalOpen(true)}
-            style={{
-              background: 'none',
-              border: 'none',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '100%',
-              height: '100%',
-              cursor: 'pointer',
-              gap: '4px',
-              color: 'var(--text-secondary)',
-              fontSize: '0.65rem',
-              padding: 0
-            }}
-          >
-            <Send size={24} color="var(--warning)" />
-            <span style={{ fontWeight: 500 }}>Solicitar</span>
-          </button>
-        ) : undefined}
-        filterMobileAction={
-          <button
-            onClick={() => setIsFilterModalOpen(true)}
-            style={{
-              background: 'none',
-              border: 'none',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '100%',
-              height: '100%',
-              cursor: 'pointer',
-              gap: '4px',
-              color: 'var(--text-secondary)',
-              fontSize: '0.65rem',
-              padding: 0
-            }}
-          >
-            <Filter size={24} />
-            <span style={{ fontWeight: 500 }}>Filtrar</span>
-          </button>
-        }
+        // User requested: Menu, History, Filter, Validity, Solicit (for Conferente)
+        hideDefaultModuleNav={isConferente}
+        filterMobileAction={isConferente ? historyAction : filterAction}
+        secondaryMobileAction={isConferente ? filterAction : (user?.role === 'admin' ? solicitAction : undefined)}
+        tertiaryMobileAction={isConferente ? validityAction : undefined}
+        customMobileAction={isConferente ? solicitAction : undefined}
       >
         <ValidityList
           key={refreshTrigger}
@@ -163,13 +125,83 @@ function ValidityPage() {
 
       <AddValidityModal
         isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-        }}
+        onClose={() => setIsModalOpen(false)}
         onSuccess={() => {
           setIsModalOpen(false);
           setRefreshTrigger(prev => prev + 1);
         }}
+      />
+    </>
+  );
+}
+
+function ValidityHistoryRoute() {
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const { user } = useAuth();
+
+  // Custom Actions for History Page
+  // Slot 2: Histórico (Active)
+  const historyAction = (
+    <Link to="/validity/history" className="nav-btn active">
+      <History size={24} />
+      <span>Histórico</span>
+    </Link>
+  );
+
+  // Slot 3: Filtro
+  const filterAction = (
+    <button
+      onClick={() => setIsFilterModalOpen(true)}
+      className="nav-btn"
+    >
+      <Filter size={24} />
+      <span>Filtro</span>
+    </button>
+  );
+
+  // Slot 4: Validade
+  const validityAction = (
+    <Link to="/validity" className="nav-btn">
+      <Calendar size={24} />
+      <span>Validade</span>
+    </Link>
+  );
+
+  // Slot 5: Solicitar / Registrar
+  const isManager = user?.role === 'admin' || user?.role === 'encarregado';
+  const addLabel = isManager ? 'Registrar' : 'Solicitar';
+
+  const addActionWithLabel = (
+    <button
+      className="nav-btn"
+      onClick={() => setIsAddModalOpen(true)}
+      style={{ color: isManager ? 'var(--brand-primary)' : 'var(--warning)' }}
+    >
+      {isManager ? <PlusCircle size={24} /> : <Send size={24} />}
+      <span>{addLabel}</span>
+    </button>
+  );
+
+  return (
+    <>
+      <DashboardLayout
+        hideDefaultModuleNav={true}
+        filterMobileAction={historyAction} // Slot 2
+        secondaryMobileAction={filterAction} // Slot 3
+        tertiaryMobileAction={validityAction} // Slot 4
+        customMobileAction={addActionWithLabel} // Slot 5
+      >
+        <ValidityHistoryPage
+          isFilterModalOpen={isFilterModalOpen}
+          onCloseFilterModal={() => setIsFilterModalOpen(false)}
+        />
+      </DashboardLayout>
+
+      <AddValidityModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={() => setIsAddModalOpen(false)}
       />
     </>
   );
@@ -193,9 +225,8 @@ function App() {
               <Route path="/" element={<ModuleHub />} />
               <Route path="/hub" element={<Navigate to="/" replace />} />
 
-              <Route path="/validity/*" element={<ValidityPage />} />
-
-              <Route path="/planogram" element={<PlanogramDashboard />} />
+              <Route path="/validity" element={<ValidityPage />} />
+              <Route path="/validity/history" element={<ValidityHistoryRoute />} />
               <Route path="/planogram" element={<PlanogramDashboard />} />
               <Route path="/planogram/patterns" element={<ModulePatternsPage />} />
 

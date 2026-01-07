@@ -32,7 +32,7 @@ export interface ValidityEntry {
     store_id: string;
 }
 
-export const useValidityEntries = () => {
+export const useValidityEntries = (options: { includeDeleted?: boolean } = {}) => {
     const [entries, setEntries] = useState<ValidityEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -44,11 +44,16 @@ export const useValidityEntries = () => {
             setError(null);
 
             // Fetch entries from validity schema
-            const { data: entriesData, error: entriesError } = await supabase
+            let query = supabase
                 .schema('validity')
                 .from('validity_entries')
-                .select('*')
-                .neq('status', 'excluido')
+                .select('*');
+
+            if (!options.includeDeleted) {
+                query = query.neq('status', 'excluido');
+            }
+
+            const { data: entriesData, error: entriesError } = await query
                 .order('created_at', { ascending: false });
 
             if (entriesError) throw entriesError;
@@ -137,7 +142,7 @@ export const useValidityEntries = () => {
         } finally {
             setLoading(false);
         }
-    }, [user]);
+    }, [user, options.includeDeleted]);
 
     useEffect(() => {
         const subscription = supabase
@@ -173,9 +178,7 @@ export const useValidityEntries = () => {
         refresh: fetchEntries,
         updateStatus,
         updateEntry,
-        requestDelete,
-        approveDeleteRequest,
-        rejectDeleteRequest
+        deleteEntry
     };
 
     async function updateStatus(id: string, newStatus: ValidityEntry['status']) {
@@ -207,42 +210,8 @@ export const useValidityEntries = () => {
         }
     }
 
-    async function requestDelete(id: string, reason: string) {
+    async function deleteEntry(id: string) {
         try {
-            const { error } = await supabase
-                .schema('validity')
-                .from('validity_delete_requests')
-                .insert({
-                    validity_entry_id: id,
-                    reason,
-                    requested_by: user?.id,
-                    status: 'pendente'
-                });
-
-            if (error) throw error;
-
-            await fetchEntries();
-        } catch (err) {
-            console.error('Error requesting delete:', err);
-            throw err;
-        }
-    }
-
-    async function approveDeleteRequest(id: string) {
-        try {
-            const { error: reqError } = await supabase
-                .schema('validity')
-                .from('validity_delete_requests')
-                .update({
-                    status: 'aprovado',
-                    reviewed_by: user?.id,
-                    reviewed_at: new Date().toISOString()
-                })
-                .eq('validity_entry_id', id)
-                .eq('status', 'pendente');
-
-            if (reqError) throw reqError;
-
             const { error: entryError } = await supabase
                 .schema('validity')
                 .from('validity_entries')
@@ -254,30 +223,10 @@ export const useValidityEntries = () => {
 
             if (entryError) throw entryError;
 
-            await fetchEntries();
+            // Optimistic update
+            setEntries(prev => prev.filter(entry => entry.id !== id));
         } catch (err) {
-            console.error('Error approving delete:', err);
-            throw err;
-        }
-    }
-
-    async function rejectDeleteRequest(id: string) {
-        try {
-            const { error } = await supabase
-                .schema('validity')
-                .from('validity_delete_requests')
-                .update({
-                    status: 'rejeitado',
-                    reviewed_by: user?.id,
-                    reviewed_at: new Date().toISOString()
-                })
-                .eq('validity_entry_id', id)
-                .eq('status', 'pendente');
-
-            if (error) throw error;
-            await fetchEntries();
-        } catch (err) {
-            console.error('Error rejecting delete:', err);
+            console.error('Error deleting entry:', err);
             throw err;
         }
     }

@@ -55,10 +55,16 @@
     font-weight: 700 !important;
 }
 
-.lot-tag {
-    background: var(--bg-accent);
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-family: monospace;
-    font-size: 0.8rem;
+
+/* Responsive Helpers */
+@media (max-width: 768px) {
+    .desktop-only {
+        display: none !important;
+    }
+}
+
+@media (min-width: 769px) {
+    .mobile-only {
+        display: none !important;
+    }
 }

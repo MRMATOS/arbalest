@@ -15,7 +15,8 @@ import {
 
     Home,
     Map,
-    Settings
+    Settings,
+    Beef
 } from 'lucide-react';
 import './DashboardLayout.css';
 
@@ -26,6 +27,7 @@ interface DashboardLayoutProps {
     secondaryMobileAction?: React.ReactNode;
     filterMobileAction?: React.ReactNode;
     tertiaryMobileAction?: React.ReactNode;
+    hideDefaultModuleNav?: boolean;
 }
 
 interface NavItemProps {
@@ -35,7 +37,7 @@ interface NavItemProps {
     collapsed?: boolean;
 }
 
-export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAddClick, customMobileAction, secondaryMobileAction, filterMobileAction, tertiaryMobileAction }) => {
+export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAddClick, customMobileAction, secondaryMobileAction, filterMobileAction, tertiaryMobileAction, hideDefaultModuleNav }) => {
     const { user, logout } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -88,6 +90,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                         />
                     )}
 
+
                     {user?.store?.show_planogram !== false && (
                         <NavItem
                             icon={<Map size={20} />}
@@ -98,6 +101,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                         />
                     )}
 
+                    {user?.store?.show_butcher !== false && (
+                        <NavItem
+                            icon={<Beef size={20} />}
+                            label="Açougue"
+                            path="/butcher"
+                            active={isActive('/butcher')}
+                            collapsed={!sidebarOpen}
+                        />
+                    )}
 
                     {user?.role === 'admin' && (
                         <NavItem
@@ -194,8 +206,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                 </button>
 
 
-                {/* Dynamic Module Icon - Hide in Butcher Module, Hub and Profile */}
-                {!location.pathname.startsWith('/butcher') && location.pathname !== '/' && location.pathname !== '/profile' && (
+                {/* Dynamic Module Icon - Hide in Butcher Module, Hub, Profile, or if explicitly hidden */}
+                {!location.pathname.startsWith('/butcher') && location.pathname !== '/' && location.pathname !== '/profile' && !hideDefaultModuleNav && (
                     location.pathname.startsWith('/planogram') ? (
                         <Link to="/planogram" className="nav-btn active">
                             <Map size={24} /><span>Mapa</span>

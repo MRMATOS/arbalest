@@ -8,6 +8,7 @@ export interface Store {
     name: string;
     show_validity: boolean;
     show_planogram: boolean;
+    show_butcher?: boolean;
     is_butcher_active?: boolean;
     is_butcher_production?: boolean;
 }

@@ -1,31 +1,27 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     AlertCircle,
     CheckCircle2,
-    Calendar,
-    Copy,
-    Send,
-    MoreVertical,
+
     Plus,
     Search,
-    X,
     Trash2,
-    AlertOctagon,
     Pen,
     Settings2,
     History,
     Info,
-    AlertTriangle
+    AlertTriangle,
+    Send,
+    Copy
 } from 'lucide-react';
 import { useValidityEntries, type ValidityEntry } from '../../hooks/useValidityEntries';
 import { useAuth } from '../../contexts/AuthContext';
-import { HistoryModal } from './HistoryModal';
+
 import { ConfirmModal } from '../../components/ConfirmModal';
-import { DeleteRequestModal } from './DeleteRequestModal';
-import { ExportValidityModal } from './ExportValidityModal';
+
 import { SolicitationModal } from './SolicitationModal';
 import { EditValidityModal } from './EditValidityModal';
-import { DeleteRequestsApprovalModal } from './DeleteRequestsApprovalModal';
 import { RequestsModal } from './RequestsModal';
 import { FilterModal, type FilterState } from './FilterModal';
 import { supabase } from '../../services/supabase';
@@ -46,7 +42,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
     onCloseSolicitationModal,
     onOpenSolicitationModal,
     isFilterModalOpen,
-    onCloseFilterModal
+    onCloseFilterModal,
 }) => {
     const {
         entries,
@@ -54,15 +50,13 @@ export const ValidityList: React.FC<ValidityListProps> = ({
         error,
         refresh,
         updateStatus,
-        requestDelete,
-        approveDeleteRequest,
-        rejectDeleteRequest
+        deleteEntry
     } = useValidityEntries();
+    const navigate = useNavigate();
     const { user } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
-    const [selectedHistoryName, setSelectedHistoryName] = useState<string>('');
-    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
+
 
     // Filter states
     const [selectedStore, setSelectedStore] = useState<string>('all');
@@ -77,7 +71,6 @@ export const ValidityList: React.FC<ValidityListProps> = ({
     // Internal state for when not controlled, though we aim to control it from App.tsx
     const [internalSolicitationOpen, setInternalSolicitationOpen] = useState(false);
     const [isRequestsModalOpen, setIsRequestsModalOpen] = useState(false);
-    const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
     const [pendingSolicitationsCount, setPendingSolicitationsCount] = useState(0);
 
     // Fetch filter data and pending solicitations
@@ -140,6 +133,8 @@ export const ValidityList: React.FC<ValidityListProps> = ({
         };
     }, [user]);
 
+
+
     // Effective state (controlled takes precedence)
     const isSolicitationModalOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalSolicitationOpen;
     const setIsSolicitationModalOpen = (isOpen: boolean) => {
@@ -154,7 +149,8 @@ export const ValidityList: React.FC<ValidityListProps> = ({
         }
     };
 
-    const [deleteRequest, setDeleteRequest] = useState<{
+    // Delete Confirmation State
+    const [deleteConfirmation, setDeleteConfirmation] = useState<{
         isOpen: boolean;
         entryId: string;
         productName: string;
@@ -173,12 +169,19 @@ export const ValidityList: React.FC<ValidityListProps> = ({
     // Mobile Options State
     const [mobileOptionsEntry, setMobileOptionsEntry] = useState<ValidityEntry | null>(null);
 
-    const [copiedState, setCopiedState] = useState<{ id: string; type: 'code' | 'ean' } | null>(null);
+    const [copiedState, setCopiedState] = useState<{ id: string; type: 'code' | 'ean' | 'full' } | null>(null);
 
-    const handleCopy = (text: string, id: string, type: 'code' | 'ean') => {
+    const handleCopy = (text: string, id: string, type: 'code' | 'ean' | 'full') => {
         navigator.clipboard.writeText(text);
         setCopiedState({ id, type });
         setTimeout(() => setCopiedState(null), 2000);
+    };
+
+    const handleCopyProductDetails = (item: ValidityEntry) => {
+        const days = getExpiryDays(item.expires_at);
+        const statusText = days <= 0 ? 'VENCIDO' : `${days} dias`;
+        const text = `*${item.product.name}*\nEAN: ${item.product.ean || '-'}\nCód: ${item.product.code}\nQtd: ${item.quantity}\nLote: ${item.lot || '-'}\nValidade: ${new Date(item.expires_at).toLocaleDateString('pt-BR')} (${statusText})`;
+        handleCopy(text, item.id, 'full');
     };
 
     const handleStatusToggle = (id: string, currentStatus: string) => {
@@ -200,7 +203,15 @@ export const ValidityList: React.FC<ValidityListProps> = ({
     const canVerify = hasRole('conferente') || hasRole('admin');
     const canEdit = hasRole('encarregado') || hasRole('admin');
 
-    const pendingRequestsCount = entries.filter(e => e.has_pending_delete_request).length;
+    const handleDelete = async () => {
+        if (!deleteConfirmation) return;
+        try {
+            await deleteEntry(deleteConfirmation.entryId);
+            setDeleteConfirmation(null);
+        } catch (error) {
+            alert('Erro ao excluir registro');
+        }
+    };
 
     if (loading && entries.length === 0) {
         return (
@@ -306,52 +317,11 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                     <p>Gerencie os produtos próximos do vencimento</p>
                 </div>
                 <div className="arbalest-header-actions">
-                    {/* ... existing header actions ... */}
                     {(hasRole('encarregado') || hasRole('admin')) && (
                         <button className="arbalest-btn arbalest-btn-primary" onClick={onAddClick}>
                             <Plus size={20} />
                             <span>Novo Registro</span>
                         </button>
-                    )}
-
-                    {(canVerify || hasRole('encarregado') || hasRole('admin')) && (
-                        <>
-                            <button
-                                className={`arbalest-btn arbalest-btn-outline-danger ${hasRole('encarregado') || hasRole('admin') ? 'mobile-order-first' : ''}`}
-                                onClick={() => setIsApprovalModalOpen(true)}
-                                title={hasRole('encarregado') || hasRole('admin') ? "Minhas Exclusões" : "Aprovar Exclusões"}
-                                style={{ position: 'relative' }}
-                            >
-                                <Trash2 size={20} />
-                                <span className="hide-mobile">Exclusões</span>
-                                {pendingRequestsCount > 0 && (
-                                    <span className="arbalest-badge arbalest-badge-danger" style={{
-                                        position: 'absolute',
-                                        top: '-5px',
-                                        right: '-5px',
-                                        background: 'var(--error)',
-                                        color: 'white',
-                                        fontSize: '10px',
-                                        padding: '2px 6px',
-                                        borderRadius: '10px',
-                                        border: '2px solid var(--bg-primary)'
-                                    }}>
-                                        {pendingRequestsCount}
-                                    </span>
-                                )}
-                            </button>
-
-                            {canVerify && (
-                                <button
-                                    className="arbalest-btn arbalest-btn-outline-warning"
-                                    onClick={() => setIsSolicitationModalOpen(true)}
-                                    title="Solicitar Conferência"
-                                >
-                                    <Send size={20} />
-                                    <span className="hide-mobile">Solicitar</span>
-                                </button>
-                            )}
-                        </>
                     )}
 
                     {(hasRole('encarregado') || hasRole('admin')) && (
@@ -378,18 +348,27 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                         </button>
                     )}
 
-                    <button className="arbalest-btn arbalest-btn-outline-success" onClick={() => setIsExportModalOpen(true)}>
-                        <Copy size={20} />
-                        <span className="hide-mobile">Exportar</span>
+                    {/* Desktop Actions */}
+                    <button className="arbalest-btn arbalest-btn-neutral hide-mobile" onClick={() => navigate('/validity/history')}>
+                        <History size={20} />
+                        <span>Histórico Global</span>
                     </button>
+
+                    {canVerify && (
+                        <button
+                            className="arbalest-btn arbalest-btn-outline-warning hide-mobile"
+                            onClick={() => onOpenSolicitationModal?.()}
+                            title="Solicitar Conferência"
+                        >
+                            <Send size={20} />
+                            <span>Solicitar</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
-
-            {/* Desktop Filters (Hidden on Mobile) */}
-            <div className="arbalest-filter-section arbalest-glass desktop-filters" style={{ marginTop: '20px' }}>
+            <div className="arbalest-filter-section arbalest-glass hide-mobile">
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-                    {/* ... existing filters ... */}
                     <div className="filter-group">
                         <label className="arbalest-label">Loja</label>
                         <select
@@ -405,17 +384,15 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                     </div>
 
                     <div className="filter-group">
-                        <label className="arbalest-label">Encarregado</label>
+                        <label className="arbalest-label">Colaborador</label>
                         <select
                             value={selectedUser}
                             onChange={(e) => setSelectedUser(e.target.value)}
                             className="arbalest-select"
                         >
-                            <option value="all">Todos os Encarregados</option>
-                            {users.map(user => (
-                                <option key={user.id} value={user.id}>
-                                    {user.name || user.email}
-                                </option>
+                            <option value="all">Todos os Colaboradores</option>
+                            {users.map(u => (
+                                <option key={u.id} value={u.id}>{u.name || u.email}</option>
                             ))}
                         </select>
                     </div>
@@ -447,6 +424,8 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                     </div>
                 </div>
             </div>
+
+
 
             <div className="arbalest-filter-section arbalest-glass">
                 <div className="arbalest-search-wrapper">
@@ -548,67 +527,56 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                     </td>
                                     <td><span className="lot-tag">{item.lot || 'Não informado'}</span></td>
                                     <td className="actions-col">
-                                        {item.has_pending_delete_request && canVerify ? (
-                                            <>
-                                                <button className="arbalest-icon-btn arbalest-btn-primary" onClick={() => approveDeleteRequest(item.id)} title="Aprovar exclusão">
-                                                    <CheckCircle2 size={18} />
-                                                </button>
-                                                <button className="arbalest-icon-btn arbalest-btn-danger" style={{ color: 'var(--error)' }} onClick={() => rejectDeleteRequest(item.id)} title="Rejeitar exclusão">
-                                                    <X size={18} />
-                                                </button>
-                                            </>
-                                        ) : (
-                                            <>
-                                                {/* 2. Verification Actions (Conferente only) */}
-                                                {canVerify && (
-                                                    <>
+                                        <>
+                                            {/* 2. Verification Actions (Conferente only) */}
+                                            {canVerify && (
+                                                <>
 
-                                                        <button
-                                                            className={`arbalest-icon-btn ${item.status === 'conferido' ? 'arbalest-btn-primary' : ''}`}
-                                                            onClick={() => handleStatusToggle(item.id, item.status)}
-                                                            title={item.status === 'conferido' ? "Desmarcar" : "Confirmar"}
-                                                        >
-                                                            <CheckCircle2 size={18} />
-                                                        </button>
-                                                    </>
+                                                    <button
+                                                        className={`arbalest-icon-btn ${item.status === 'conferido' ? 'arbalest-btn-primary' : ''}`}
+                                                        onClick={() => handleStatusToggle(item.id, item.status)}
+                                                        title={item.status === 'conferido' ? "Desmarcar" : "Confirmar"}
+                                                    >
+                                                        <CheckCircle2 size={18} />
+                                                    </button>
+                                                </>
+                                            )}
+
+                                            {/* 3. Common Actions */}
+                                            <button
+                                                className="arbalest-icon-btn"
+                                                onClick={() => handleCopyProductDetails(item)}
+                                                title={copiedState?.id === item.id && copiedState?.type === 'full' ? "Copiado!" : "Copiar Detalhes"}
+                                            >
+                                                {copiedState?.id === item.id && copiedState?.type === 'full' ? (
+                                                    <CheckCircle2 size={18} color="var(--success)" />
+                                                ) : (
+                                                    <Copy size={18} />
                                                 )}
+                                            </button>
 
-                                                {/* 3. Common Actions */}
-                                                <button
-                                                    className="arbalest-icon-btn"
-                                                    onClick={() => {
-                                                        setSelectedHistoryId(item.id);
-                                                        setSelectedHistoryName(item.product.name);
-                                                    }}
-                                                    title="Histórico"
-                                                >
-                                                    <History size={18} />
-                                                </button>
+                                            {/* 4. Edit/Delete (Encarregado Only) */}
+                                            {canEdit && (
+                                                <>
+                                                    <button
+                                                        className="arbalest-icon-btn"
+                                                        onClick={() => setEditEntry(item)}
+                                                        title="Editar"
+                                                    >
+                                                        <Pen size={18} />
+                                                    </button>
 
-                                                {/* 4. Edit/Delete (Encarregado Only) */}
-                                                {canEdit && (
-                                                    <>
-                                                        <button
-                                                            className="arbalest-icon-btn"
-                                                            onClick={() => setEditEntry(item)}
-                                                            title="Editar"
-                                                        >
-                                                            <Pen size={18} />
-                                                        </button>
-
-                                                        <button
-                                                            className="arbalest-icon-btn"
-                                                            onClick={() => setDeleteRequest({ isOpen: true, entryId: item.id, productName: item.product.name })}
-                                                            disabled={item.has_pending_delete_request}
-                                                            title={item.has_pending_delete_request ? "Solicitado" : "Excluir"}
-                                                            style={{ opacity: item.has_pending_delete_request ? 0.5 : 1, color: 'var(--error)' }}
-                                                        >
-                                                            {item.has_pending_delete_request ? <AlertOctagon size={18} /> : <Trash2 size={18} />}
-                                                        </button>
-                                                    </>
-                                                )}
-                                            </>
-                                        )}
+                                                    <button
+                                                        className="arbalest-icon-btn"
+                                                        onClick={() => setDeleteConfirmation({ isOpen: true, entryId: item.id, productName: item.product.name })}
+                                                        title="Excluir"
+                                                        style={{ color: 'var(--error)' }}
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </>
+                                            )}
+                                        </>
                                     </td>
                                 </tr>
                             ))}
@@ -661,13 +629,19 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                         </div>
                                     </div>
 
-                                    <div className={`card-expiry ${getExpiryClass(item)}`}>
-                                        <div className="expiry-main">
-                                            <Calendar size={16} />
-                                            <span>Vence em: {new Date(item.expires_at).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
+                                    <div className="arbalest-card-info" style={{ marginTop: '8px' }}>
+                                        <label>Vence em</label>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                            <span className={`expiry-date ${getExpiryClass(item)}`} style={{ fontWeight: 600 }}>
+                                                {new Date(item.expires_at).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                                            </span>
+                                            <span className="days" style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
+                                                ({getExpiryText(getExpiryDays(item.expires_at))})
+                                            </span>
+
                                             {item.product.type === 'farmacia' && (item.product.amount || 0) > 0 && (item.product.amount || 0) < getExpiryDays(item.expires_at) && (
                                                 <div className="arbalest-tooltip-wrapper">
-                                                    <Info size={16} />
+                                                    <Info size={16} color="var(--text-tertiary)" />
                                                     <div className="arbalest-tooltip">
                                                         <strong>Prazo de Venda</strong>
                                                         {getSalesDeadline(item) <= 0 ? (
@@ -683,19 +657,19 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                                 </div>
                                             )}
                                         </div>
-                                        <span className="days">{getExpiryText(getExpiryDays(item.expires_at))}</span>
                                     </div>
                                 </div>
 
                                 <div className="arbalest-card-footer">
                                     <button
                                         className="arbalest-btn arbalest-btn-neutral"
-                                        onClick={() => {
-                                            setSelectedHistoryId(item.id);
-                                            setSelectedHistoryName(item.product.name);
-                                        }}
+                                        onClick={() => handleCopyProductDetails(item)}
                                     >
-                                        <MoreVertical size={16} /> Histórico
+                                        {copiedState?.id === item.id && copiedState?.type === 'full' ? (
+                                            <><CheckCircle2 size={16} color="var(--success)" /> Copiado!</>
+                                        ) : (
+                                            <><Copy size={16} /> Copiar</>
+                                        )}
                                     </button>
 
                                     {/* Mobile Actions based on Role */}
@@ -727,29 +701,20 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                 </div>
             )}
             {/* ... modals ... */}
-            < HistoryModal
-                isOpen={!!selectedHistoryId}
-                onClose={() => setSelectedHistoryId(null)}
-                entryId={selectedHistoryId}
-                productName={selectedHistoryName}
+
+
+            <ConfirmModal
+                isOpen={!!deleteConfirmation}
+                onClose={() => setDeleteConfirmation(null)}
+                onConfirm={handleDelete}
+                title="Excluir Registro"
+                message={`Tem certeza que deseja excluir o registro de "${deleteConfirmation?.productName}"?`}
+                confirmText="Excluir"
+                cancelText="Cancelar"
+                type="danger"
             />
 
-            <DeleteRequestModal
-                isOpen={!!deleteRequest?.isOpen}
-                onClose={() => setDeleteRequest(null)}
-                onConfirm={(reason) => {
-                    if (deleteRequest) {
-                        requestDelete(deleteRequest.entryId, reason);
-                    }
-                }}
-                productName={deleteRequest?.productName || ''}
-            />
 
-            <ExportValidityModal
-                isOpen={isExportModalOpen}
-                onClose={() => setIsExportModalOpen(false)}
-                entries={entries}
-            />
 
             <SolicitationModal
                 isOpen={isSolicitationModalOpen}
@@ -782,15 +747,6 @@ export const ValidityList: React.FC<ValidityListProps> = ({
             <RequestsModal
                 isOpen={isRequestsModalOpen}
                 onClose={() => setIsRequestsModalOpen(false)}
-            />
-
-            <DeleteRequestsApprovalModal
-                isOpen={isApprovalModalOpen}
-                onClose={() => setIsApprovalModalOpen(false)}
-                entries={entries}
-                onApprove={approveDeleteRequest}
-                onReject={rejectDeleteRequest}
-                user={user}
             />
 
             <FilterModal
@@ -836,16 +792,15 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                         fontWeight: 600
                                     }}
                                     onClick={() => {
-                                        setDeleteRequest({
+                                        setDeleteConfirmation({
                                             isOpen: true,
                                             entryId: mobileOptionsEntry.id,
                                             productName: mobileOptionsEntry.product.name
                                         });
                                         setMobileOptionsEntry(null);
                                     }}
-                                    disabled={mobileOptionsEntry.has_pending_delete_request}
                                 >
-                                    {mobileOptionsEntry.has_pending_delete_request ? 'Exclusão Pendente' : 'Solicitar Exclusão'}
+                                    Excluir Registro
                                 </button>
 
                                 <button className="btn-secondary" onClick={() => setMobileOptionsEntry(null)}>
