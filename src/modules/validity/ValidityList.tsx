@@ -21,7 +21,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ConfirmModal } from '../../components/ConfirmModal';
 
 import { SolicitationModal } from './SolicitationModal';
-import { EditValidityModal } from './EditValidityModal';
+
+import { AddValidityModal } from './AddValidityModal';
 import { RequestsModal } from './RequestsModal';
 import { FilterModal, type FilterState } from './FilterModal';
 import { supabase } from '../../services/supabase';
@@ -318,7 +319,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                 </div>
                 <div className="arbalest-header-actions">
                     {(hasRole('encarregado') || hasRole('admin')) && (
-                        <button className="arbalest-btn arbalest-btn-primary" onClick={onAddClick}>
+                        <button className="arbalest-btn arbalest-btn-primary hide-mobile" onClick={onAddClick}>
                             <Plus size={20} />
                             <span>Novo Registro</span>
                         </button>
@@ -326,13 +327,13 @@ export const ValidityList: React.FC<ValidityListProps> = ({
 
                     {(hasRole('encarregado') || hasRole('admin')) && (
                         <button
-                            className="arbalest-btn arbalest-btn-outline-warning"
+                            className="arbalest-btn arbalest-btn-outline-warning hide-mobile"
                             onClick={() => setIsRequestsModalOpen(true)}
                             title="Ver Solicitações"
                             style={{ position: 'relative' }}
                         >
                             <Send size={20} />
-                            <span className="hide-mobile">Solicitações</span>
+                            <span>Solicitações</span>
                             {pendingSolicitationsCount > 0 && (
                                 <span className="arbalest-badge arbalest-badge-danger" style={{
                                     position: 'absolute',
@@ -736,10 +737,11 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                 type="warning"
             />
 
-            <EditValidityModal
+            {/* Reusing AddValidityModal for Editing */}
+            <AddValidityModal
                 isOpen={!!editEntry}
                 onClose={() => setEditEntry(null)}
-                entry={editEntry}
+                editEntry={editEntry}
                 onSuccess={refresh}
             />
 
@@ -767,14 +769,14 @@ export const ValidityList: React.FC<ValidityListProps> = ({
             {
                 mobileOptionsEntry && (
                     <div className="modal-overlay" onClick={() => setMobileOptionsEntry(null)}>
-                        <div className="modal-content glass" style={{ maxWidth: '320px', padding: '24px' }}>
-                            <h3 style={{ marginBottom: '20px' }}>Opções do Registro</h3>
-                            <p style={{ marginBottom: '20px', color: 'var(--text-secondary)' }}>
+                        <div className="arbalest-card arbalest-glass" style={{ maxWidth: '320px', padding: '24px', width: '90%' }}>
+                            <h3 className="arbalest-title" style={{ fontSize: '1.25rem', marginBottom: '8px' }}>Opções do Registro</h3>
+                            <p style={{ marginBottom: '24px', color: 'var(--text-secondary)' }}>
                                 {mobileOptionsEntry.product.name}
                             </p>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                <button className="btn-primary" onClick={() => {
+                                <button className="arbalest-btn arbalest-btn-primary" onClick={() => {
                                     setEditEntry(mobileOptionsEntry);
                                     setMobileOptionsEntry(null);
                                 }}>
@@ -782,14 +784,11 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                 </button>
 
                                 <button
-                                    className="btn-danger-outline"
+                                    className="arbalest-btn"
                                     style={{
-                                        padding: '12px',
                                         border: '1px solid var(--error)',
                                         color: 'var(--error)',
-                                        background: 'transparent',
-                                        borderRadius: '8px',
-                                        fontWeight: 600
+                                        background: 'transparent'
                                     }}
                                     onClick={() => {
                                         setDeleteConfirmation({
@@ -803,7 +802,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                     Excluir Registro
                                 </button>
 
-                                <button className="btn-secondary" onClick={() => setMobileOptionsEntry(null)}>
+                                <button className="arbalest-btn arbalest-btn-neutral" onClick={() => setMobileOptionsEntry(null)}>
                                     Cancelar
                                 </button>
                             </div>

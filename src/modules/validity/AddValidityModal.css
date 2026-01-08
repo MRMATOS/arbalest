@@ -8,15 +8,12 @@
 }
 
 /* Scoped Header */
-.add-validity-modal .modal-header {
-    /* If specific overrides needed, otherwise rely on Modal.css */
-    /* keeping padding override if different */
-    padding: 24px;
-}
+/* Removed override to use standard Modal.css header padding (24px 24px 16px) */
 
 /* Modal Body */
 .modal-body-add-validity {
-    padding: 24px;
+    /* Top padding 0 because header has bottom padding of 16px */
+    padding: 0 0px 12px;
     overflow-y: auto;
     flex: 1;
 }
@@ -34,33 +31,7 @@
     color: var(--text-secondary);
 }
 
-.search-input-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    background: var(--bg-accent);
-    border: 1px solid var(--glass-border);
-    border-radius: 8px;
-}
-
-.search-input-wrapper svg:first-child {
-    color: var(--text-secondary);
-}
-
-.search-input-wrapper input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: var(--text-primary);
-    font-size: 0.95rem;
-}
-
-.search-input-wrapper input:focus {
-    outline: none;
-}
-
+/* Camera button specific logic inside search wrapper */
 .search-input-wrapper .spinner {
     color: var(--brand-primary);
     animation: spin 1s linear infinite;
@@ -84,12 +55,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: var(--transition);
+    /* No hover effect */
     flex-shrink: 0;
-}
-
-.camera-btn:hover {
-    background: var(--brand-hover);
 }
 
 /* Hide camera button on desktop */
@@ -115,16 +82,13 @@
     gap: 12px;
     cursor: pointer;
     border-bottom: 1px solid var(--glass-border);
-    transition: var(--transition);
 }
 
 .product-item:last-child {
     border-bottom: none;
 }
 
-.product-item:hover {
-    background: var(--bg-secondary);
-}
+/* Hover effect removed per user request */
 
 .product-item svg {
     color: var(--brand-primary);
@@ -196,20 +160,6 @@
     color: var(--text-secondary);
 }
 
-.change-btn {
-    padding: 6px 12px;
-    font-size: 0.85rem;
-    color: var(--brand-primary);
-    border: 1px solid var(--brand-primary);
-    border-radius: 6px;
-    transition: var(--transition);
-}
-
-.change-btn:hover {
-    background: var(--brand-primary);
-    color: white;
-}
-
 /* Form Fields */
 .form-fields {
     display: flex;
@@ -221,28 +171,6 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-}
-
-.form-group label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-}
-
-.form-group input {
-    padding: 12px 16px;
-    background: var(--bg-accent);
-    border: 1px solid var(--glass-border);
-    border-radius: 8px;
-    color: var(--text-primary);
-    font-size: 0.95rem;
-    transition: var(--transition);
-}
-
-.form-group input:focus {
-    outline: none;
-    border-color: var(--brand-primary);
-    background: var(--bg-secondary);
 }
 
 .error-message {
@@ -257,67 +185,33 @@
 
 /* Modal Footer */
 .modal-footer {
-    padding: 24px;
+    padding: 12px;
     border-top: 1px solid var(--glass-border);
     display: flex;
     gap: 12px;
     justify-content: flex-end;
 }
 
-.btn-secondary,
-.btn-primary {
-    padding: 10px 24px;
-    border-radius: 8px;
-    font-weight: 500;
-    font-size: 0.95rem;
-    transition: var(--transition);
-}
-
-.btn-secondary {
-    background: var(--bg-accent);
-    color: var(--text-primary);
-    border: 1px solid var(--glass-border);
-}
-
-.btn-secondary:hover {
-    background: var(--bg-secondary);
-}
-
-.btn-primary {
-    background: var(--brand-primary);
-    color: white;
-    border: none;
-}
-
-.btn-primary:hover:not(:disabled) {
-    background: var(--brand-hover);
-}
-
-.btn-primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
 /* Mobile Responsive */
 @media (max-width: 640px) {
     .modal-content {
-        max-width: 100%;
-        max-height: 100vh;
-        border-radius: 0;
+        max-width: 95%;
+        /* Give some side spacing */
+        max-height: 90vh;
+        /* Don't fill full height */
+        border-radius: 12px;
+        /* Restore rounded corners */
+        margin: 0 auto;
+        /* Center if flex container doesn't do it */
     }
 
     .modal-header,
     .modal-body,
     .modal-footer {
-        padding: 16px;
+        padding: 12px;
     }
 
     .modal-footer {
         flex-direction: column;
-    }
-
-    .btn-secondary,
-    .btn-primary {
-        width: 100%;
     }
 }

@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Loader, Package, Camera } from 'lucide-react';
 import { Modal } from '../../components/Modal';
 import { useProductSearch, type Product } from '../../hooks/useProductSearch';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { type ValidityEntry } from '../../hooks/useValidityEntries';
 import { BarcodeScannerModal } from './BarcodeScannerModal';
 import './AddValidityModal.css';
 
@@ -11,15 +12,15 @@ interface AddValidityModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    editEntry?: ValidityEntry | null;
 }
 
-export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onClose, onSuccess }) => {
+export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onClose, onSuccess, editEntry }) => {
     const { results, loading: searchLoading, search } = useProductSearch();
     const { user } = useAuth();
 
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-
 
     const [formData, setFormData] = useState({
         expires_at: '',
@@ -29,6 +30,21 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (editEntry) {
+            setSelectedProduct(editEntry.product as Product); // Cast compatible structure
+            setFormData({
+                expires_at: editEntry.expires_at.split('T')[0],
+                lot: editEntry.lot || '',
+                quantity: editEntry.quantity ? editEntry.quantity.toString() : ''
+            });
+        } else {
+            // Reset if opening in add mode (though handleClose usually does this, it helps switching modes)
+            // But be careful not to wipe state if just re-rendering.
+            // Better to rely on the parent resetting editEntry or handleClose clearing.
+        }
+    }, [editEntry]);
 
     const handleSearchChange = (value: string) => {
         setSearchTerm(value);
@@ -40,9 +56,6 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
         setSearchTerm('');
     };
 
-
-
-    // State
     const handleSubmit = async (e: React.SyntheticEvent) => {
         e.preventDefault();
 
@@ -52,24 +65,44 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
         setError(null);
 
         try {
-            const { error: insertError } = await supabase
-                .schema('validity')
-                .from('validity_entries')
-                .insert({
-                    product_id: selectedProduct.id,
-                    store_id: user.store_id,
-                    expires_at: formData.expires_at,
-                    lot: formData.lot || null,
-                    quantity: formData.quantity ? parseFloat(formData.quantity) : null,
-                    created_by: user.id,
-                    status: 'ativo'
-                });
+            if (editEntry) {
+                // Update Logic
+                const { error: updateError } = await supabase
+                    .schema('validity')
+                    .from('validity_entries')
+                    .update({
+                        expires_at: formData.expires_at,
+                        lot: formData.lot || null,
+                        quantity: formData.quantity ? parseFloat(formData.quantity) : null,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', editEntry.id);
 
-            if (insertError) throw insertError;
+                if (updateError) throw updateError;
+            } else {
+                // Insert Logic
+                const { error: insertError } = await supabase
+                    .schema('validity')
+                    .from('validity_entries')
+                    .insert({
+                        product_id: selectedProduct.id,
+                        store_id: user.store_id,
+                        expires_at: formData.expires_at,
+                        lot: formData.lot || null,
+                        quantity: formData.quantity ? parseFloat(formData.quantity) : null,
+                        created_by: user.id,
+                        status: 'ativo'
+                    });
+
+                if (insertError) throw insertError;
+            }
 
             // Success - reset and close
-            setSelectedProduct(null);
-            setFormData({ expires_at: '', lot: '', quantity: '' });
+            if (!editEntry) {
+                // Only clear if adding, keep data if edit failed? No, success here.
+                setSelectedProduct(null);
+                setFormData({ expires_at: '', lot: '', quantity: '' });
+            }
             onSuccess();
             onClose();
         } catch (err) {
@@ -81,8 +114,7 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
     };
 
     const handleClose = () => {
-        // Only clear selected product if it wasn't pre-selected (to avoid flickering if checking again)
-        // But actually, we want to clear everything on close usually.
+        // Reset everything on close
         setSelectedProduct(null);
         setSearchTerm('');
         setFormData({ expires_at: '', lot: '', quantity: '' });
@@ -96,14 +128,14 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
         <Modal
             isOpen={isOpen}
             onClose={handleClose}
-            title="Novo Registro de Validade"
+            title={editEntry ? "Editar Registro" : "Novo Registro de Validade"}
         >
             <form onSubmit={handleSubmit} className="modal-body-add-validity">
                 {/* Product Search Section */}
                 {!selectedProduct ? (
                     <div className="search-section">
-                        <label>Buscar Produto</label>
-                        <div className="search-input-wrapper">
+                        <label className="arbalest-label">Buscar Produto</label>
+                        <div className="arbalest-search-wrapper">
                             <Search size={18} />
                             <input
                                 type="text"
@@ -164,43 +196,52 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
                 ) : (
                     <>
                         {/* Selected Product Display */}
-                        <div className="selected-product glass">
-                            <div className="product-header">
-                                <Package size={20} />
-                                <div className="product-details">
-                                    <span className="name">{selectedProduct.name}</span>
-                                    <span className="code">
-                                        {selectedProduct.ean && `${selectedProduct.ean} • `}
-                                        {selectedProduct.code}
-                                    </span>
+                        {/* Selected Product Display */}
+                        <div className="selected-product arbalest-glass">
+                            <div className="product-header" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                                    <Package size={24} style={{ marginTop: '4px', flexShrink: 0 }} />
+                                    <div className="product-details" style={{ width: '100%' }}>
+                                        <span className="name" style={{ fontSize: '1rem', lineHeight: '1.4' }}>{selectedProduct.name}</span>
+                                        <span className="code" style={{ marginTop: '4px', display: 'block' }}>
+                                            {selectedProduct.ean && `${selectedProduct.ean} • `}
+                                            {selectedProduct.code}
+                                        </span>
+                                    </div>
                                 </div>
-                                <button
-                                    type="button"
-                                    className="change-btn"
-                                    onClick={() => setSelectedProduct(null)}
-                                >
-                                    Alterar
-                                </button>
+
+                                {!editEntry && (
+                                    <button
+                                        type="button"
+                                        className="arbalest-btn arbalest-btn-neutral"
+                                        style={{ fontSize: '0.9rem', padding: '10px', marginTop: '4px', width: '100%', justifyContent: 'center' }}
+                                        onClick={() => setSelectedProduct(null)}
+                                    >
+                                        Alterar Produto
+                                    </button>
+                                )}
                             </div>
                         </div>
 
                         {/* Form Fields */}
                         <div className="form-fields">
                             <div className="form-group">
-                                <label>Data de Validade *</label>
+                                <label className="arbalest-label">Data de Validade *</label>
                                 <input
                                     type="date"
+                                    className="arbalest-input"
                                     value={formData.expires_at}
                                     onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
                                     required
-                                    min={new Date().toISOString().split('T')[0]}
+                                    min={editEntry ? undefined : new Date().toISOString().split('T')[0]} // Allow past dates on edit? Maybe not. Keep restriction or remove.
                                 />
                             </div>
 
                             <div className="form-group">
-                                <label>Quantidade (Opcional)</label>
+                                <label className="arbalest-label">Quantidade (Opcional)</label>
                                 <input
                                     type="number"
+                                    className="arbalest-input"
                                     value={formData.quantity}
                                     onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                                     placeholder="Ex: 24"
@@ -210,9 +251,10 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
                             </div>
 
                             <div className="form-group">
-                                <label>Lote (Opcional)</label>
+                                <label className="arbalest-label">Lote (Opcional)</label>
                                 <input
                                     type="text"
+                                    className="arbalest-input"
                                     value={formData.lot}
                                     onChange={(e) => setFormData({ ...formData, lot: e.target.value })}
                                     placeholder="Ex: L-2024-X1"
@@ -232,12 +274,12 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
             {/* Footer placed outside form but inside Modal if needed, logic here follows original structure */}
             {selectedProduct && (
                 <div className="modal-footer">
-                    <button type="button" className="btn-secondary" onClick={handleClose}>
+                    <button type="button" className="arbalest-btn arbalest-btn-neutral" onClick={handleClose}>
                         Cancelar
                     </button>
                     <button
                         type="button" // Changed to button to avoid form submission issues if placed outside, but onClick calls handleSubmit
-                        className="btn-primary"
+                        className="arbalest-btn arbalest-btn-primary"
                         onClick={(e) => {
                             // Assuming handleSubmit expects a FormEvent, but we can pass synthetic event or just call logic.
                             // Actually better to keep it inside form or use form id.
@@ -247,7 +289,7 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
                         }}
                         disabled={saving || !formData.expires_at}
                     >
-                        {saving ? 'Salvando...' : 'Salvar Registro'}
+                        {saving ? 'Salvando...' : (editEntry ? 'Atualizar' : 'Salvar Registro')}
                     </button>
                 </div>
             )}

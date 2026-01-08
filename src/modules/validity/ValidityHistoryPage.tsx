@@ -168,10 +168,11 @@ export const ValidityHistoryPage: React.FC<ValidityHistoryPageProps> = ({
             </div>
 
             {/* Desktop Filters Section (Hidden on Mobile) */}
+            {/* Desktop Filters Section (Hidden on Mobile) */}
             <div className="arbalest-filter-section arbalest-glass desktop-only">
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
 
-                    <div className="filter-group" style={{ flex: 1 }}>
+                    <div className="filter-group">
                         <label className="arbalest-label">Loja</label>
                         <select className="arbalest-select" value={filterStore} onChange={(e) => setFilterStore(e.target.value)}>
                             <option value="all">Todas</option>
@@ -179,7 +180,7 @@ export const ValidityHistoryPage: React.FC<ValidityHistoryPageProps> = ({
                         </select>
                     </div>
 
-                    <div className="filter-group" style={{ flex: 1 }}>
+                    <div className="filter-group">
                         <label className="arbalest-label">Usuário</label>
                         <select className="arbalest-select" value={filterUser} onChange={(e) => setFilterUser(e.target.value)}>
                             <option value="all">Todos</option>
@@ -187,7 +188,7 @@ export const ValidityHistoryPage: React.FC<ValidityHistoryPageProps> = ({
                         </select>
                     </div>
 
-                    <div className="filter-group" style={{ flex: 1 }}>
+                    <div className="filter-group">
                         <label className="arbalest-label">Tipo</label>
                         <select className="arbalest-select" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
                             <option value="all">Todos</option>
@@ -196,7 +197,7 @@ export const ValidityHistoryPage: React.FC<ValidityHistoryPageProps> = ({
                         </select>
                     </div>
 
-                    <div className="filter-group" style={{ flex: 1 }}>
+                    <div className="filter-group">
                         <label className="arbalest-label">Status</label>
                         <select className="arbalest-select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
                             <option value="all">Todos</option>
@@ -209,14 +210,16 @@ export const ValidityHistoryPage: React.FC<ValidityHistoryPageProps> = ({
             </div>
 
             {/* General Search Bar */}
-            <div className="arbalest-search-wrapper" style={{ marginBottom: '16px' }}>
-                <Search size={18} />
-                <input
-                    type="text"
-                    placeholder="Buscar produto..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            <div className="arbalest-filter-section arbalest-glass">
+                <div className="arbalest-search-wrapper">
+                    <Search size={18} />
+                    <input
+                        type="text"
+                        placeholder="Buscar produto..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
             </div>
 
             {/* Table */}

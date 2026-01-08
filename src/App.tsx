@@ -61,6 +61,7 @@ function ValidityPage() {
   const { user } = useAuth();
 
   const isConferente = user?.role?.toLowerCase() === 'conferente';
+  const isManager = user?.role === 'encarregado' || user?.role === 'admin';
 
   const filterAction = (
     <button
@@ -99,18 +100,28 @@ function ValidityPage() {
     </button>
   );
 
+  const registerAction = (
+    <button
+      onClick={() => setIsModalOpen(true)}
+      className="nav-btn"
+    >
+      <PlusCircle size={24} color="var(--brand-primary)" />
+      <span>Registrar</span>
+    </button>
+  );
+
   const handleOpenAdd = () => setIsModalOpen(true);
 
   return (
     <>
       <DashboardLayout
-        onAddClick={!isConferente || user?.role === 'admin' ? handleOpenAdd : undefined}
-        // User requested: Menu, History, Filter, Validity, Solicit (for Conferente)
-        hideDefaultModuleNav={isConferente}
-        filterMobileAction={isConferente ? historyAction : filterAction}
-        secondaryMobileAction={isConferente ? filterAction : (user?.role === 'admin' ? solicitAction : undefined)}
-        tertiaryMobileAction={isConferente ? validityAction : undefined}
-        customMobileAction={isConferente ? solicitAction : undefined}
+        onAddClick={!isConferente && !isManager ? handleOpenAdd : undefined}
+        // User requested: Menu, History, Filter, Validity, Solicit/Register
+        hideDefaultModuleNav={isConferente || isManager}
+        filterMobileAction={(isConferente || isManager) ? historyAction : filterAction}
+        secondaryMobileAction={(isConferente || isManager) ? filterAction : undefined}
+        tertiaryMobileAction={(isConferente || isManager) ? validityAction : undefined}
+        customMobileAction={isConferente ? solicitAction : (isManager ? registerAction : undefined)}
       >
         <ValidityList
           key={refreshTrigger}
