@@ -64,7 +64,7 @@ export const Login: React.FC = () => {
                         <ShieldCheck size={32} color="var(--brand-primary)" />
                     </div>
                     <h1>Arbalest Digital</h1>
-                    <p>Validade de Produtos</p>
+                    <p>Precisão em Produtos</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="login-form">

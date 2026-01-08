@@ -211,16 +211,16 @@ export const ButcherDashboard: React.FC = () => {
 
                     return [
                         order.product.name,
-                        `${order.product.code}${order.product.ean ? ` / ${order.product.ean}` : ''}`,
+                        [order.product.code, order.product.ean].filter(Boolean).join(' / ') || '-',
                         order.requester_store.name,
                         `${dateStr} ${timeStr}`,
-                        `${order.quantity} ${order.unit}`
+                        `${order.quantity} ${order.unit === 'bandeja' ? 'Bandejas' : order.unit}`
                     ];
                 });
 
             autoTable(doc, {
                 startY: 35,
-                head: [['Produto', 'Cód. / EAN', 'Solicitante', 'Pedido em', 'Qtd']],
+                head: [['PRODUTO', 'CÓD. / EAN', 'SOLICITANTE', 'PEDIDO EM', 'QTD.']],
                 body: tableData,
                 styles: { fontSize: 10 },
                 headStyles: { fillColor: [22, 163, 74] }, // Brand Primary Greenish (approx)
@@ -354,13 +354,37 @@ export const ButcherDashboard: React.FC = () => {
         </div>
     );
 
+    const activeFiltersCount = (selectedStore !== 'all' ? 1 : 0) + (selectedMeatGroup !== 'all' ? 1 : 0) + (selectedPeriod !== 'today' ? 1 : 0);
+
     const filterButton = (
         <div
             onClick={() => setIsFilterModalOpen(true)}
             className="nav-btn"
-            style={{ cursor: 'pointer' }}
+            style={{ cursor: 'pointer', position: 'relative' }}
         >
-            <Filter size={24} />
+            <div style={{ position: 'relative' }}>
+                <Filter size={24} />
+                {activeFiltersCount > 0 && (
+                    <span style={{
+                        position: 'absolute',
+                        top: -8,
+                        right: -8,
+                        background: 'var(--warning)',
+                        color: '#000',
+                        borderRadius: '50%',
+                        width: '18px',
+                        height: '18px',
+                        fontSize: '11px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 'bold',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                    }}>
+                        {activeFiltersCount}
+                    </span>
+                )}
+            </div>
             <span>Filtrar</span>
         </div>
     );
@@ -385,9 +409,23 @@ export const ButcherDashboard: React.FC = () => {
             <div className="arbalest-layout-container">
                 {/* Header */}
                 <div className="arbalest-header">
-                    <div className="header-text">
+                    <div className="header-text" style={{ width: '100%' }}>
                         <h1>Pedidos do Açougue</h1>
                         <p>Gerencie solicitações e produção de cortes</p>
+
+                        {/* Mobile Action for Managers (who see Print in nav) */}
+                        {canProduce && canRequest && (
+                            <div className="mobile-view" style={{ marginTop: '16px' }}>
+                                <button
+                                    className="arbalest-btn arbalest-btn-primary"
+                                    onClick={() => setIsAddOrderModalOpen(true)}
+                                    style={{ width: '100%', justifyContent: 'center' }}
+                                >
+                                    <PlusCircle size={20} />
+                                    <span>Fazer Pedido</span>
+                                </button>
+                            </div>
+                        )}
                     </div>
                     <div className="arbalest-header-actions hide-mobile">
                         <button
@@ -501,7 +539,7 @@ export const ButcherDashboard: React.FC = () => {
                                         <th>Qtd.</th>
                                         <th>Loja</th>
                                         <th>Pedido Em</th>
-                                        <th className="actions-col"></th>
+                                        <th className="actions-col">AÇÃO</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -524,9 +562,10 @@ export const ButcherDashboard: React.FC = () => {
                                                 </td>
                                                 <td>
                                                     <div className="code-info" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                        <span className="code">{order.product?.code || '-'}</span>
-                                                        <span style={{ color: 'var(--text-tertiary)' }}>/</span>
-                                                        <span className="ean">{order.product?.ean || '-'}</span>
+                                                        {order.product?.code && <span className="code">{order.product.code}</span>}
+                                                        {order.product?.code && order.product?.ean && <span style={{ color: 'var(--text-tertiary)' }}>/</span>}
+                                                        {order.product?.ean && <span className="ean">{order.product.ean}</span>}
+                                                        {!order.product?.code && !order.product?.ean && <span>-</span>}
                                                     </div>
                                                 </td>
                                                 <td>
@@ -539,7 +578,7 @@ export const ButcherDashboard: React.FC = () => {
                                                 </td>
                                                 <td>
                                                     <span className="quantity-badge">
-                                                        {order.quantity} <span style={{ fontSize: '0.75rem', fontWeight: 400 }}>{order.unit}</span>
+                                                        {order.quantity} <span style={{ fontSize: '0.75rem', fontWeight: 400 }}>{order.unit === 'bandeja' ? 'Bandejas' : order.unit}</span>
                                                     </span>
                                                 </td>
                                                 <td>
@@ -556,10 +595,13 @@ export const ButcherDashboard: React.FC = () => {
                                                         {/* Actions logic */}
                                                         {canProduce && (
                                                             <button
-                                                                className={`arbalest-icon-btn ${printQueue.includes(order.id) ? 'arbalest-btn-primary' : 'arbalest-btn-neutral'}`}
+                                                                className="arbalest-icon-btn"
                                                                 title={printQueue.includes(order.id) ? "Remover da fila" : "Adicionar à fila de impressão"}
                                                                 onClick={() => handleToggleQueue(order.id)}
-                                                                style={{ opacity: printQueue.includes(order.id) ? 1 : 0.6 }}
+                                                                style={{
+                                                                    color: printQueue.includes(order.id) ? 'var(--warning)' : 'var(--success)',
+                                                                    opacity: 1
+                                                                }}
                                                             >
                                                                 <Printer size={18} />
                                                             </button>
@@ -567,9 +609,10 @@ export const ButcherDashboard: React.FC = () => {
 
                                                         {canRequest && order.status === 'production' && (
                                                             <button
-                                                                className="arbalest-icon-btn arbalest-btn-primary"
+                                                                className="arbalest-icon-btn"
                                                                 title="Confirmar Recebimento"
                                                                 onClick={() => handleUpdateStatus(order.id, 'received')}
+                                                                style={{ color: 'var(--success)' }}
                                                             >
                                                                 <Check size={18} />
                                                             </button>
@@ -621,7 +664,7 @@ export const ButcherDashboard: React.FC = () => {
                                     <div className="arbalest-card-row">
                                         <div className="arbalest-card-info">
                                             <label>Quantidade</label>
-                                            <span className="quantity-badge">{order.quantity} {order.unit}</span>
+                                            <span className="quantity-badge">{order.quantity} {order.unit === 'bandeja' ? 'Bandejas' : order.unit}</span>
                                         </div>
                                         <div className="arbalest-card-info">
                                             <label>Loja</label>
@@ -653,7 +696,7 @@ export const ButcherDashboard: React.FC = () => {
                                     <div className="arbalest-card-footer">
                                         {canProduce && (
                                             <button
-                                                className={`arbalest-btn mobile-no-hover ${printQueue.includes(order.id) ? 'arbalest-btn-outline-warning' : 'arbalest-btn-primary'}`}
+                                                className={`arbalest-btn mobile-no-hover ${printQueue.includes(order.id) ? 'arbalest-btn-warning' : 'arbalest-btn-primary'}`}
                                                 onClick={() => handleToggleQueue(order.id)}
                                             >
                                                 {printQueue.includes(order.id) ? 'Remover da impressão' : 'Adicionar à impressão'} <Printer size={16} />

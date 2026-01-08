@@ -47,6 +47,7 @@ button {
   background: none;
   font-family: inherit;
   transition: var(--transition);
+  -webkit-tap-highlight-color: transparent;
 }
 
 input {
@@ -303,102 +304,78 @@ input {
   color: #000000;
 }
 
-.arbalest-btn-primary:hover {
-  background: var(--brand-hover);
-  transform: translateY(-1px);
+.arbalest-btn-warning {
+  background: var(--warning);
+  color: #000000;
 }
 
-.arbalest-btn-neutral {
-  background: var(--bg-accent);
-  color: var(--text-primary);
-  border: 1px solid var(--glass-border);
-}
-
-.arbalest-btn-neutral:hover {
-  background: var(--glass-bg);
-  transform: translateY(-1px);
-}
-
-.arbalest-btn-outline {
-  background: transparent;
-  border: 1px solid var(--glass-border);
-  color: var(--text-primary);
-}
-
-.arbalest-btn-outline:hover {
-  border-color: var(--text-secondary);
-  background: var(--bg-hover);
-  transform: translateY(-1px);
-}
-
-/* Specific Action Variants (Validity Style) */
-.arbalest-btn-outline-danger {
-  background: transparent;
-  color: var(--error);
-  border-color: rgba(244, 63, 94, 0.3);
-}
-
-.arbalest-btn-outline-danger:hover {
-  background: rgba(244, 63, 94, 0.1);
-  border-color: var(--error);
-  transform: translateY(-1px);
-}
-
-.arbalest-btn-outline-warning {
-  background: transparent;
-  color: var(--warning);
-  border-color: rgba(245, 158, 11, 0.3);
-}
-
-.arbalest-btn-outline-warning:hover {
-  background: rgba(245, 158, 11, 0.1);
-  border-color: var(--warning);
+.arbalest-btn-warning:hover {
+  background: #d4890a;
   transform: translateY(-1px);
 }
 
 .arbalest-btn-outline-success {
   background: transparent;
+  border: 1px solid transparent;
   color: var(--success);
-  border-color: rgba(16, 185, 129, 0.3);
 }
 
-.arbalest-btn-outline-success:hover {
-  background: rgba(16, 185, 129, 0.1);
-  border-color: var(--success);
-  transform: translateY(-1px);
-}
-
-/* Icon Buttons */
-.arbalest-icon-btn {
-  padding: 8px;
-  border-radius: 8px;
-  color: var(--text-secondary);
+.arbalest-btn-outline-warning {
   background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: var(--transition);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border: 1px solid transparent;
+  color: var(--warning);
 }
 
-.arbalest-icon-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-  transform: scale(1.05);
-}
-
-.arbalest-icon-btn.arbalest-btn-primary {
-  background: var(--brand-primary);
-  color: #000;
-}
-
-.arbalest-icon-btn.arbalest-btn-danger {
+.arbalest-btn-outline-danger {
+  background: transparent;
+  border: 1px solid transparent;
   color: var(--error);
 }
 
-.arbalest-icon-btn.arbalest-btn-danger:hover {
-  background: rgba(244, 63, 94, 0.1);
+@media (hover: hover) {
+  .arbalest-btn-primary:hover {
+    background: var(--brand-hover);
+    transform: translateY(-1px);
+  }
+
+  .arbalest-btn-neutral:hover {
+    background: var(--glass-bg);
+    transform: translateY(-1px);
+  }
+
+  .arbalest-btn-outline:hover {
+    border-color: var(--text-secondary);
+    background: var(--bg-hover);
+    transform: translateY(-1px);
+  }
+
+  .arbalest-btn-outline-danger:hover {
+    background: rgba(244, 63, 94, 0.1);
+    border-color: var(--error);
+    transform: translateY(-1px);
+  }
+
+  .arbalest-btn-outline-warning:hover {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: var(--warning);
+    transform: translateY(-1px);
+  }
+
+  .arbalest-btn-outline-success:hover {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: var(--success);
+    transform: translateY(-1px);
+  }
+
+  .arbalest-icon-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    transform: scale(1.05);
+  }
+
+  .arbalest-icon-btn.arbalest-btn-danger:hover {
+    background: rgba(244, 63, 94, 0.1);
+  }
 }
 
 /* Badges */

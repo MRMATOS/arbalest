@@ -84,7 +84,21 @@ export const ButcherFilterModal: React.FC<ButcherFilterModalProps> = ({
 
                 </div>
 
-                <div className="modal-footer">
+                <div className="modal-footer" style={{ flexDirection: 'column', gap: '8px' }}>
+                    {(filters.store !== 'all' || (filters.meatGroup && filters.meatGroup !== 'all') || (type === 'history' && filters.period !== 'today')) && (
+                        <button
+                            className="arbalest-btn arbalest-btn-outline-danger"
+                            onClick={() => {
+                                setFilter('store', 'all');
+                                setFilter('meatGroup', 'all');
+                                if (type === 'history') setFilter('period', 'today');
+                                onClose();
+                            }}
+                            style={{ width: '100%' }}
+                        >
+                            Remover Filtros <X size={16} />
+                        </button>
+                    )}
                     <button className="arbalest-btn arbalest-btn-primary" onClick={onClose} style={{ width: '100%' }}>
                         Aplicar Filtros
                     </button>
