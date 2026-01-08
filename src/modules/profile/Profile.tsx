@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Shield, User, Store, Pencil, Check, X } from 'lucide-react';
+import { Shield, User, Store, Pencil, Check, X, Lock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
 import { DashboardLayout } from '../../layouts/DashboardLayout';
@@ -10,6 +10,11 @@ export const Profile: React.FC = () => {
     const { user } = useAuth();
     const [isEditingName, setIsEditingName] = useState(false);
     const [displayName, setDisplayName] = useState(user?.name || '');
+
+    // Password Change State
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
+    const [passwordData, setPasswordData] = useState({ newPassword: '', confirmPassword: '' });
+
     const [saving, setSaving] = useState(false);
 
     const handleSaveName = async () => {
@@ -35,9 +40,72 @@ export const Profile: React.FC = () => {
         }
     };
 
+    const [isEditingUsername, setIsEditingUsername] = useState(false);
+    const [usernameInput, setUsernameInput] = useState(user?.username || '');
+
     const handleCancelEdit = () => {
         setDisplayName(user?.name || '');
         setIsEditingName(false);
+    };
+
+    const handleSaveUsername = async () => {
+        if (!user) return;
+        setSaving(true);
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ username: usernameInput.trim() || null })
+                .eq('id', user.id);
+
+            if (error) throw error;
+
+            setIsEditingUsername(false);
+            window.location.reload();
+        } catch (err) {
+            console.error('Error updating username:', err);
+            alert('Erro ao salvar nome de usuário. Verifique se já não existe.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleCancelUsernameEdit = () => {
+        setUsernameInput(user?.username || '');
+        setIsEditingUsername(false);
+    };
+
+    const handleSavePassword = async () => {
+        if (!passwordData.newPassword || passwordData.newPassword.length < 6) {
+            alert('A nova senha deve ter pelo menos 6 caracteres.');
+            return;
+        }
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+            alert('As senhas não coincidem.');
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const { error } = await supabase.auth.updateUser({
+                password: passwordData.newPassword
+            });
+
+            if (error) throw error;
+
+            alert('Senha alterada com sucesso!');
+            setIsChangingPassword(false);
+            setPasswordData({ newPassword: '', confirmPassword: '' });
+        } catch (error) {
+            console.error('Error changing password:', error);
+            alert('Erro ao alterar senha. Tente novamente.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleCancelPasswordEdit = () => {
+        setIsChangingPassword(false);
+        setPasswordData({ newPassword: '', confirmPassword: '' });
     };
 
     const mobileProfileAction = (
@@ -112,6 +180,64 @@ export const Profile: React.FC = () => {
                                 <Store size={16} />
                                 <span>{user?.store?.name || 'Nenhuma loja vinculada'}</span>
                             </div>
+                        </div>
+
+                        <div className="detail-item">
+                            <label>Segurança</label>
+                            {isChangingPassword ? (
+                                <div className="edit-name-container" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '12px' }}>
+                                    <div style={{ width: '100%' }}>
+                                        <input
+                                            type="password"
+                                            value={passwordData.newPassword}
+                                            onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                                            placeholder="Nova Senha (min. 6 caracteres)"
+                                            className="name-input"
+                                            style={{ width: '100%', marginBottom: '8px' }}
+                                        />
+                                        <input
+                                            type="password"
+                                            value={passwordData.confirmPassword}
+                                            onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                                            placeholder="Confirmar Nova Senha"
+                                            className="name-input"
+                                            style={{ width: '100%' }}
+                                        />
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button
+                                            onClick={handleSavePassword}
+                                            disabled={saving}
+                                            className="icon-btn save-btn"
+                                            title="Salvar Senha"
+                                        >
+                                            <Check size={18} />
+                                        </button>
+                                        <button
+                                            onClick={handleCancelPasswordEdit}
+                                            disabled={saving}
+                                            className="icon-btn cancel-btn"
+                                            title="Cancelar"
+                                        >
+                                            <X size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="name-display">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Lock size={16} className="text-secondary" />
+                                        <span>••••••••</span>
+                                    </div>
+                                    <button
+                                        onClick={() => setIsChangingPassword(true)}
+                                        className="icon-btn edit-btn"
+                                        title="Alterar Senha"
+                                    >
+                                        <Pencil size={16} />
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
 

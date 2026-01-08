@@ -15,14 +15,15 @@ export interface Store {
 
 export interface Profile {
     id: string;
-    role: 'admin' | 'encarregado' | 'conferente' | 'planogram_edit' | 'planogram_view';
-    store_id?: string;
+    role: 'admin' | 'encarregado' | 'conferente' | 'planogram_edit' | 'planogram_view' | 'acougue';
+    store_id?: string | null;
     store?: Store;
     name?: string;
+    username?: string;
     full_name?: string;
     email?: string;
     approved_at?: string | null;
-    butcher_role?: 'requester' | 'producer' | null;
+    butcher_role?: 'requester' | 'producer' | 'manager' | null;
 }
 
 interface AuthContextType {

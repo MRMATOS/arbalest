@@ -57,8 +57,8 @@ export const ButcherDashboard: React.FC = () => {
     const meatGroups = Array.from(new Set(orders.map(o => o.product?.meat_group).filter(Boolean))) as string[];
 
     // Determines if user handles production (can print/update status)
-    const canProduce = user?.role === 'admin' || user?.butcher_role === 'producer';
-    const canRequest = user?.role === 'admin' || user?.butcher_role === 'requester';
+    const canProduce = user?.role === 'admin' || user?.butcher_role === 'producer' || user?.butcher_role === 'manager';
+    const canRequest = user?.role === 'admin' || user?.butcher_role === 'requester' || user?.butcher_role === 'manager';
 
     useEffect(() => {
         fetchOrders();

@@ -14,8 +14,11 @@ export const ModuleHub = () => {
 
 
 
-    const isValidityVisible = user?.store?.show_validity !== false;
-    const isPlanogramVisible = user?.store?.show_planogram !== false;
+    const isRestrictedAcougue = user?.role === 'acougue';
+
+    // Hide other modules if user is restricted to 'acougue'
+    const isValidityVisible = !isRestrictedAcougue && user?.store?.show_validity !== false;
+    const isPlanogramVisible = !isRestrictedAcougue && user?.store?.show_planogram !== false;
 
     // Mobile Action for Hub: Profile Link
     const profileMobileAction = (
@@ -52,8 +55,10 @@ export const ModuleHub = () => {
                     width: '100%'
                 }}>
                     {/* Validade Module Card */}
+                    {/* Validade Module Card */}
                     {isValidityVisible && (
                         <div
+
                             className={`glass item-card ${!hasValidityAccess ? 'disabled' : ''}`}
                             onClick={() => hasValidityAccess && navigate('/validity')}
                             style={{
@@ -156,51 +161,55 @@ export const ModuleHub = () => {
                     )}
 
                     {/* Butcher Module Card */}
-                    {(user?.role === 'admin' || user?.butcher_role === 'requester' || user?.butcher_role === 'producer' || ((user?.role === 'encarregado' || user?.role === 'conferente') && user?.store?.is_butcher_active !== false)) && (
-                        <div
-                            className="glass item-card"
-                            onClick={() => navigate('/butcher')}
-                            style={{
-                                padding: '24px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'flex-start',
-                                cursor: 'pointer',
-                                transition: 'all 0.3s ease',
-                                border: '1px solid var(--glass-border)',
-                                borderRadius: '16px',
-                                background: 'var(--glass-bg)',
-                                minHeight: '160px'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-5px)';
-                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.background = 'var(--glass-bg)';
-                            }}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px', width: '100%' }}>
-                                <div style={{
-                                    background: '#ef4444', // Red 500
-                                    width: '48px',
-                                    height: '48px',
+                    {(user?.role === 'admin' ||
+                        user?.role === 'acougue' ||
+                        ['requester', 'producer', 'manager'].includes(user?.butcher_role || '') ||
+                        ((user?.role === 'encarregado' || user?.role === 'conferente') && user?.store?.is_butcher_active !== false)
+                    ) && (
+                            <div
+                                className="glass item-card"
+                                onClick={() => navigate('/butcher')}
+                                style={{
+                                    padding: '24px',
                                     display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    borderRadius: '50%',
-                                    boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-                                }}>
-                                    <Beef size={24} color="white" />
+                                    flexDirection: 'column',
+                                    alignItems: 'flex-start',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s ease',
+                                    border: '1px solid var(--glass-border)',
+                                    borderRadius: '16px',
+                                    background: 'var(--glass-bg)',
+                                    minHeight: '160px'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-5px)';
+                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.background = 'var(--glass-bg)';
+                                }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px', width: '100%' }}>
+                                    <div style={{
+                                        background: '#ef4444', // Red 500
+                                        width: '48px',
+                                        height: '48px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        borderRadius: '50%',
+                                        boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                                    }}>
+                                        <Beef size={24} color="white" />
+                                    </div>
+                                    <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 600 }}>Açougue</h2>
                                 </div>
-                                <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 600 }}>Açougue</h2>
+                                <p style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.4' }}>
+                                    Gestão de produção e pedidos de cortes.
+                                </p>
                             </div>
-                            <p style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.4' }}>
-                                Gestão de produção e pedidos de cortes.
-                            </p>
-                        </div>
-                    )}
+                        )}
 
                     {/* Settings Module Card - Admin Only */}
                     {hasSettingsAccess && (
@@ -249,6 +258,6 @@ export const ModuleHub = () => {
                     )}
                 </div>
             </div>
-        </DashboardLayout>
+        </DashboardLayout >
     );
 };

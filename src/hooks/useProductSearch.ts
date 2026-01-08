@@ -14,7 +14,11 @@ export const useProductSearch = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const search = async (term: string) => {
+    interface ProductSearchFilters {
+        meatOnly?: boolean;
+    }
+
+    const search = async (term: string, filters?: ProductSearchFilters) => {
         if (!term || term.length < 3) {
             setResults([]);
             return;
@@ -24,12 +28,19 @@ export const useProductSearch = () => {
             setLoading(true);
             setError(null);
 
-            // Search by EAN, code or name
-            const { data, error: supabaseError } = await supabase
+            // Start query
+            let query = supabase
                 .from('products')
-                .select('id, name, ean, code, type')
-                .or(`ean.eq.${term},code.eq.${term},name.ilike.%${term}%`)
-                .limit(20);
+                .select('id, name, ean, code, type, meat_group')
+                .or(`ean.eq.${term},code.eq.${term},name.ilike.%${term}%`);
+
+            // Apply Filters
+            if (filters?.meatOnly) {
+                // Assuming meat_group is not null for butcher products
+                query = query.not('meat_group', 'is', null);
+            }
+
+            const { data, error: supabaseError } = await query.limit(20);
 
             if (supabaseError) throw supabaseError;
 

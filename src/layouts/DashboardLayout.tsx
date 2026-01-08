@@ -79,7 +79,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                         collapsed={!sidebarOpen}
                     />
 
-                    {user?.store?.show_validity !== false && (
+                    {user?.store?.show_validity !== false && user?.role !== 'acougue' && (
                         <NavItem
                             icon={<Calendar size={20} />}
                             label="Validade"
@@ -90,7 +90,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                     )}
 
 
-                    {user?.store?.show_planogram !== false && (
+                    {user?.store?.show_planogram !== false && user?.role !== 'acougue' && (
                         <NavItem
                             icon={<Map size={20} />}
                             label="Planogramas"
@@ -100,15 +100,19 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                         />
                     )}
 
-                    {user?.store?.show_butcher !== false && (
-                        <NavItem
-                            icon={<Beef size={20} />}
-                            label="Açougue"
-                            path="/butcher"
-                            active={isActive('/butcher')}
-                            collapsed={!sidebarOpen}
-                        />
-                    )}
+                    {(user?.role === 'admin' ||
+                        user?.role === 'acougue' ||
+                        ['requester', 'producer', 'manager'].includes(user?.butcher_role || '') ||
+                        ((user?.role === 'encarregado' || user?.role === 'conferente') && user?.store?.is_butcher_active !== false)
+                    ) && (
+                            <NavItem
+                                icon={<Beef size={20} />}
+                                label="Açougue"
+                                path="/butcher"
+                                active={isActive('/butcher')}
+                                collapsed={!sidebarOpen}
+                            />
+                        )}
 
                     {user?.role === 'admin' && (
                         <NavItem
@@ -158,10 +162,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                         </div>
                         <nav className="mobile-nav">
                             <NavItem icon={<Home size={20} />} label="Início" path="/" active={isActive('/')} />
-                            {user?.store?.show_validity !== false && (
+                            {user?.store?.show_validity !== false && user?.role !== 'acougue' && (
                                 <NavItem icon={<Calendar size={20} />} label="Validade" path="/validity" active={isActive('/validity')} />
                             )}
-                            {user?.store?.show_planogram !== false && (
+                            {user?.store?.show_planogram !== false && user?.role !== 'acougue' && (
                                 <NavItem icon={<Map size={20} />} label="Planogramas" path="/planogram" active={isActive('/planogram')} />
                             )}
                             {user?.role === 'admin' && (

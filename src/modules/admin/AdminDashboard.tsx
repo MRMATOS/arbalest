@@ -1,17 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabase';
-import { Check, Pencil, X, ChevronRight } from 'lucide-react';
-
-
-interface Profile {
-    id: string;
-    email: string;
-    name: string | null;
-    role: string;
-    store_id: string | null;
-    approved_at: string | null;
-    butcher_role?: 'requester' | 'producer' | null;
-}
+import { Check, Pencil, ChevronRight, Trash2 } from 'lucide-react';
+import { UserEditModal } from './UserEditModal';
+import type { Profile } from '../../contexts/AuthContext';
 
 interface StoreType {
     id: string;
@@ -23,8 +14,8 @@ export const AdminDashboard: React.FC = () => {
     const [profiles, setProfiles] = useState<Profile[]>([]);
     const [stores, setStores] = useState<StoreType[]>([]);
     const [loading, setLoading] = useState(true);
-    const [editingNameId, setEditingNameId] = useState<string | null>(null);
-    const [editingNameValue, setEditingNameValue] = useState('');
+    const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -61,45 +52,69 @@ export const AdminDashboard: React.FC = () => {
         }
     };
 
-    const handleUpdateUser = async (userId: string, updates: Partial<Profile>) => {
+    const handleSaveUser = async (userId: string | null, updates: Partial<Profile> & { password?: string }) => {
         try {
-            const { error } = await supabase
-                .from('profiles')
-                .update(updates)
-                .eq('id', userId);
+            if (userId) {
+                // Edit: Direct Update
+                const { error } = await supabase
+                    .from('profiles')
+                    .update(updates)
+                    .eq('id', userId);
 
-            if (error) throw error;
+                if (error) throw error;
+            } else {
+                // Create: Call Edge Function
+                const { error } = await supabase.functions.invoke('manage-user', {
+                    body: {
+                        action: 'create',
+                        userData: {
+                            ...updates,
+                            // Ensure email/password are present for creation (UserEditModal handles validation)
+                        }
+                    }
+                });
+
+                if (error) throw error;
+            }
+
             fetchData();
         } catch (error) {
-            console.error('Error updating user:', error);
+            console.error('Error saving user:', error);
+            throw error;
         }
     };
 
-    const handleStartEditName = (user: Profile) => {
-        setEditingNameId(user.id);
-        setEditingNameValue(user.name || '');
+    const onEditUser = (user: Profile) => {
+        setSelectedUser(user);
+        setIsEditModalOpen(true);
     };
 
-    const handleSaveName = async (userId: string) => {
+    const onAddUser = () => {
+        setSelectedUser(null);
+        setIsEditModalOpen(true);
+    };
+
+    const onDeleteUser = async (user: Profile) => {
+        if (!window.confirm(`Tem certeza que deseja excluir o usuário ${user.name || user.email}?`)) return;
+
         try {
-            const { error } = await supabase
-                .from('profiles')
-                .update({ name: editingNameValue.trim() || null })
-                .eq('id', userId);
+            setLoading(true); // Show loading state
+            // Call Edge Function
+            const { error } = await supabase.functions.invoke('manage-user', {
+                body: {
+                    action: 'delete',
+                    userId: user.id
+                }
+            });
 
             if (error) throw error;
-            setEditingNameId(null);
-            setEditingNameValue('');
-            fetchData();
-        } catch (error) {
-            console.error('Error updating name:', error);
-            alert('Erro ao salvar nome');
-        }
-    };
 
-    const handleCancelEditName = () => {
-        setEditingNameId(null);
-        setEditingNameValue('');
+            await fetchData(); // Refresh list
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            alert('Falha ao excluir usuário. Verifique as permissões.');
+            setLoading(false); // Manually stop loading if error (fetchData handles it on success)
+        }
     };
 
     if (loading) return (
@@ -122,6 +137,12 @@ export const AdminDashboard: React.FC = () => {
                     </div>
                     <h1>Permissões de Usuários</h1>
                 </div>
+                <button
+                    className="arbalest-btn arbalest-btn-primary"
+                    onClick={onAddUser}
+                >
+                    Adicionar Usuário
+                </button>
             </header>
 
             <div className="arbalest-table-container">
@@ -129,129 +150,79 @@ export const AdminDashboard: React.FC = () => {
                     <thead>
                         <tr>
                             <th>Usuário</th>
+                            <th>Email</th>
                             <th>Nome</th>
                             <th>Status</th>
-                            <th>Cargo</th>
-                            <th>Nível Açougue</th>
                             <th>Loja Vinculada</th>
-                            <th>Ações</th>
+                            <th className="actions-col">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         {profiles.map(user => (
                             <tr key={user.id}>
                                 <td>
-                                    <div className="user-cell" style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <span className="email" style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{user.email}</span>
-                                        <span className="id-sub" style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{user.id.slice(0, 8)}...</span>
-                                    </div>
+                                    <span style={{ fontWeight: 500 }}>{user.username || '-'}</span>
                                 </td>
                                 <td>
-                                    {editingNameId === user.id ? (
-                                        <div className="name-edit-cell" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <input
-                                                type="text"
-                                                value={editingNameValue}
-                                                onChange={(e) => setEditingNameValue(e.target.value)}
-                                                placeholder="Nome..."
-                                                className="arbalest-input"
-                                                autoFocus
-                                            />
-                                            <button
-                                                onClick={() => handleSaveName(user.id)}
-                                                className="arbalest-icon-btn arbalest-btn-primary"
-                                                title="Salvar"
-                                            >
-                                                <Check size={16} />
-                                            </button>
-                                            <button
-                                                onClick={handleCancelEditName}
-                                                className="arbalest-icon-btn"
-                                                title="Cancelar"
-                                            >
-                                                <X size={16} />
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="name-display-cell" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <span className={user.name ? '' : 'text-muted'} style={{ color: user.name ? 'inherit' : 'var(--text-tertiary)' }}>
-                                                {user.name || 'Não definido'}
-                                            </span>
-                                            <button
-                                                onClick={() => handleStartEditName(user)}
-                                                className="arbalest-icon-btn"
-                                                title="Editar nome"
-                                            >
-                                                <Pencil size={14} />
-                                            </button>
-                                        </div>
-                                    )}
+                                    <span style={{ color: 'var(--text-secondary)' }}>{user.email}</span>
+                                </td>
+                                <td>
+                                    <span>{user.name || 'Não definido'}</span>
                                 </td>
                                 <td>
                                     {user.approved_at ? (
                                         <span className="arbalest-badge arbalest-badge-success">Aprovado</span>
                                     ) : (
-                                        <span className="arbalest-badge arbalest-badge-warning">Pendente</span>
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            <span className="arbalest-badge arbalest-badge-warning">Pendente</span>
+                                            <button
+                                                onClick={() => handleApprove(user.id)}
+                                                className="arbalest-icon-btn arbalest-btn-primary"
+                                                title="Aprovar Acesso"
+                                                style={{ width: '24px', height: '24px' }}
+                                            >
+                                                <Check size={14} />
+                                            </button>
+                                        </div>
                                     )}
                                 </td>
                                 <td>
-                                    <select
-                                        value={user.role}
-                                        onChange={(e) => handleUpdateUser(user.id, { role: e.target.value })}
-                                        className="arbalest-select"
-                                    >
-                                        <option value="conferente">Conferente</option>
-                                        <option value="planogram_edit">Planograma (Editor)</option>
-                                        <option value="planogram_view">Planograma (Visualizador)</option>
-                                        <option value="encarregado">Encarregado</option>
-                                        <option value="admin">Admin</option>
-                                    </select>
+                                    <span>
+                                        {stores.find(s => s.id === user.store_id)?.name || '-'}
+                                    </span>
                                 </td>
-                                <td>
-                                    <select
-                                        value={user.butcher_role || ''}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            handleUpdateUser(user.id, { butcher_role: val === '' ? null : val as 'requester' | 'producer' });
-                                        }}
-                                        className="arbalest-select"
-                                        style={{ minWidth: '140px' }}
-                                    >
-                                        <option value="">Nenhum</option>
-                                        <option value="requester">Açougue Solicitante</option>
-                                        <option value="producer">Açougue Produção</option>
-                                    </select>
-                                </td>
-                                <td>
-                                    <select
-                                        value={user.store_id || ''}
-                                        onChange={(e) => handleUpdateUser(user.id, { store_id: e.target.value || null })}
-                                        className="arbalest-select"
-                                    >
-                                        <option value="">Selecione...</option>
-                                        {stores.map(store => (
-                                            <option key={store.id} value={store.id}>
-                                                {store.name} ({store.code})
-                                            </option>
-                                        ))}
-                                    </select>
-                                </td>
-                                <td>
-                                    {!user.approved_at && (
+                                <td className="actions-col">
+                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                         <button
-                                            onClick={() => handleApprove(user.id)}
-                                            className="arbalest-icon-btn arbalest-btn-primary"
-                                            title="Aprovar Acesso"
+                                            className="arbalest-icon-btn"
+                                            onClick={() => onEditUser(user)}
+                                            title="Editar"
                                         >
-                                            <Check size={18} />
+                                            <Pencil size={18} />
                                         </button>
-                                    )}
+                                        <button
+                                            className="arbalest-icon-btn"
+                                            onClick={() => onDeleteUser(user)}
+                                            title="Excluir"
+                                            style={{ color: 'var(--error)' }}
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
+
+            <UserEditModal
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                user={selectedUser}
+                stores={stores}
+                onSave={handleSaveUser}
+            />
         </div>
     );
 };

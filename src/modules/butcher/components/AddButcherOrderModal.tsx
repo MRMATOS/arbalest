@@ -57,9 +57,9 @@ export const AddButcherOrderModal: React.FC<AddButcherOrderModalProps> = ({ isOp
         if (term.length === 13 && term.startsWith('2')) {
             const internalCode = term.substring(1, 6);
             console.log(`Scale Code Detected: ${term} -> Searching Internal Code: ${internalCode}`);
-            search(internalCode);
+            search(internalCode, { meatOnly: true });
         } else {
-            search(term);
+            search(term, { meatOnly: true });
         }
     };
 

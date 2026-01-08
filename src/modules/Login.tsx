@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogIn, Mail, Lock, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { LogIn, Mail, Lock, ShieldCheck, Eye, EyeOff, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '../services/supabase';
 import './Login.css';
 
 export const Login: React.FC = () => {
-    const [email, setEmail] = useState('');
+    const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
@@ -22,17 +23,34 @@ export const Login: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!email || !password) return;
+        if (!identifier || !password) return;
 
         setIsLoading(true);
         setError('');
 
         try {
-            await login(email, password);
+            let emailToUse = identifier.trim();
+
+            // Simple check if input looks like an email
+            const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailToUse);
+
+            if (!isEmail) {
+                // It's a username, fetch the email
+                const { data: userEmail, error: rpcError } = await supabase.rpc('get_email_by_username', {
+                    username_input: emailToUse
+                });
+
+                if (rpcError || !userEmail) {
+                    throw new Error('Usuário não encontrado.');
+                }
+                emailToUse = userEmail;
+            }
+
+            await login(emailToUse, password);
             navigate('/');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Login error:', error);
-            setError('Erro ao fazer login. Verifique suas credenciais.');
+            setError(error.message === 'Usuário não encontrado.' ? error.message : 'Erro ao fazer login. Verifique suas credenciais.');
         } finally {
             setIsLoading(false);
         }
@@ -51,15 +69,15 @@ export const Login: React.FC = () => {
 
                 <form onSubmit={handleSubmit} className="login-form">
                     <div className="input-group">
-                        <label htmlFor="email">E-mail</label>
+                        <label htmlFor="identifier">Email ou Usuário</label>
                         <div className="input-field-wrapper">
-                            <Mail size={18} className="input-icon" />
+                            <User size={18} className="input-icon" />
                             <input
-                                id="email"
-                                type="email"
-                                placeholder="seu@email.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                id="identifier"
+                                type="text"
+                                placeholder="seu@email.com ou usuário"
+                                value={identifier}
+                                onChange={(e) => setIdentifier(e.target.value)}
                                 required
                             />
                         </div>
