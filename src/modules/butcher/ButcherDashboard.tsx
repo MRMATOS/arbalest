@@ -6,6 +6,8 @@ import { DashboardLayout } from '../../layouts/DashboardLayout';
 import { Search, History, Printer, Check, Trash2, PlusCircle, FileText, Filter } from 'lucide-react';
 import { ButcherFilterModal } from './components/ButcherFilterModal';
 import { AddButcherOrderModal } from './components/AddButcherOrderModal';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 
 interface Order {
@@ -161,13 +163,14 @@ export const ButcherDashboard: React.FC = () => {
         });
     };
 
+
+
     const handlePrintQueue = async () => {
         if (printQueue.length === 0) return;
         setIsPrinting(true);
 
         try {
             // 1. Update statuses to 'production' (if not already)
-            // We only need to update 'pending' orders. 'production' orders are re-prints.
             const ordersToUpdate = orders
                 .filter(o => printQueue.includes(o.id) && o.status === 'pending')
                 .map(o => o.id);
@@ -178,6 +181,7 @@ export const ButcherDashboard: React.FC = () => {
                     .from('orders')
                     .update({
                         status: 'production',
+                        printed_at: new Date().toISOString(),
                         production_store_id: user?.store_id
                     })
                     .in('id', ordersToUpdate);
@@ -185,16 +189,47 @@ export const ButcherDashboard: React.FC = () => {
                 if (error) throw error;
             }
 
-            // 2. Refresh local state immediately for UI feedback (though realtime might handle it)
-            // Better to wait for realtime or optimistically update? Realtime is fast usually.
-            // We'll proceed to print.
+            // 2. Refresh local state (Optimistic or wait for realtime - continuing flow)
 
-            // 3. Trigger Print
-            setTimeout(() => {
-                window.print();
-                setIsPrinting(false);
-                setPrintQueue([]); // Clear queue after print? User didn't specify, but standard flow.
-            }, 500); // Small delay to allow React to render any print updates if needed
+            // 3. Generate and Save PDF
+            const doc = new jsPDF();
+
+            // Header
+            doc.setFontSize(16);
+            doc.text('Lista de Produção - Açougue', 14, 20);
+
+            doc.setFontSize(10);
+            doc.text(`Impresso em: ${new Date().toLocaleString('pt-BR')}`, 14, 28);
+
+            // Table Data
+            const tableData = orders
+                .filter(o => printQueue.includes(o.id))
+                .map(order => {
+                    const date = new Date(order.created_at);
+                    const dateStr = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                    const timeStr = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+                    return [
+                        order.product.name,
+                        `${order.product.code}${order.product.ean ? ` / ${order.product.ean}` : ''}`,
+                        order.requester_store.name,
+                        `${dateStr} ${timeStr}`,
+                        `${order.quantity} ${order.unit}`
+                    ];
+                });
+
+            autoTable(doc, {
+                startY: 35,
+                head: [['Produto', 'Cód. / EAN', 'Solicitante', 'Pedido em', 'Qtd']],
+                body: tableData,
+                styles: { fontSize: 10 },
+                headStyles: { fillColor: [22, 163, 74] }, // Brand Primary Greenish (approx)
+            });
+
+            doc.save(`producao_acougue_${new Date().toISOString().split('T')[0]}.pdf`);
+
+            setIsPrinting(false);
+            setPrintQueue([]);
         } catch (error) {
             console.error('Error processing print queue:', error);
             alert('Erro ao processar fila de impressão');
@@ -673,93 +708,6 @@ export const ButcherDashboard: React.FC = () => {
                 }}
             />
 
-            {/* Hidden Print Area */}
-            <div id="print-area" className="print-only">
-                <style>
-                    {`
-                    @media print {
-                        body * {
-                            visibility: hidden;
-                        }
-                        #print-area, #print-area * {
-                            visibility: visible;
-                        }
-                        #print-area {
-                            position: absolute;
-                            left: 0;
-                            top: 0;
-                            width: 100%;
-                            background: white;
-                            color: black;
-                            padding: 20px;
-                        }
-                        .print-table {
-                            width: 100%;
-                            border-collapse: collapse;
-                            margin-top: 20px;
-                        }
-                        .print-table th, .print-table td {
-                            border: 1px solid #ddd;
-                            padding: 8px;
-                            text-align: left;
-                            font-size: 12px;
-                        }
-                        .print-table th {
-                            background-color: #f2f2f2;
-                            font-weight: bold;
-                        }
-                        .qty-col {
-                            font-weight: bold;
-                            font-size: 14px;
-                        }
-                    }
-                    .print-only {
-                        display: none;
-                    }
-                    @media print {
-                        .print-only {
-                            display: block;
-                        }
-                    }
-                    @media (max-width: 768px) {
-                        .mobile-no-hover:hover {
-                            transform: none !important;
-                        }
-                        .mobile-no-hover.arbalest-btn-primary:hover {
-                            background: var(--brand-primary) !important;
-                        }
-                        .mobile-no-hover.arbalest-btn-outline-warning:hover {
-                            background: transparent !important;
-                            border-color: rgba(245, 158, 11, 0.3) !important;
-                        }
-                    }
-                    `}
-                </style>
-                <div className="print-header" style={{ marginBottom: '20px', textAlign: 'center' }}>
-                    <h1 style={{ fontSize: '18px', margin: 0 }}>Lista de Produção - Açougue</h1>
-                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>Gerado em: {new Date().toLocaleString('pt-BR')}</p>
-                </div>
-                <table className="print-table">
-                    <thead>
-                        <tr>
-                            <th>Produto</th>
-                            <th>Cód. / EAN</th>
-                            <th>Loja</th>
-                            <th style={{ textAlign: 'right' }}>Qtd</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {orders.filter(o => printQueue.includes(o.id)).map(order => (
-                            <tr key={order.id}>
-                                <td>{order.product.name}</td>
-                                <td>{order.product.code}{order.product.ean ? ` / ${order.product.ean}` : ''}</td>
-                                <td>{order.requester_store.name}</td>
-                                <td className="qty-col" style={{ textAlign: 'right' }}>{order.quantity} {order.unit}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
         </DashboardLayout >
     );
 };

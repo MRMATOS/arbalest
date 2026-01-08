@@ -8,8 +8,11 @@ import { StoreModal } from './StoreModal';
 interface Store {
     id: string;
     name: string;
+    code: string;
     show_validity: boolean;
     show_planogram: boolean;
+    is_butcher_active?: boolean;
+    is_butcher_production?: boolean;
 }
 
 export const StoresList: React.FC = () => {

@@ -9,7 +9,6 @@ import {
     Menu,
     Package,
     PlusCircle,
-    Search,
     User,
     X,
 
@@ -183,11 +182,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                     <button onClick={toggleSidebar} className="menu-toggle-btn">
                         <Menu size={24} />
                     </button>
-                    <div className="search-bar glass">
-                        <Search size={18} />
-                        <input type="text" placeholder="Buscar no sistema..." />
-                    </div>
-                    <div className="header-actions">
+                    <div className="header-actions" style={{ marginLeft: 'auto' }}>
                         <div className="user-profile">
                             <span className="role-badge">{user?.role}</span>
                             <span className="store-badge">{user?.store?.name || 'Sem Loja'}</span>
