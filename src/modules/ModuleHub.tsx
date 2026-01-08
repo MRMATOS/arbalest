@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { DashboardLayout } from '../layouts/DashboardLayout';
 import { Calendar, Map, Settings, Beef, User } from 'lucide-react';
-import '../modules/validity/ValidityList.css'; // Reuse existing glass styles
 
 export const ModuleHub = () => {
     const navigate = useNavigate();

@@ -523,8 +523,9 @@ export const ButcherDashboard: React.FC = () => {
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <div className="code-info">
+                                                    <div className="code-info" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                         <span className="code">{order.product?.code || '-'}</span>
+                                                        <span style={{ color: 'var(--text-tertiary)' }}>/</span>
                                                         <span className="ean">{order.product?.ean || '-'}</span>
                                                     </div>
                                                 </td>

@@ -175,6 +175,49 @@ export const Profile: React.FC = () => {
                         </div>
 
                         <div className="detail-item">
+                            <label>Nome de Usuário</label>
+                            {isEditingUsername ? (
+                                <div className="edit-name-container">
+                                    <input
+                                        type="text"
+                                        value={usernameInput}
+                                        onChange={(e) => setUsernameInput(e.target.value)}
+                                        placeholder="Digite seu nome de usuário..."
+                                        className="name-input"
+                                        autoFocus
+                                    />
+                                    <button
+                                        onClick={handleSaveUsername}
+                                        disabled={saving}
+                                        className="icon-btn save-btn"
+                                        title="Salvar"
+                                    >
+                                        <Check size={18} />
+                                    </button>
+                                    <button
+                                        onClick={handleCancelUsernameEdit}
+                                        disabled={saving}
+                                        className="icon-btn cancel-btn"
+                                        title="Cancelar"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="name-display">
+                                    <span>{user?.username || 'Não definido'}</span>
+                                    <button
+                                        onClick={() => setIsEditingUsername(true)}
+                                        className="icon-btn edit-btn"
+                                        title="Editar nome de usuário"
+                                    >
+                                        <Pencil size={16} />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="detail-item">
                             <label>Loja Vinculada</label>
                             <div className="store-display">
                                 <Store size={16} />

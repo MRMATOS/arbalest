@@ -26,7 +26,6 @@ import { AddValidityModal } from './AddValidityModal';
 import { RequestsModal } from './RequestsModal';
 import { FilterModal, type FilterState } from './FilterModal';
 import { supabase } from '../../services/supabase';
-import './ValidityList.css';
 
 interface ValidityListProps {
     onAddClick?: () => void;
@@ -368,8 +367,9 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                 </div>
             </div>
 
-            <div className="arbalest-filter-section arbalest-glass hide-mobile">
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            <div className="arbalest-filter-section arbalest-glass">
+                {/* Desktop Filters */}
+                <div className="hide-mobile" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '16px' }}>
                     <div className="filter-group">
                         <label className="arbalest-label">Loja</label>
                         <select
@@ -424,11 +424,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                         </select>
                     </div>
                 </div>
-            </div>
 
-
-
-            <div className="arbalest-filter-section arbalest-glass">
                 <div className="arbalest-search-wrapper">
                     <Search size={18} />
                     <input
@@ -482,7 +478,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                         <span className="product-name">{item.product.name}</span>
                                     </td>
                                     <td className="code-col">
-                                        <div className="code-info">
+                                        <div className="code-info" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                             <span
                                                 className={`code clickable-copy ${copiedState?.id === item.id && copiedState?.type === 'code' ? 'copied' : ''}`}
                                                 onClick={() => handleCopy(item.product.code, item.id, 'code')}
@@ -490,6 +486,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                             >
                                                 {copiedState?.id === item.id && copiedState?.type === 'code' ? 'Copiado!' : item.product.code}
                                             </span>
+                                            <span style={{ color: 'var(--text-tertiary)' }}>/</span>
                                             <span
                                                 className={`ean clickable-copy ${copiedState?.id === item.id && copiedState?.type === 'ean' ? 'copied' : ''}`}
                                                 onClick={() => handleCopy(item.product.ean || '', item.id, 'ean')}

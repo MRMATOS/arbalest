@@ -205,7 +205,7 @@ export const AddButcherOrderModal: React.FC<AddButcherOrderModalProps> = ({ isOp
                                         className={unit === 'bandeja' ? 'active' : ''}
                                         onClick={() => setUnit('bandeja')}
                                     >
-                                        Bandeja
+                                        Bandejas
                                     </button>
                                     <button
                                         className={unit === 'kg' ? 'active' : ''}

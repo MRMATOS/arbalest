@@ -5,7 +5,7 @@ import { useValidityEntries, type ValidityEntry } from '../../hooks/useValidityE
 import { supabase } from '../../services/supabase';
 import { FilterModal } from './FilterModal';
 import '../../styles/global.css';
-import './ValidityList.css'; // Reuse styles
+
 
 interface ValidityHistoryPageProps {
     isFilterModalOpen?: boolean;
