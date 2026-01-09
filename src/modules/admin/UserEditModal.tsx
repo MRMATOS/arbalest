@@ -240,7 +240,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ isOpen, onClose, u
                     </div>
 
                     <div className="arbalest-modal-actions">
-                        <button type="button" onClick={onClose} className="arbalest-btn" disabled={saving}>
+                        <button type="button" onClick={onClose} className="arbalest-btn arbalest-btn-neutral" disabled={saving}>
                             Cancelar
                         </button>
                         <button type="submit" className="arbalest-btn arbalest-btn-primary" disabled={saving}>

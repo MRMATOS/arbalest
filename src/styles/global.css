@@ -314,6 +314,17 @@ input {
   transform: translateY(-1px);
 }
 
+.arbalest-btn-neutral {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.arbalest-btn-outline {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+}
+
 .arbalest-btn-outline-success {
   background: transparent;
   border: 1px solid transparent;

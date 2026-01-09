@@ -247,11 +247,7 @@ function App() {
               {/* Admin Routes */}
               <Route element={<RequireAdmin />}>
                 <Route path="/settings" element={<SettingsDashboard />} />
-                <Route path="/settings/users" element={
-                  <DashboardLayout>
-                    <AdminDashboard />
-                  </DashboardLayout>
-                } />
+                <Route path="/settings/users" element={<AdminDashboard />} />
                 <Route path="/settings/stores" element={<StoresList />} />
               </Route>
             </Route>

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabase';
-import { Check, Pencil, ChevronRight, Trash2 } from 'lucide-react';
+import { Check, Pencil, ChevronRight, Trash2, PlusCircle } from 'lucide-react';
 import { UserEditModal } from './UserEditModal';
+import { DashboardLayout } from '../../layouts/DashboardLayout';
 import type { Profile } from '../../contexts/AuthContext';
 
 interface StoreType {
@@ -16,6 +17,8 @@ export const AdminDashboard: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+
 
     useEffect(() => {
         fetchData();
@@ -117,6 +120,17 @@ export const AdminDashboard: React.FC = () => {
         }
     };
 
+    // Mobile Action
+    const mobileAddButton = (
+        <div
+            onClick={onAddUser}
+            className="nav-btn"
+            style={{ cursor: 'pointer' }}
+        >
+            <PlusCircle size={28} style={{ color: 'var(--brand-primary)' }} />
+        </div>
+    );
+
     if (loading) return (
         <div className="arbalest-layout-container">
             <div className="arbalest-loading-state">
@@ -127,102 +141,161 @@ export const AdminDashboard: React.FC = () => {
     );
 
     return (
-        <div className="arbalest-layout-container">
-            <header className="arbalest-header">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                        <span style={{ cursor: 'pointer' }} onClick={() => window.history.back()}>Configurações</span>
-                        <ChevronRight size={14} />
-                        <span style={{ color: 'white' }}>Usuários</span>
+        <DashboardLayout
+            customMobileAction={mobileAddButton}
+            hideDefaultModuleNav={true}
+        >
+            <div className="arbalest-layout-container">
+                <header className="arbalest-header">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                            <span style={{ cursor: 'pointer' }} onClick={() => window.history.back()}>Configurações</span>
+                            <ChevronRight size={14} />
+                            <span style={{ color: 'white' }}>Usuários</span>
+                        </div>
+                        <h1>Permissões de Usuários</h1>
                     </div>
-                    <h1>Permissões de Usuários</h1>
-                </div>
-                <button
-                    className="arbalest-btn arbalest-btn-primary"
-                    onClick={onAddUser}
-                >
-                    Adicionar Usuário
-                </button>
-            </header>
+                    <button
+                        className="arbalest-btn arbalest-btn-primary hide-mobile"
+                        onClick={onAddUser}
+                    >
+                        Adicionar Usuário
+                    </button>
+                </header>
 
-            <div className="arbalest-table-container">
-                <table className="arbalest-table">
-                    <thead>
-                        <tr>
-                            <th>Usuário</th>
-                            <th>Email</th>
-                            <th>Nome</th>
-                            <th>Status</th>
-                            <th>Loja Vinculada</th>
-                            <th className="actions-col">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {profiles.map(user => (
-                            <tr key={user.id}>
-                                <td>
-                                    <span style={{ fontWeight: 500 }}>{user.username || '-'}</span>
-                                </td>
-                                <td>
-                                    <span style={{ color: 'var(--text-secondary)' }}>{user.email}</span>
-                                </td>
-                                <td>
-                                    <span>{user.name || 'Não definido'}</span>
-                                </td>
-                                <td>
-                                    {user.approved_at ? (
-                                        <span className="arbalest-badge arbalest-badge-success">Aprovado</span>
-                                    ) : (
-                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                            <span className="arbalest-badge arbalest-badge-warning">Pendente</span>
+                {/* Desktop Table */}
+                <div className="arbalest-table-container hide-mobile">
+                    <table className="arbalest-table">
+                        <thead>
+                            <tr>
+                                <th>Usuário</th>
+                                <th>Email</th>
+                                <th>Nome</th>
+                                <th>Status</th>
+                                <th>Loja Vinculada</th>
+                                <th className="actions-col">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {profiles.map(user => (
+                                <tr key={user.id}>
+                                    <td>
+                                        <span style={{ fontWeight: 500 }}>{user.username || '-'}</span>
+                                    </td>
+                                    <td>
+                                        <span style={{ color: 'var(--text-secondary)' }}>{user.email}</span>
+                                    </td>
+                                    <td>
+                                        <span>{user.name || 'Não definido'}</span>
+                                    </td>
+                                    <td>
+                                        {user.approved_at ? (
+                                            <span className="arbalest-badge arbalest-badge-success">Aprovado</span>
+                                        ) : (
+                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                <span className="arbalest-badge arbalest-badge-warning">Pendente</span>
+                                                <button
+                                                    onClick={() => handleApprove(user.id)}
+                                                    className="arbalest-icon-btn arbalest-btn-primary"
+                                                    title="Aprovar Acesso"
+                                                    style={{ width: '24px', height: '24px' }}
+                                                >
+                                                    <Check size={14} />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td>
+                                        <span>
+                                            {stores.find(s => s.id === user.store_id)?.name || '-'}
+                                        </span>
+                                    </td>
+                                    <td className="actions-col">
+                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                             <button
-                                                onClick={() => handleApprove(user.id)}
-                                                className="arbalest-icon-btn arbalest-btn-primary"
-                                                title="Aprovar Acesso"
-                                                style={{ width: '24px', height: '24px' }}
+                                                className="arbalest-icon-btn"
+                                                onClick={() => onEditUser(user)}
+                                                title="Editar"
                                             >
-                                                <Check size={14} />
+                                                <Pencil size={18} />
+                                            </button>
+                                            <button
+                                                className="arbalest-icon-btn"
+                                                onClick={() => onDeleteUser(user)}
+                                                title="Excluir"
+                                                style={{ color: 'var(--error)' }}
+                                            >
+                                                <Trash2 size={18} />
                                             </button>
                                         </div>
-                                    )}
-                                </td>
-                                <td>
-                                    <span>
-                                        {stores.find(s => s.id === user.store_id)?.name || '-'}
-                                    </span>
-                                </td>
-                                <td className="actions-col">
-                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                        <button
-                                            className="arbalest-icon-btn"
-                                            onClick={() => onEditUser(user)}
-                                            title="Editar"
-                                        >
-                                            <Pencil size={18} />
-                                        </button>
-                                        <button
-                                            className="arbalest-icon-btn"
-                                            onClick={() => onDeleteUser(user)}
-                                            title="Excluir"
-                                            style={{ color: 'var(--error)' }}
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
 
-            <UserEditModal
-                isOpen={isEditModalOpen}
-                onClose={() => setIsEditModalOpen(false)}
-                user={selectedUser}
-                stores={stores}
-                onSave={handleSaveUser}
-            />
-        </div>
+                {/* Mobile List View */}
+                <div className="mobile-view" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {profiles.map(user => (
+                        <div key={user.id} className="arbalest-glass" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1rem', color: 'white' }}>{user.name || 'Não definido'}</h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+                                        <span style={{ fontSize: '0.85rem', color: 'var(--brand-primary)', fontWeight: 500 }}>@{user.username || '-'}</span>
+                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{user.email}</span>
+                                    </div>
+                                </div>
+                                {user.approved_at ? (
+                                    <span className="arbalest-badge arbalest-badge-success">Aprovado</span>
+                                ) : (
+                                    <span className="arbalest-badge arbalest-badge-warning">Pendente</span>
+                                )}
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '6px' }}>
+                                <span style={{ opacity: 0.7 }}>Loja:</span>
+                                <span style={{ color: 'white' }}>{stores.find(s => s.id === user.store_id)?.name || 'Nenhuma'}</span>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                                {!user.approved_at && (
+                                    <button
+                                        onClick={() => handleApprove(user.id)}
+                                        className="arbalest-btn arbalest-btn-primary"
+                                        style={{ flex: 1, height: '36px', fontSize: '0.9rem' }}
+                                    >
+                                        <Check size={16} /> Aprovar
+                                    </button>
+                                )}
+                                <button
+                                    className="arbalest-btn arbalest-btn-outline"
+                                    onClick={() => onEditUser(user)}
+                                    style={{ flex: 1, height: '36px', fontSize: '0.9rem' }}
+                                >
+                                    <Pencil size={16} /> Editar
+                                </button>
+                                <button
+                                    className="arbalest-btn arbalest-btn-outline-danger"
+                                    onClick={() => onDeleteUser(user)}
+                                    style={{ flex: 1, height: '36px', fontSize: '0.9rem' }}
+                                >
+                                    <Trash2 size={16} /> Excluir
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <UserEditModal
+                    isOpen={isEditModalOpen}
+                    onClose={() => setIsEditModalOpen(false)}
+                    user={selectedUser}
+                    stores={stores}
+                    onSave={handleSaveUser}
+                />
+            </div>
+        </DashboardLayout>
     );
 };
