@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import './Login.css';
 
 export const WaitingApproval: React.FC = () => {
-    const { logout, user } = useAuth();
+    const { logout } = useAuth();
 
     return (
         <div className="login-container">
@@ -17,9 +17,6 @@ export const WaitingApproval: React.FC = () => {
 
                 <div className="waiting-content">
                     <p>Sua conta foi criada com sucesso!</p>
-                    <p>
-                        Olá <strong>{user?.email}</strong>, seu acesso está pendente de aprovação por um administrador.
-                    </p>
                     <p className="instruction">
                         Por favor, aguarde ou entre em contato com seu supervisor para liberar seu acesso.
                     </p>
