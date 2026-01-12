@@ -18,6 +18,7 @@ import { ModulePatternsPage } from './modules/planogram/ModulePatternsPage';
 import { StoresList } from './modules/settings/components/StoresList';
 import { ButcherDashboard } from './modules/butcher/ButcherDashboard';
 import { ButcherHistory } from './modules/butcher/ButcherHistory';
+import { RequirePermissions, RequireModuleAccess } from './components/RouteGuards';
 
 const RequireAuth = () => {
   const { user, loading } = useAuth();
@@ -154,7 +155,8 @@ function ValidityHistoryRoute() {
   // Custom Actions for History Page
   // Slot 2: Histórico (Active)
   const historyAction = (
-    <Link to="/validity/history" className="nav-btn active">
+    <Link to="/validity/history" className="nav-btn active"
+    >
       <History size={24} />
       <span>Histórico</span>
     </Link>
@@ -233,22 +235,33 @@ function App() {
 
             {/* Approved Routes */}
             <Route element={<RequireApproval />}>
-              <Route path="/" element={<ModuleHub />} />
-              <Route path="/hub" element={<Navigate to="/" replace />} />
+              {/* Strict Permission Guard: Requires Role & Store */}
+              <Route element={<RequirePermissions />}>
+                <Route path="/" element={<ModuleHub />} />
+                <Route path="/hub" element={<Navigate to="/" replace />} />
 
-              <Route path="/validity" element={<ValidityPage />} />
-              <Route path="/validity/history" element={<ValidityHistoryRoute />} />
-              <Route path="/planogram" element={<PlanogramDashboard />} />
-              <Route path="/planogram/patterns" element={<ModulePatternsPage />} />
+                {/* Module Specific Guards */}
+                <Route element={<RequireModuleAccess module="validity" />}>
+                  <Route path="/validity" element={<ValidityPage />} />
+                  <Route path="/validity/history" element={<ValidityHistoryRoute />} />
+                </Route>
 
-              <Route path="/butcher" element={<ButcherDashboard />} />
-              <Route path="/butcher/history" element={<ButcherHistory />} />
+                <Route element={<RequireModuleAccess module="planogram" />}>
+                  <Route path="/planogram" element={<PlanogramDashboard />} />
+                  <Route path="/planogram/patterns" element={<ModulePatternsPage />} />
+                </Route>
 
-              {/* Admin Routes */}
-              <Route element={<RequireAdmin />}>
-                <Route path="/settings" element={<SettingsDashboard />} />
-                <Route path="/settings/users" element={<AdminDashboard />} />
-                <Route path="/settings/stores" element={<StoresList />} />
+                <Route element={<RequireModuleAccess module="butcher" />}>
+                  <Route path="/butcher" element={<ButcherDashboard />} />
+                  <Route path="/butcher/history" element={<ButcherHistory />} />
+                </Route>
+
+                {/* Admin Routes */}
+                <Route element={<RequireAdmin />}>
+                  <Route path="/settings" element={<SettingsDashboard />} />
+                  <Route path="/settings/users" element={<AdminDashboard />} />
+                  <Route path="/settings/stores" element={<StoresList />} />
+                </Route>
               </Route>
             </Route>
           </Route>

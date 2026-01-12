@@ -15,7 +15,7 @@ export interface Store {
 
 export interface Profile {
     id: string;
-    role: 'admin' | 'encarregado' | 'conferente' | 'planogram_edit' | 'planogram_view' | 'acougue';
+    role: 'admin' | 'encarregado' | 'conferente' | 'planogram_edit' | 'planogram_view' | 'acougue' | null;
     store_id?: string | null;
     store?: Store;
     name?: string;

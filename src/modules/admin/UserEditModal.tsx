@@ -34,7 +34,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ isOpen, onClose, u
                 });
             } else {
                 setFormData({
-                    role: 'conferente', // default role
+                    role: null, // no default role - admin must assign
                     name: '',
                     email: '',
                     username: '',
@@ -80,7 +80,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ isOpen, onClose, u
     };
 
     const handleRoleChange = (newRole: string) => {
-        const updates: Partial<Profile> = { role: newRole as any };
+        const updates: Partial<Profile> = { role: (newRole || null) as any };
 
         // Reset butcher role if not butcher-related
         if (newRole !== 'acougue' && newRole !== 'admin') {
@@ -187,10 +187,11 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ isOpen, onClose, u
                             Cargo do Sistema
                         </label>
                         <select
-                            value={formData.role}
+                            value={formData.role || ''}
                             onChange={e => handleRoleChange(e.target.value)}
                             className="arbalest-select"
                         >
+                            <option value="">Selecione um cargo...</option>
                             <option value="conferente">Conferente</option>
                             <option value="encarregado">Encarregado</option>
                             <option value="planogram_edit">Planograma (Editor)</option>

@@ -7,17 +7,17 @@ export const ModuleHub = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
 
-    const hasValidityAccess = (user?.role === 'admin' || user?.role === 'encarregado' || user?.role === 'conferente') && user?.store?.show_validity !== false;
-    const hasPlanogramAccess = (user?.role === 'admin' || user?.role === 'planogram_edit' || user?.role === 'planogram_view') && user?.store?.show_planogram !== false;
+    const hasValidityAccess = user?.role && (user?.role === 'admin' || user?.role === 'encarregado' || user?.role === 'conferente') && user?.store?.show_validity !== false;
+    const hasPlanogramAccess = user?.role && (user?.role === 'admin' || user?.role === 'planogram_edit' || user?.role === 'planogram_view') && user?.store?.show_planogram !== false;
     const hasSettingsAccess = user?.role === 'admin';
 
 
 
     const isRestrictedAcougue = user?.role === 'acougue';
 
-    // Hide other modules if user is restricted to 'acougue'
-    const isValidityVisible = !isRestrictedAcougue && user?.store?.show_validity !== false;
-    const isPlanogramVisible = !isRestrictedAcougue && user?.store?.show_planogram !== false;
+    // Hide other modules if user is restricted to 'acougue' or has no role
+    const isValidityVisible = user?.role && !isRestrictedAcougue && user?.store?.show_validity !== false;
+    const isPlanogramVisible = user?.role && !isRestrictedAcougue && user?.store?.show_planogram !== false;
 
     // Mobile Action for Hub: Profile Link
     const profileMobileAction = (
@@ -160,7 +160,7 @@ export const ModuleHub = () => {
                     )}
 
                     {/* Butcher Module Card */}
-                    {(user?.role === 'admin' ||
+                    {user?.role && (user?.role === 'admin' ||
                         user?.role === 'acougue' ||
                         ['requester', 'producer', 'manager'].includes(user?.butcher_role || '') ||
                         ((user?.role === 'encarregado' || user?.role === 'conferente') && user?.store?.is_butcher_active !== false)

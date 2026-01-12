@@ -11,7 +11,6 @@ import {
     PlusCircle,
     User,
     X,
-
     Home,
     Map,
     Settings,
@@ -52,6 +51,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
         return false;
     };
 
+    // Determine if navigation should be hidden based on props OR missing permissions
+    // Admin always has some access, so we mainly check for other roles
+    const isRestricted = (!user?.role || (!user?.store_id && user?.role !== 'admin'));
+    const shouldHideNav = hideDefaultModuleNav || isRestricted;
+
     return (
         <div className={`dashboard-container ${sidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
             {/* Backdrop for Desktop Overlay */}
@@ -79,40 +83,44 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                         collapsed={!sidebarOpen}
                     />
 
-                    {user?.store?.show_validity !== false && user?.role !== 'acougue' && (
-                        <NavItem
-                            icon={<Calendar size={20} />}
-                            label="Validade"
-                            path="/validity"
-                            active={isActive('/validity')}
-                            collapsed={!sidebarOpen}
-                        />
+                    {!shouldHideNav && (
+                        <>
+                            {user?.store?.show_validity !== false && user?.role !== 'acougue' && (
+                                <NavItem
+                                    icon={<Calendar size={20} />}
+                                    label="Validade"
+                                    path="/validity"
+                                    active={isActive('/validity')}
+                                    collapsed={!sidebarOpen}
+                                />
+                            )}
+
+
+                            {user?.store?.show_planogram !== false && user?.role !== 'acougue' && (
+                                <NavItem
+                                    icon={<Map size={20} />}
+                                    label="Planogramas"
+                                    path="/planogram"
+                                    active={isActive('/planogram')}
+                                    collapsed={!sidebarOpen}
+                                />
+                            )}
+
+                            {(user?.role === 'admin' ||
+                                user?.role === 'acougue' ||
+                                ['requester', 'producer', 'manager'].includes(user?.butcher_role || '') ||
+                                ((user?.role === 'encarregado' || user?.role === 'conferente') && user?.store?.is_butcher_active !== false)
+                            ) && (
+                                    <NavItem
+                                        icon={<Beef size={20} />}
+                                        label="Açougue"
+                                        path="/butcher"
+                                        active={isActive('/butcher')}
+                                        collapsed={!sidebarOpen}
+                                    />
+                                )}
+                        </>
                     )}
-
-
-                    {user?.store?.show_planogram !== false && user?.role !== 'acougue' && (
-                        <NavItem
-                            icon={<Map size={20} />}
-                            label="Planogramas"
-                            path="/planogram"
-                            active={isActive('/planogram')}
-                            collapsed={!sidebarOpen}
-                        />
-                    )}
-
-                    {(user?.role === 'admin' ||
-                        user?.role === 'acougue' ||
-                        ['requester', 'producer', 'manager'].includes(user?.butcher_role || '') ||
-                        ((user?.role === 'encarregado' || user?.role === 'conferente') && user?.store?.is_butcher_active !== false)
-                    ) && (
-                            <NavItem
-                                icon={<Beef size={20} />}
-                                label="Açougue"
-                                path="/butcher"
-                                active={isActive('/butcher')}
-                                collapsed={!sidebarOpen}
-                            />
-                        )}
 
                     {user?.role === 'admin' && (
                         <NavItem
@@ -132,7 +140,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                         </div>
                         {sidebarOpen && (
                             <div className="details">
-                                <span className="name">{user?.name || user?.email || user?.role}</span>
+                                <span className="name">Perfil</span>
                                 <span className="role">{user?.role}</span>
                             </div>
                         )}
@@ -162,12 +170,18 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                         </div>
                         <nav className="mobile-nav">
                             <NavItem icon={<Home size={20} />} label="Início" path="/" active={isActive('/')} />
-                            {user?.store?.show_validity !== false && user?.role !== 'acougue' && (
-                                <NavItem icon={<Calendar size={20} />} label="Validade" path="/validity" active={isActive('/validity')} />
+
+                            {!shouldHideNav && (
+                                <>
+                                    {user?.store?.show_validity !== false && user?.role !== 'acougue' && (
+                                        <NavItem icon={<Calendar size={20} />} label="Validade" path="/validity" active={isActive('/validity')} />
+                                    )}
+                                    {user?.store?.show_planogram !== false && user?.role !== 'acougue' && (
+                                        <NavItem icon={<Map size={20} />} label="Planogramas" path="/planogram" active={isActive('/planogram')} />
+                                    )}
+                                </>
                             )}
-                            {user?.store?.show_planogram !== false && user?.role !== 'acougue' && (
-                                <NavItem icon={<Map size={20} />} label="Planogramas" path="/planogram" active={isActive('/planogram')} />
-                            )}
+
                             {user?.role === 'admin' && (
                                 <NavItem icon={<Settings size={20} />} label="Configurações" path="/settings" active={isActive('/settings')} />
                             )}
@@ -205,8 +219,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                 </button>
 
 
-                {/* Dynamic Module Icon - Hide in Butcher Module, Hub, Profile, or if explicitly hidden */}
-                {!location.pathname.startsWith('/butcher') && location.pathname !== '/' && location.pathname !== '/profile' && !hideDefaultModuleNav && (
+                {/* Dynamic Module Icon - Hide in Butcher Module, Hub, Profile, or if strictly hidden */}
+                {!location.pathname.startsWith('/butcher') && location.pathname !== '/' && location.pathname !== '/profile' && !shouldHideNav && (
                     location.pathname.startsWith('/planogram') ? (
                         <Link to="/planogram" className="nav-btn active">
                             <Map size={24} /><span>Mapa</span>
@@ -227,14 +241,17 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                 {customMobileAction ? (
                     customMobileAction
                 ) : (
-                    <button
-                        className={`nav-btn add-btn-mobile ${!onAddClick ? 'disabled' : ''}`}
-                        onClick={() => onAddClick?.()}
-                        disabled={!onAddClick}
-                        style={{ opacity: onAddClick ? 1 : 0.5, pointerEvents: onAddClick ? 'auto' : 'none' }}
-                    >
-                        <PlusCircle size={28} color={onAddClick ? "var(--brand-primary)" : "var(--text-tertiary)"} />
-                    </button>
+                    // Hide add button if navigation is restricted (implies no permission to add anything)
+                    !shouldHideNav && (
+                        <button
+                            className={`nav-btn add-btn-mobile ${!onAddClick ? 'disabled' : ''}`}
+                            onClick={() => onAddClick?.()}
+                            disabled={!onAddClick}
+                            style={{ opacity: onAddClick ? 1 : 0.5, pointerEvents: onAddClick ? 'auto' : 'none' }}
+                        >
+                            <PlusCircle size={28} color={onAddClick ? "var(--brand-primary)" : "var(--text-tertiary)"} />
+                        </button>
+                    )
                 )}
             </footer>
         </div >

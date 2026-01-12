@@ -141,6 +141,7 @@
     align-items: center;
     justify-content: center;
     color: var(--text-secondary);
+    flex-shrink: 0;
 }
 
 .details {
