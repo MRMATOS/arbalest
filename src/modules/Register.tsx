@@ -35,10 +35,23 @@ export const Register: React.FC = () => {
         try {
             await signUp(email, password);
             setSuccess(true);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Registration error:', error);
-            if (error instanceof Error) setError(error.message);
-            else setError('Erro ao criar conta. Tente novamente.');
+
+            const msg = error.message || error.msg || '';
+
+            // Translation Map
+            if (msg.includes('User already registered') || msg.includes('already registered')) {
+                setError('Este e-mail já está cadastrado. Tente fazer login.');
+            } else if (msg.includes('For security purposes')) {
+                setError('Por motivos de segurança, aguarde alguns instantes antes de tentar novamente.');
+            } else if (msg.includes('Rate limit exceeded')) {
+                setError('Muitas tentativas. Aguarde um momento.');
+            } else if (error instanceof Error) {
+                setError(error.message);
+            } else {
+                setError('Erro ao criar conta. Tente novamente.');
+            }
         } finally {
             setIsLoading(false);
         }

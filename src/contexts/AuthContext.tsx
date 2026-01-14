@@ -1,7 +1,7 @@
-/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import type { Session } from '@supabase/supabase-js';
+import type { UserPermissions } from '../types/permissions';
 
 export interface Store {
     id: string;
@@ -24,6 +24,10 @@ export interface Profile {
     email?: string;
     approved_at?: string | null;
     butcher_role?: 'requester' | 'producer' | 'manager' | null;
+
+    // NOVO: Sistema de permissões JSON
+    is_admin: boolean;
+    permissions: UserPermissions;
 }
 
 interface AuthContextType {

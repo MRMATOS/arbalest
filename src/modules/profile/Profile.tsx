@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Shield, User, Store, Pencil, Check, X, Lock } from 'lucide-react';
+import { Shield, User, Pencil, Check, Lock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
 import { DashboardLayout } from '../../layouts/DashboardLayout';
@@ -108,175 +108,196 @@ export const Profile: React.FC = () => {
         setPasswordData({ newPassword: '', confirmPassword: '' });
     };
 
-    const mobileProfileAction = (
-        <div className="nav-btn active" style={{ cursor: 'default' }}>
+
+
+    const mobileProfileLink = (
+        <Link to="/profile" className="nav-btn active" style={{ minWidth: '60px' }}>
             <User size={24} />
             <span>Perfil</span>
-        </div>
+        </Link>
     );
 
     return (
-        <DashboardLayout customMobileAction={mobileProfileAction}>
+        <DashboardLayout mobileAction={mobileProfileLink}>
             <div className="profile-container">
                 <header className="page-header">
                     <h1>Meu Perfil</h1>
                 </header>
 
-                <div className="profile-card glass">
+                <div className="profile-card">
+                    {/* Header */}
                     <div className="profile-header">
+                        <div className="avatar-wrapper">
+                            <div className="profile-avatar">
+                                <User size={40} />
+                            </div>
+                        </div>
                         <div className="profile-info">
-                            <h2>{user?.email}</h2>
-                            <span className="role-badge">{user?.role}</span>
+                            <h2>{user?.name || 'Usuário Arbalest'}</h2>
+
+                            <div style={{ marginTop: 6, opacity: 0.6, fontSize: '0.9rem' }}>{user?.email}</div>
                         </div>
                     </div>
 
+                    {/* Details Grid */}
                     <div className="profile-details">
-                        <div className="detail-item">
-                            <label>Nome de Exibição</label>
+                        {/* Name Field */}
+                        <div className="detail-group">
+                            <label className="detail-label">Nome de Exibição</label>
                             {isEditingName ? (
-                                <div className="edit-name-container">
-                                    <input
-                                        type="text"
-                                        value={displayName}
-                                        onChange={(e) => setDisplayName(e.target.value)}
-                                        placeholder="Digite seu nome..."
-                                        className="name-input"
-                                        autoFocus
-                                    />
-                                    <button
-                                        onClick={handleSaveName}
-                                        disabled={saving}
-                                        className="icon-btn save-btn"
-                                        title="Salvar"
-                                    >
-                                        <Check size={18} />
-                                    </button>
-                                    <button
-                                        onClick={handleCancelEdit}
-                                        disabled={saving}
-                                        className="icon-btn cancel-btn"
-                                        title="Cancelar"
-                                    >
-                                        <X size={18} />
-                                    </button>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    <div className="input-display-wrapper">
+                                        <div className="input-icon-box">
+                                            <User size={18} />
+                                        </div>
+                                        <input
+                                            className="detail-input"
+                                            value={displayName}
+                                            onChange={(e) => setDisplayName(e.target.value)}
+                                            placeholder="Seu nome"
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                                        <button
+                                            onClick={handleCancelEdit}
+                                            disabled={saving}
+                                            className="action-btn cancel-btn"
+                                            style={{ width: 'auto', padding: '0 16px' }}
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={handleSaveName}
+                                            disabled={saving}
+                                            className="action-btn save-btn"
+                                            style={{ width: 'auto', padding: '0 16px', gap: '8px' }}
+                                        >
+                                            <Check size={18} /> Salvar
+                                        </button>
+                                    </div>
                                 </div>
                             ) : (
-                                <div className="name-display">
-                                    <span>{user?.name || 'Não definido'}</span>
-                                    <button
-                                        onClick={() => setIsEditingName(true)}
-                                        className="icon-btn edit-btn"
-                                        title="Editar nome"
-                                    >
+                                <div className="input-display-wrapper">
+                                    <div className="input-icon-box">
+                                        <User size={18} />
+                                    </div>
+                                    <span className="detail-value">{user?.name || 'Não definido'}</span>
+                                    <button onClick={() => setIsEditingName(true)} className="action-btn edit-btn">
                                         <Pencil size={16} />
                                     </button>
                                 </div>
                             )}
                         </div>
 
-                        <div className="detail-item">
-                            <label>Nome de Usuário</label>
+                        {/* Username Field */}
+                        <div className="detail-group">
+                            <label className="detail-label">Nome de Usuário</label>
                             {isEditingUsername ? (
-                                <div className="edit-name-container">
-                                    <input
-                                        type="text"
-                                        value={usernameInput}
-                                        onChange={(e) => setUsernameInput(e.target.value)}
-                                        placeholder="Digite seu nome de usuário..."
-                                        className="name-input"
-                                        autoFocus
-                                    />
-                                    <button
-                                        onClick={handleSaveUsername}
-                                        disabled={saving}
-                                        className="icon-btn save-btn"
-                                        title="Salvar"
-                                    >
-                                        <Check size={18} />
-                                    </button>
-                                    <button
-                                        onClick={handleCancelUsernameEdit}
-                                        disabled={saving}
-                                        className="icon-btn cancel-btn"
-                                        title="Cancelar"
-                                    >
-                                        <X size={18} />
-                                    </button>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    <div className="input-display-wrapper">
+                                        <div className="input-icon-box">
+                                            <span style={{ fontSize: '18px', fontWeight: 700 }}>@</span>
+                                        </div>
+                                        <input
+                                            className="detail-input"
+                                            value={usernameInput}
+                                            onChange={(e) => setUsernameInput(e.target.value)}
+                                            placeholder="usuario"
+                                        />
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                                        <button
+                                            onClick={handleCancelUsernameEdit}
+                                            disabled={saving}
+                                            className="action-btn cancel-btn"
+                                            style={{ width: 'auto', padding: '0 16px' }}
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={handleSaveUsername}
+                                            disabled={saving}
+                                            className="action-btn save-btn"
+                                            style={{ width: 'auto', padding: '0 16px', gap: '8px' }}
+                                        >
+                                            <Check size={18} /> Salvar
+                                        </button>
+                                    </div>
                                 </div>
                             ) : (
-                                <div className="name-display">
-                                    <span>{user?.username || 'Não definido'}</span>
-                                    <button
-                                        onClick={() => setIsEditingUsername(true)}
-                                        className="icon-btn edit-btn"
-                                        title="Editar nome de usuário"
-                                    >
+                                <div className="input-display-wrapper">
+                                    <div className="input-icon-box">
+                                        <span style={{ fontSize: '18px', fontWeight: 700 }}>@</span>
+                                    </div>
+                                    <span className="detail-value">{user?.username || 'Não definido'}</span>
+                                    <button onClick={() => setIsEditingUsername(true)} className="action-btn edit-btn">
                                         <Pencil size={16} />
                                     </button>
                                 </div>
                             )}
                         </div>
 
-                        <div className="detail-item">
-                            <label>Loja Vinculada</label>
-                            <div className="store-display">
-                                <Store size={16} />
-                                <span>{user?.store?.name || 'Nenhuma loja vinculada'}</span>
-                            </div>
+
+                    </div>
+
+                    {/* Security Section */}
+                    <div className="security-section">
+                        <div className="section-title">
+                            <Lock size={18} color="var(--brand-primary)" />
+                            Segurança
                         </div>
 
-                        <div className="detail-item">
-                            <label>Segurança</label>
+                        <div className="detail-group">
+                            <label className="detail-label">Senha</label>
                             {isChangingPassword ? (
-                                <div className="edit-name-container" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '12px' }}>
-                                    <div style={{ width: '100%' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    <div className="input-display-wrapper">
+                                        <div className="input-icon-box"><Lock size={18} /></div>
                                         <input
                                             type="password"
+                                            className="detail-input"
                                             value={passwordData.newPassword}
                                             onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
                                             placeholder="Nova Senha (min. 6 caracteres)"
-                                            className="name-input"
-                                            style={{ width: '100%', marginBottom: '8px' }}
                                         />
+                                    </div>
+                                    <div className="input-display-wrapper">
+                                        <div className="input-icon-box"><Lock size={18} /></div>
                                         <input
                                             type="password"
+                                            className="detail-input"
                                             value={passwordData.confirmPassword}
                                             onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
                                             placeholder="Confirmar Nova Senha"
-                                            className="name-input"
-                                            style={{ width: '100%' }}
                                         />
                                     </div>
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <button
-                                            onClick={handleSavePassword}
-                                            disabled={saving}
-                                            className="icon-btn save-btn"
-                                            title="Salvar Senha"
-                                        >
-                                            <Check size={18} />
-                                        </button>
+                                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                                         <button
                                             onClick={handleCancelPasswordEdit}
                                             disabled={saving}
-                                            className="icon-btn cancel-btn"
-                                            title="Cancelar"
+                                            className="action-btn cancel-btn"
+                                            style={{ width: 'auto', padding: '0 16px' }}
                                         >
-                                            <X size={18} />
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={handleSavePassword}
+                                            disabled={saving}
+                                            className="action-btn save-btn"
+                                            style={{ width: 'auto', padding: '0 16px', gap: '8px' }}
+                                        >
+                                            <Check size={18} /> Salvar Senha
                                         </button>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="name-display">
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <Lock size={16} className="text-secondary" />
-                                        <span>••••••••</span>
+                                <div className="input-display-wrapper">
+                                    <div className="input-icon-box">
+                                        <Lock size={18} />
                                     </div>
-                                    <button
-                                        onClick={() => setIsChangingPassword(true)}
-                                        className="icon-btn edit-btn"
-                                        title="Alterar Senha"
-                                    >
+                                    <span className="detail-value">••••••••••••</span>
+                                    <button onClick={() => setIsChangingPassword(true)} className="action-btn edit-btn">
                                         <Pencil size={16} />
                                     </button>
                                 </div>
@@ -284,14 +305,15 @@ export const Profile: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="profile-actions">
-                        {user?.role === 'admin' && (
-                            <Link to="/admin" className="action-button admin-btn">
+                    {/* Admin Access */}
+                    {user?.is_admin && (
+                        <div className="admin-link-card">
+                            <Link to="/settings" className="admin-button">
                                 <Shield size={20} />
                                 Acessar Painel Admin
                             </Link>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </DashboardLayout>

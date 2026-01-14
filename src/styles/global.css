@@ -9,6 +9,9 @@
   --brand-primary: #3ecf8e;
   /* Supabase Green */
   --brand-secondary: #30a46c;
+  --brand-hover: #34d399;
+  /* Slightly lighter green */
+  --bg-hover: rgba(255, 255, 255, 0.08);
 
   --text-primary: #ffffff;
   --text-secondary: #a0a0a0;
@@ -378,6 +381,16 @@ input {
     transform: translateY(-1px);
   }
 
+  .arbalest-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    padding: 6px;
+    transition: var(--transition);
+    color: var(--text-secondary);
+  }
+
   .arbalest-icon-btn:hover {
     background: var(--bg-hover);
     color: var(--text-primary);
@@ -452,7 +465,9 @@ input {
   }
 
   .mobile-view {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
 
   .hide-mobile {
@@ -604,6 +619,15 @@ input {
   color: var(--brand-primary);
 }
 
+/* Form Actions */
+.arbalest-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* Modal Actions */
 .arbalest-modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -611,4 +635,51 @@ input {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--glass-border);
+}
+
+/* Validity List Specific Styles */
+.expiry-critical {
+  color: var(--error) !important;
+}
+
+.expiry-warning {
+  color: var(--warning) !important;
+}
+
+.expiry-success {
+  color: var(--success) !important;
+}
+
+.product-name {
+  color: var(--success) !important;
+  font-weight: 500;
+}
+
+.clickable-copy {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px dashed transparent;
+}
+
+.clickable-copy:hover {
+  filter: brightness(1.2);
+  border-bottom: 1px dashed currentColor;
+}
+
+.clickable-copy.copied {
+  color: var(--success) !important;
+}
+
+@media (max-width: 768px) {
+  .arbalest-header {
+    margin-bottom: 0;
+  }
+
+  .arbalest-header p {
+    margin-bottom: 0;
+  }
+
+  .arbalest-header-actions {
+    display: none !important;
+  }
 }

@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Calendar,
     ChevronLeft,
-    ChevronRight,
     LogOut,
     Menu,
-    Package,
-    PlusCircle,
     User,
     X,
     Home,
@@ -17,15 +14,16 @@ import {
     Beef
 } from 'lucide-react';
 import './DashboardLayout.css';
+import { supabase } from '../services/supabase';
+import { hasModuleAccess, getUserFunctionsLabel, getUserStoreLabel } from '../utils/permissions';
 
 interface DashboardLayoutProps {
     children?: React.ReactNode;
-    onAddClick?: () => void;
-    customMobileAction?: React.ReactNode;
-    secondaryMobileAction?: React.ReactNode;
-    filterMobileAction?: React.ReactNode;
-    tertiaryMobileAction?: React.ReactNode;
-    hideDefaultModuleNav?: boolean;
+    // New Standardized Mobile Actions
+    mobileHistory?: React.ReactNode;
+    mobileFilter?: React.ReactNode;
+    mobileModule?: React.ReactNode;
+    mobileAction?: React.ReactNode;
 }
 
 interface NavItemProps {
@@ -33,161 +31,203 @@ interface NavItemProps {
     label: string;
     path?: string;
     collapsed?: boolean;
+    active?: boolean;
+    onClick?: () => void;
+    className?: string;
 }
 
-export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAddClick, customMobileAction, secondaryMobileAction, filterMobileAction, tertiaryMobileAction, hideDefaultModuleNav }) => {
+export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
+    children,
+    mobileHistory,
+    mobileFilter,
+    mobileModule,
+    mobileAction,
+}) => {
     const { user, logout } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const location = useLocation();
+    const navigate = useNavigate();
+
+    const sidebarRef = React.useRef<HTMLDivElement>(null);
+    const toggleBtnRef = React.useRef<HTMLButtonElement>(null);
+
+    const [storesList, setStoresList] = useState<Array<{ id: string; name: string }>>([]);
+
+    React.useEffect(() => {
+        const fetchStores = async () => {
+            const { data } = await supabase.from('stores').select('id, name');
+            if (data) setStoresList(data);
+        };
+        fetchStores();
+    }, []);
+
+    const storeLabel = getUserStoreLabel(user, storesList);
+
+    React.useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                sidebarOpen &&
+                sidebarRef.current &&
+                !sidebarRef.current.contains(event.target as Node) &&
+                toggleBtnRef.current &&
+                !toggleBtnRef.current.contains(event.target as Node)
+            ) {
+                setSidebarOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [sidebarOpen]);
 
     const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
     const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
-    const isActive = (path?: string) => {
-        if (!path) return false;
-        if (path === '/' && location.pathname === '/') return true;
-        if (path !== '/' && location.pathname.startsWith(path)) return true;
-        return false;
+    const handleLogout = async () => {
+        try {
+            await logout();
+            navigate('/login');
+        } catch (error) {
+            console.error('Failed to log out', error);
+        }
     };
 
-    // Determine if navigation should be hidden based on props OR missing permissions
-    // Admin always has some access, so we mainly check for other roles
-    const isRestricted = (!user?.role || (!user?.store_id && user?.role !== 'admin'));
-    const shouldHideNav = hideDefaultModuleNav || isRestricted;
+    const NavItem: React.FC<NavItemProps> = ({ icon, label, path, collapsed, active, onClick, className }) => {
+        const content = (
+            <>
+                {icon}
+                {!collapsed && <span>{label}</span>}
+            </>
+        );
+
+        const baseClass = `nav-item ${active ? 'active' : ''} ${collapsed ? 'collapsed' : ''} ${className || ''}`;
+
+        if (path) {
+            return (
+                <Link
+                    to={path}
+                    className={baseClass}
+                    title={collapsed ? label : ''}
+                    onClick={onClick}
+                >
+                    {content}
+                </Link>
+            );
+        }
+
+        return (
+            <div
+                className={baseClass}
+                title={collapsed ? label : ''}
+                onClick={onClick}
+                style={{ cursor: 'pointer' }}
+            >
+                {content}
+            </div>
+        );
+    };
+
+    const isActive = (path: string) => location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
+    const isExactActive = (path: string) => location.pathname === path;
+
+    // Module Access
+    const canAccessValidity = hasModuleAccess(user, 'validity');
+    const canAccessPlanogram = hasModuleAccess(user, 'planogram');
+    const canAccessButcher = hasModuleAccess(user, 'butcher');
+
+    // Hide sidebar on specific routes
+    const shouldHideSidebar = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/aguardando-aprovacao';
+
+    if (shouldHideSidebar) {
+        return <div className="no-sidebar-layout">{children}</div>;
+    }
+
+    // Desktop Navigation Items
+    const desktopNavItems = (
+        <>
+            <NavItem icon={<Home size={20} />} label="Home" path="/" active={isExactActive('/')} />
+
+            {canAccessValidity && (
+                <NavItem icon={<Calendar size={20} />} label="Validade" path="/validity" active={isActive('/validity')} />
+            )}
+            {canAccessPlanogram && (
+                <NavItem icon={<Map size={20} />} label="Planogramas" path="/planogram" active={isActive('/planogram')} />
+            )}
+            {canAccessButcher && (
+                <NavItem icon={<Beef size={20} />} label="Açougue" path="/butcher" active={isActive('/butcher')} />
+            )}
+
+            <div style={{ flex: 1 }} />
+
+            <div className="sidebar-divider" />
+
+            {user?.is_admin && (
+                <NavItem icon={<Settings size={20} />} label="Configurações" path="/settings" active={isActive('/settings')} />
+            )}
+            <NavItem icon={<User size={20} />} label="Perfil" path="/profile" active={isActive('/profile')} />
+            <NavItem icon={<LogOut size={20} />} label="Sair" onClick={handleLogout} className="logout-btn" />
+        </>
+    );
 
     return (
-        <div className={`dashboard-container ${sidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
-            {/* Backdrop for Desktop Overlay */}
-            <div className="sidebar-overlay" onClick={toggleSidebar}></div>
+        <div className={`dashboard-layout ${sidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
 
-            {/* Sidebar Desktop/Overlay */}
-            <aside className="sidebar">
+            {/* Desktop Sidebar (Restored) */}
+            <aside className="sidebar desktop-only" ref={sidebarRef}>
                 <div className="sidebar-header">
                     <div className="logo">
-                        <Package size={24} color="var(--brand-primary)" />
-                        {sidebarOpen && <span>Arbalest</span>}
+                        <div className="logo-placeholder">A</div>
+                        <span>Arbalest</span>
                     </div>
-                    <button onClick={toggleSidebar} className="toggle-btn">
-                        {sidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
-                    </button>
                 </div>
-
                 <nav className="sidebar-nav">
-
-                    <NavItem
-                        icon={<Home size={20} />}
-                        label="Início"
-                        path="/"
-                        active={isActive('/')}
-                        collapsed={!sidebarOpen}
-                    />
-
-                    {!shouldHideNav && (
-                        <>
-                            {user?.store?.show_validity !== false && user?.role !== 'acougue' && (
-                                <NavItem
-                                    icon={<Calendar size={20} />}
-                                    label="Validade"
-                                    path="/validity"
-                                    active={isActive('/validity')}
-                                    collapsed={!sidebarOpen}
-                                />
-                            )}
-
-
-                            {user?.store?.show_planogram !== false && user?.role !== 'acougue' && (
-                                <NavItem
-                                    icon={<Map size={20} />}
-                                    label="Planogramas"
-                                    path="/planogram"
-                                    active={isActive('/planogram')}
-                                    collapsed={!sidebarOpen}
-                                />
-                            )}
-
-                            {(user?.role === 'admin' ||
-                                user?.role === 'acougue' ||
-                                ['requester', 'producer', 'manager'].includes(user?.butcher_role || '') ||
-                                ((user?.role === 'encarregado' || user?.role === 'conferente') && user?.store?.is_butcher_active !== false)
-                            ) && (
-                                    <NavItem
-                                        icon={<Beef size={20} />}
-                                        label="Açougue"
-                                        path="/butcher"
-                                        active={isActive('/butcher')}
-                                        collapsed={!sidebarOpen}
-                                    />
-                                )}
-                        </>
-                    )}
-
-                    {user?.role === 'admin' && (
-                        <NavItem
-                            icon={<Settings size={20} />}
-                            label="Configurações"
-                            path="/settings"
-                            active={isActive('/settings')}
-                            collapsed={!sidebarOpen}
-                        />
-                    )}
+                    {desktopNavItems}
                 </nav>
-
-                <div className="sidebar-footer">
-                    <Link to="/profile" className={`user-info ${!sidebarOpen ? 'collapsed' : ''}`}>
-                        <div className="avatar">
-                            <User size={18} />
-                        </div>
-                        {sidebarOpen && (
-                            <div className="details">
-                                <span className="name">Perfil</span>
-                                <span className="role">{user?.role}</span>
-                            </div>
-                        )}
-                    </Link>
-                    <button onClick={logout} className={`nav-item logout ${!sidebarOpen ? 'collapsed' : ''}`}>
-                        <div className="icon"><LogOut size={20} /></div>
-                        {sidebarOpen && <span className="label">Sair</span>}
-                    </button>
-                </div>
             </aside>
 
-            {/* Header Mobile */}
-            <header className="mobile-header glass">
-                <Link to="/" className="logo" style={{ textDecoration: 'none', color: 'inherit' }}>
-                    <Package size={24} color="var(--brand-primary)" />
-                    <span>Arbalest</span>
-                </Link>
+            {/* Mobile Header (Fixed) */}
+            <header className="mobile-header desktop-hidden glass">
+                <div className="header-brand">
+
+                    <span className="brand-name">Arbalest Digital</span>
+                </div>
+                <div className="header-actions">
+                    {/* Store name removed as requested */}
+                    {/* User icon removed as requested (moved to bottom nav) */}
+                </div>
             </header>
 
             {/* Mobile Menu Overlay */}
             {isMobileMenuOpen && (
-                <div className="mobile-menu-overlay glass" onClick={toggleMobileMenu}>
-                    <div className="mobile-menu" onClick={e => e.stopPropagation()}>
+                <div className="mobile-menu-overlay" onClick={() => setIsMobileMenuOpen(false)}>
+                    <div className="mobile-menu glass" onClick={e => e.stopPropagation()}>
                         <div className="mobile-menu-header">
                             <h3>Menu</h3>
                             <button onClick={toggleMobileMenu}><X size={24} /></button>
                         </div>
                         <nav className="mobile-nav">
-                            <NavItem icon={<Home size={20} />} label="Início" path="/" active={isActive('/')} />
+                            <NavItem icon={<Home size={20} />} label="Home" path="/" active={isExactActive('/')} />
 
-                            {!shouldHideNav && (
-                                <>
-                                    {user?.store?.show_validity !== false && user?.role !== 'acougue' && (
-                                        <NavItem icon={<Calendar size={20} />} label="Validade" path="/validity" active={isActive('/validity')} />
-                                    )}
-                                    {user?.store?.show_planogram !== false && user?.role !== 'acougue' && (
-                                        <NavItem icon={<Map size={20} />} label="Planogramas" path="/planogram" active={isActive('/planogram')} />
-                                    )}
-                                </>
+                            {canAccessValidity && (
+                                <NavItem icon={<Calendar size={20} />} label="Validade" path="/validity" active={isActive('/validity')} />
+                            )}
+                            {canAccessPlanogram && (
+                                <NavItem icon={<Map size={20} />} label="Planogramas" path="/planogram" active={isActive('/planogram')} />
+                            )}
+                            {canAccessButcher && (
+                                <NavItem icon={<Beef size={20} />} label="Açougue" path="/butcher" active={isActive('/butcher')} />
                             )}
 
-                            {user?.role === 'admin' && (
+                            <div style={{ flex: 1 }} />
+                            <div className="mobile-menu-divider" />
+
+                            {user?.is_admin && (
                                 <NavItem icon={<Settings size={20} />} label="Configurações" path="/settings" active={isActive('/settings')} />
                             )}
                             <NavItem icon={<User size={20} />} label="Perfil" path="/profile" active={isActive('/profile')} />
                         </nav>
-                        <button onClick={logout} className="mobile-logout">
+                        <button onClick={handleLogout} className="mobile-logout">
                             <LogOut size={20} /> Sair
                         </button>
                     </div>
@@ -197,13 +237,19 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
             {/* Main Content */}
             <main className="main-content">
                 <div className="main-header desktop-only">
-                    <button onClick={toggleSidebar} className="menu-toggle-btn">
-                        <Menu size={24} />
+                    {/* Mobile Toggle Button (Only on Mobile normally, but here 'desktop-only' header? Check usage) */}
+                    <button onClick={toggleSidebar} className="menu-toggle-btn" ref={toggleBtnRef}>
+                        {sidebarOpen ? <ChevronLeft size={24} /> : <Menu size={24} />}
                     </button>
+
                     <div className="header-actions" style={{ marginLeft: 'auto' }}>
                         <div className="user-profile">
-                            <span className="role-badge">{user?.role}</span>
-                            <span className="store-badge">{user?.store?.name || 'Sem Loja'}</span>
+                            <span className="role-badge">
+                                {getUserFunctionsLabel(user)}
+                            </span>
+                            {storeLabel && (
+                                <span className="store-badge">{storeLabel}</span>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -212,66 +258,17 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onAd
                 </div>
             </main>
 
-            {/* Mobile Bottom Navigation (Instagram Style) */}
+            {/* Mobile Bottom Navigation */}
             <footer className="mobile-bottom-nav glass">
                 <button className={`nav-btn ${isMobileMenuOpen ? 'active' : ''}`} onClick={toggleMobileMenu}>
                     <Menu size={24} /><span>Menu</span>
                 </button>
 
-
-                {/* Dynamic Module Icon - Hide in Butcher Module, Hub, Profile, or if strictly hidden */}
-                {!location.pathname.startsWith('/butcher') && location.pathname !== '/' && location.pathname !== '/profile' && !shouldHideNav && (
-                    location.pathname.startsWith('/planogram') ? (
-                        <Link to="/planogram" className="nav-btn active">
-                            <Map size={24} /><span>Mapa</span>
-                        </Link>
-                    ) : (
-                        <Link to="/validity" className={`nav-btn ${isActive('/validity') ? 'active' : ''}`}>
-                            <Calendar size={24} /><span>Validade</span>
-                        </Link>
-                    )
-                )}
-
-                {filterMobileAction}
-
-                {secondaryMobileAction}
-
-                {tertiaryMobileAction}
-
-                {customMobileAction ? (
-                    customMobileAction
-                ) : (
-                    // Hide add button if navigation is restricted (implies no permission to add anything)
-                    !shouldHideNav && (
-                        <button
-                            className={`nav-btn add-btn-mobile ${!onAddClick ? 'disabled' : ''}`}
-                            onClick={() => onAddClick?.()}
-                            disabled={!onAddClick}
-                            style={{ opacity: onAddClick ? 1 : 0.5, pointerEvents: onAddClick ? 'auto' : 'none' }}
-                        >
-                            <PlusCircle size={28} color={onAddClick ? "var(--brand-primary)" : "var(--text-tertiary)"} />
-                        </button>
-                    )
-                )}
+                {mobileHistory}
+                {mobileFilter}
+                {mobileModule}
+                {mobileAction}
             </footer>
-        </div >
-    );
-};
-
-const NavItem: React.FC<NavItemProps & { active?: boolean }> = ({ icon, label, path, active, collapsed }) => {
-    if (path) {
-        return (
-            <Link to={path} className={`nav-item ${active ? 'active' : ''} ${collapsed ? 'collapsed' : ''}`}>
-                <div className="icon">{icon}</div>
-                {!collapsed && <span className="label">{label}</span>}
-            </Link>
-        );
-    }
-
-    return (
-        <div className={`nav-item ${active ? 'active' : ''} ${collapsed ? 'collapsed' : ''}`} style={{ cursor: 'default' }}>
-            <div className="icon">{icon}</div>
-            {!collapsed && <span className="label">{label}</span>}
         </div>
     );
 };

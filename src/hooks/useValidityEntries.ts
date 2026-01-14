@@ -30,6 +30,10 @@ export interface ValidityEntry {
     updated_at: string;
     created_at: string;
     store_id: string;
+    store?: {
+        id: string;
+        name: string;
+    };
 }
 
 export const useValidityEntries = (options: { includeDeleted?: boolean } = {}) => {
@@ -58,9 +62,10 @@ export const useValidityEntries = (options: { includeDeleted?: boolean } = {}) =
 
             if (entriesError) throw entriesError;
 
-            // Get unique product IDs
+            // Get unique IDs for relations
             const productIds = [...new Set((entriesData || []).map((e) => e.product_id))];
             const createdByIds = [...new Set((entriesData || []).map((e) => e.created_by).filter(Boolean))];
+            const storeIds = [...new Set((entriesData || []).map((e) => e.store_id).filter(Boolean))];
 
             // Fetch products from public schema (default)
             const { data: productsData } = await supabase
@@ -74,9 +79,16 @@ export const useValidityEntries = (options: { includeDeleted?: boolean } = {}) =
                 .select('id, name, email')
                 .in('id', createdByIds.length > 0 ? createdByIds : ['00000000-0000-0000-0000-000000000000']);
 
+            // Fetch stores from public schema
+            const { data: storesData } = await supabase
+                .from('stores')
+                .select('id, name')
+                .in('id', storeIds.length > 0 ? storeIds : ['00000000-0000-0000-0000-000000000000']);
+
             // Create maps for quick lookup
             const productsMap = new Map((productsData || []).map((p) => [p.id, p]));
             const profilesMap = new Map((profilesData || []).map((p) => [p.id, p]));
+            const storesMap = new Map((storesData || []).map((s) => [s.id, s]));
 
             // Fetch pending delete requests
             const { data: requestsData, error: requestsError } = await supabase
@@ -99,40 +111,48 @@ export const useValidityEntries = (options: { includeDeleted?: boolean } = {}) =
             // Transform the data structure
             const transformedData = (entriesData || []).map((item) => {
                 const product = productsMap.get(item.product_id);
-                const createdByUser = profilesMap.get(item.created_by);
+                const profile = item.created_by ? profilesMap.get(item.created_by) : undefined;
+                const store = storesMap.get(item.store_id);
+                const pendingRequest = pendingRequestsMap.get(item.id);
+
+                if (!product) return null; // Skip if product not found (integrity issue)
+
                 return {
-                    id: item.id,
-                    expires_at: item.expires_at,
-                    lot: item.lot,
-                    quantity: item.quantity,
-                    status: item.status,
-                    store_id: item.store_id,
-                    created_at: item.created_at,
-                    has_pending_delete_request: pendingRequestsMap.has(item.id),
-                    pending_delete_request: pendingRequestsMap.get(item.id),
-                    verified_at: item.verified_at,
-                    updated_at: item.updated_at,
+                    ...item,
                     product: {
-                        name: product?.name || 'Unknown',
-                        ean: product?.ean || null,
-                        code: product?.code || '',
-                        type: product?.type,
-                        amount: product?.amount
+                        name: product.name,
+                        ean: product.ean,
+                        code: product.code,
+                        type: product.type,
+                        amount: product.amount
                     },
-                    created_by_user: createdByUser ? {
-                        id: createdByUser.id,
-                        name: createdByUser.name,
-                        email: createdByUser.email
+                    created_by_user: profile ? {
+                        id: profile.id,
+                        name: profile.name,
+                        email: profile.email
+                    } : undefined,
+                    has_pending_delete_request: !!pendingRequest,
+                    pending_delete_request: pendingRequest,
+                    store: store ? {
+                        id: store.id,
+                        name: store.name
                     } : undefined
                 };
             });
 
-            // Filter by store if user is encarregado (client-side)
+            // Filter by store based on module permissions
             let filteredEntries = transformedData;
-            if (user?.role === 'encarregado' && user.store_id) {
-                filteredEntries = transformedData.filter((entry) =>
-                    entry.store_id === user.store_id
-                );
+
+            // Import getModuleStoreId dynamically or use inline logic
+            const moduleAccess = user?.permissions?.['validity'];
+            if (moduleAccess) {
+                const storeId = moduleAccess.store_id;
+                // Only filter if store_id is not null (null = all stores)
+                if (storeId !== null && storeId !== undefined) {
+                    filteredEntries = transformedData.filter((entry) =>
+                        entry.store_id === storeId
+                    );
+                }
             }
 
             setEntries(filteredEntries as ValidityEntry[]);

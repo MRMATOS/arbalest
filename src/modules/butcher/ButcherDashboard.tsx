@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { ButcherPermissions, getModuleStoreId } from '../../utils/permissions';
 import { DashboardLayout } from '../../layouts/DashboardLayout';
 import { Search, History, Printer, Check, Trash2, PlusCircle, FileText, Filter } from 'lucide-react';
 import { ButcherFilterModal } from './components/ButcherFilterModal';
@@ -57,8 +58,10 @@ export const ButcherDashboard: React.FC = () => {
     const meatGroups = Array.from(new Set(orders.map(o => o.product?.meat_group).filter(Boolean))) as string[];
 
     // Determines if user handles production (can print/update status)
-    const canProduce = user?.role === 'admin' || user?.butcher_role === 'producer' || user?.butcher_role === 'manager';
-    const canRequest = user?.role === 'admin' || user?.butcher_role === 'requester' || user?.butcher_role === 'manager';
+
+
+    const canProduce = ButcherPermissions.canProduce(user);
+    const canRequest = ButcherPermissions.canRequest(user);
 
     useEffect(() => {
         fetchOrders();
@@ -133,8 +136,11 @@ export const ButcherDashboard: React.FC = () => {
         try {
             const updates: any = { status: newStatus };
 
-            if (newStatus === 'production' && user?.store_id) {
-                updates.production_store_id = user.store_id;
+            if (newStatus === 'production') {
+                const storeId = getModuleStoreId(user, 'butcher');
+                if (storeId) {
+                    updates.production_store_id = storeId;
+                }
             } else if (newStatus === 'received') {
                 updates.received_at = new Date().toISOString();
             }
@@ -176,13 +182,14 @@ export const ButcherDashboard: React.FC = () => {
                 .map(o => o.id);
 
             if (ordersToUpdate.length > 0) {
+                const storeId = getModuleStoreId(user, 'butcher');
                 const { error } = await supabase
                     .schema('butcher')
                     .from('orders')
                     .update({
                         status: 'production',
                         printed_at: new Date().toISOString(),
-                        production_store_id: user?.store_id
+                        production_store_id: storeId || undefined
                     })
                     .in('id', ordersToUpdate);
 
@@ -401,10 +408,10 @@ export const ButcherDashboard: React.FC = () => {
 
     return (
         <DashboardLayout
-            filterMobileAction={historyLink}
-            secondaryMobileAction={filterButton}
-            tertiaryMobileAction={pedidosLink}
-            customMobileAction={mobileActionButton}
+            mobileHistory={historyLink}
+            mobileFilter={filterButton}
+            mobileModule={pedidosLink}
+            mobileAction={mobileActionButton}
         >
             <div className="arbalest-layout-container">
                 {/* Header */}
@@ -507,9 +514,25 @@ export const ButcherDashboard: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Search Bar (Separate Section) */}
+                {/* Search Bar or Helper Text */}
                 <div className="arbalest-filter-section arbalest-glass">
-                    <div className="arbalest-search-wrapper">
+                    {/* Mobile Only Helper: Show when empty */}
+                    {!loading && orders.length === 0 && (
+                        <div className="mobile-view" style={{
+                            // display: 'flex' removed to allow class to control visibility (hidden on desktop)
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '100%',
+                            padding: '10px',
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.9rem'
+                        }}>
+                            <span>Use o botão <strong style={{ color: 'var(--brand-primary)', fontWeight: 700 }}>PEDIR</strong> para adicionar pedidos na lista</span>
+                        </div>
+                    )}
+
+                    {/* Search Bar: Always on Desktop. Hidden on Mobile if empty */}
+                    <div className={`arbalest-search-wrapper ${(!loading && orders.length === 0) ? 'hide-mobile' : ''}`}>
                         <Search size={18} />
                         <input
                             type="text"

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, Link } from 'react-router-dom';
-import { PlusCircle, Calendar, Filter, History, Send } from 'lucide-react';
+import { PlusCircle, Calendar, Filter, History } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Login } from './modules/Login';
 import { Register } from './modules/Register';
@@ -17,6 +17,7 @@ import { SettingsDashboard } from './modules/settings/SettingsDashboard';
 import { ModulePatternsPage } from './modules/planogram/ModulePatternsPage';
 import { StoresList } from './modules/settings/components/StoresList';
 import { ButcherDashboard } from './modules/butcher/ButcherDashboard';
+import { ValidityPermissions } from './utils/permissions';
 import { ButcherHistory } from './modules/butcher/ButcherHistory';
 import { RequirePermissions, RequireModuleAccess } from './components/RouteGuards';
 
@@ -56,13 +57,11 @@ const RequireAdmin = () => {
 // Previous CreateDashboard/ValidityPage
 function ValidityPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSolicitationModalOpen, setIsSolicitationModalOpen] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { user } = useAuth();
 
-  const isConferente = user?.role?.toLowerCase() === 'conferente';
-  const isManager = user?.role === 'encarregado' || user?.role === 'admin';
+  const canRegister = ValidityPermissions.canEdit(user);
 
   const filterAction = (
     <button
@@ -91,22 +90,12 @@ function ValidityPage() {
     </Link>
   );
 
-  const solicitAction = (
-    <button
-      onClick={() => setIsSolicitationModalOpen(true)}
-      className="nav-btn"
-    >
-      <Send size={24} color="var(--warning)" />
-      <span>Solicitar</span>
-    </button>
-  );
-
   const registerAction = (
     <button
       onClick={() => setIsModalOpen(true)}
       className="nav-btn"
     >
-      <PlusCircle size={24} color="var(--brand-primary)" />
+      <PlusCircle size={24} color="var(--warning)" />
       <span>Registrar</span>
     </button>
   );
@@ -116,20 +105,15 @@ function ValidityPage() {
   return (
     <>
       <DashboardLayout
-        onAddClick={!isConferente && !isManager ? handleOpenAdd : undefined}
-        // User requested: Menu, History, Filter, Validity, Solicit/Register
-        hideDefaultModuleNav={isConferente || isManager}
-        filterMobileAction={(isConferente || isManager) ? historyAction : filterAction}
-        secondaryMobileAction={(isConferente || isManager) ? filterAction : undefined}
-        tertiaryMobileAction={(isConferente || isManager) ? validityAction : undefined}
-        customMobileAction={isConferente ? solicitAction : (isManager ? registerAction : undefined)}
+        // Slots Order: Menu (1), History (2), Filter (3), Module (4), Action (5)
+        mobileHistory={historyAction} // 2
+        mobileFilter={filterAction} // 3
+        mobileModule={validityAction} // 4
+        mobileAction={canRegister ? registerAction : undefined} // 5
       >
         <ValidityList
           key={refreshTrigger}
           onAddClick={handleOpenAdd}
-          isSolicitationModalOpen={isSolicitationModalOpen}
-          onCloseSolicitationModal={() => setIsSolicitationModalOpen(false)}
-          onOpenSolicitationModal={() => setIsSolicitationModalOpen(true)}
           isFilterModalOpen={isFilterModalOpen}
           onCloseFilterModal={() => setIsFilterModalOpen(false)}
         />
@@ -155,8 +139,7 @@ function ValidityHistoryRoute() {
   // Custom Actions for History Page
   // Slot 2: Histórico (Active)
   const historyAction = (
-    <Link to="/validity/history" className="nav-btn active"
-    >
+    <Link to="/validity/history" className="nav-btn active">
       <History size={24} />
       <span>Histórico</span>
     </Link>
@@ -169,7 +152,7 @@ function ValidityHistoryRoute() {
       className="nav-btn"
     >
       <Filter size={24} />
-      <span>Filtro</span>
+      <span>Filtrar</span>
     </button>
   );
 
@@ -181,29 +164,28 @@ function ValidityHistoryRoute() {
     </Link>
   );
 
-  // Slot 5: Solicitar / Registrar
-  const isManager = user?.role === 'admin' || user?.role === 'encarregado';
-  const addLabel = isManager ? 'Registrar' : 'Solicitar';
+  // Slot 5: Registrar (Manager Only)
+  const canRegister = ValidityPermissions.canEdit(user);
 
-  const addActionWithLabel = (
+  const registerAction = (
     <button
       className="nav-btn"
       onClick={() => setIsAddModalOpen(true)}
-      style={{ color: isManager ? 'var(--brand-primary)' : 'var(--warning)' }}
+      style={{ color: 'var(--warning)' }}
     >
-      {isManager ? <PlusCircle size={24} /> : <Send size={24} />}
-      <span>{addLabel}</span>
+      <PlusCircle size={24} />
+      <span>Registrar</span>
     </button>
   );
 
   return (
     <>
       <DashboardLayout
-        hideDefaultModuleNav={true}
-        filterMobileAction={historyAction} // Slot 2
-        secondaryMobileAction={filterAction} // Slot 3
-        tertiaryMobileAction={validityAction} // Slot 4
-        customMobileAction={addActionWithLabel} // Slot 5
+        // Slots Order: Menu (1), History (2), Filter (3), Module (4), Action (5)
+        mobileHistory={historyAction}
+        mobileFilter={filterAction}
+        mobileModule={validityAction}
+        mobileAction={canRegister ? registerAction : undefined}
       >
         <ValidityHistoryPage
           isFilterModalOpen={isFilterModalOpen}

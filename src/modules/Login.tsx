@@ -11,6 +11,7 @@ export const Login: React.FC = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [rememberMe, setRememberMe] = useState(false);
     const { login, user } = useAuth();
     const navigate = useNavigate();
 
@@ -20,6 +21,15 @@ export const Login: React.FC = () => {
             navigate('/');
         }
     }, [user, navigate]);
+
+    // Load remembered email
+    React.useEffect(() => {
+        const savedEmail = localStorage.getItem('arbalest_remembered_email');
+        if (savedEmail) {
+            setIdentifier(savedEmail);
+            setRememberMe(true);
+        }
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -46,11 +56,29 @@ export const Login: React.FC = () => {
                 emailToUse = userEmail;
             }
 
+            if (rememberMe) {
+                localStorage.setItem('arbalest_remembered_email', emailToUse);
+            } else {
+                localStorage.removeItem('arbalest_remembered_email');
+            }
+
             await login(emailToUse, password);
             navigate('/');
         } catch (error: any) {
             console.error('Login error:', error);
-            setError(error.message === 'Usuário não encontrado.' ? error.message : 'Erro ao fazer login. Verifique suas credenciais.');
+            const msg = error.message || error.msg || '';
+
+            if (msg === 'Usuário não encontrado.') {
+                setError(msg);
+            } else if (msg.includes('Invalid login credentials')) {
+                setError('Credenciais inválidas. Verifique seu e-mail e senha.');
+            } else if (msg.includes('Email not confirmed')) {
+                setError('E-mail não confirmado. Verifique sua caixa de entrada.');
+            } else if (msg.includes('For security purposes')) {
+                setError('Por motivos de segurança, aguarde alguns instantes antes de tentar novamente.');
+            } else {
+                setError('Erro ao fazer login. Verifique suas credenciais.');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -104,6 +132,17 @@ export const Login: React.FC = () => {
                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
                         </div>
+                    </div>
+
+                    <div className="input-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
+                        <input
+                            id="remember-me"
+                            type="checkbox"
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
+                            style={{ width: '16px', height: '16px', accentColor: 'var(--brand-primary)' }}
+                        />
+                        <label htmlFor="remember-me" style={{ cursor: 'pointer', margin: 0 }}>Lembrar usuário</label>
                     </div>
 
                     {error && <span className="error-message">{error}</span>}

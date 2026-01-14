@@ -3,6 +3,7 @@ import { Search, Loader, Package } from 'lucide-react';
 import { Modal } from '../../../components/Modal';
 import { supabase } from '../../../services/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
+import { getModuleStoreId } from '../../../utils/permissions';
 import { useProductSearch, type Product } from '../../../hooks/useProductSearch';
 import { BarcodeScannerModal } from '../../validity/BarcodeScannerModal';
 import './AddButcherOrderModal.css';
@@ -66,14 +67,15 @@ export const AddButcherOrderModal: React.FC<AddButcherOrderModalProps> = ({ isOp
     const handleProductSelect = async (product: Product) => {
         // Validate duplicates
         try {
-            if (!user?.store_id) return;
+            const storeId = getModuleStoreId(user, 'butcher');
+            if (!storeId) return;
 
             // Check if there is already a pending order for this product in this store
             const { data: existing, error } = await supabase
                 .schema('butcher')
                 .from('orders')
                 .select('id')
-                .eq('requester_store_id', user.store_id)
+                .eq('requester_store_id', storeId)
                 .eq('product_id', product.id)
                 .in('status', ['pending', 'production']) // Check active orders
                 .maybeSingle();
@@ -96,7 +98,8 @@ export const AddButcherOrderModal: React.FC<AddButcherOrderModalProps> = ({ isOp
     };
 
     const handleSubmit = async () => {
-        if (!selectedProduct || !quantity || !user?.store_id) return;
+        const storeId = getModuleStoreId(user, 'butcher');
+        if (!selectedProduct || !quantity || !storeId || !user) return;
 
         setSubmitting(true);
         try {
@@ -104,7 +107,7 @@ export const AddButcherOrderModal: React.FC<AddButcherOrderModalProps> = ({ isOp
                 .schema('butcher')
                 .from('orders')
                 .insert({
-                    requester_store_id: user.store_id,
+                    requester_store_id: storeId,
                     product_id: selectedProduct.id,
                     quantity: Number(quantity),
                     unit: unit,

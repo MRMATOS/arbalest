@@ -32,7 +32,11 @@ export const AdminDashboard: React.FC = () => {
                 supabase.from('stores').select('*').order('name')
             ]);
 
-            if (profilesRes.data) setProfiles(profilesRes.data);
+            if (profilesRes.data) {
+                console.log('📥 Profiles carregados:', profilesRes.data.length, 'usuários');
+                console.log('👤 Primeiro usuário:', profilesRes.data[0]);
+                setProfiles(profilesRes.data);
+            }
             if (storesRes.data) setStores(storesRes.data);
         } catch (error) {
             console.error('Error fetching admin data:', error);
@@ -57,6 +61,12 @@ export const AdminDashboard: React.FC = () => {
 
     const handleSaveUser = async (userId: string | null, updates: Partial<Profile> & { password?: string }) => {
         try {
+            console.log('🗄️ AdminDashboard - handleSaveUser chamado:', {
+                userId,
+                updates,
+                permissions: updates.permissions
+            });
+
             if (userId) {
                 // Edit: Direct Update
                 const { error } = await supabase
@@ -65,6 +75,7 @@ export const AdminDashboard: React.FC = () => {
                     .eq('id', userId);
 
                 if (error) throw error;
+                console.log('✅ Update bem-sucedido para userId:', userId);
             } else {
                 // Create: Call Edge Function
                 const { error } = await supabase.functions.invoke('manage-user', {
@@ -78,11 +89,12 @@ export const AdminDashboard: React.FC = () => {
                 });
 
                 if (error) throw error;
+                console.log('✅ Usuário criado com sucesso');
             }
 
-            fetchData();
+            await fetchData();
         } catch (error) {
-            console.error('Error saving user:', error);
+            console.error('❌ Error saving user:', error);
             throw error;
         }
     };
@@ -142,8 +154,7 @@ export const AdminDashboard: React.FC = () => {
 
     return (
         <DashboardLayout
-            customMobileAction={mobileAddButton}
-            hideDefaultModuleNav={true}
+            mobileAction={mobileAddButton}
         >
             <div className="arbalest-layout-container">
                 <header className="arbalest-header">
@@ -196,17 +207,18 @@ export const AdminDashboard: React.FC = () => {
                                                 <span className="arbalest-badge arbalest-badge-warning">Pendente</span>
                                                 <button
                                                     onClick={() => handleApprove(user.id)}
-                                                    className="arbalest-icon-btn arbalest-btn-primary"
+                                                    className="arbalest-icon-btn"
                                                     title="Aprovar Acesso"
-                                                    style={{ width: '24px', height: '24px' }}
+                                                    style={{ color: 'var(--success)', minWidth: '32px', height: '32px' }}
                                                 >
-                                                    <Check size={14} />
+                                                    <Check size={18} />
                                                 </button>
                                             </div>
                                         )}
                                     </td>
                                     <td>
                                         <span>
+                                            {/* Legacy field - will be removed after migration period */}
                                             {stores.find(s => s.id === user.store_id)?.name || '-'}
                                         </span>
                                     </td>
@@ -216,6 +228,7 @@ export const AdminDashboard: React.FC = () => {
                                                 className="arbalest-icon-btn"
                                                 onClick={() => onEditUser(user)}
                                                 title="Editar"
+                                                style={{ color: 'var(--text-primary)' }}
                                             >
                                                 <Pencil size={18} />
                                             </button>
@@ -236,7 +249,7 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 {/* Mobile List View */}
-                <div className="mobile-view" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="mobile-view">
                     {profiles.map(user => (
                         <div key={user.id} className="arbalest-glass" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -256,6 +269,7 @@ export const AdminDashboard: React.FC = () => {
 
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '6px' }}>
                                 <span style={{ opacity: 0.7 }}>Loja:</span>
+                                {/* Legacy field - will be removed after migration period */}
                                 <span style={{ color: 'white' }}>{stores.find(s => s.id === user.store_id)?.name || 'Nenhuma'}</span>
                             </div>
 

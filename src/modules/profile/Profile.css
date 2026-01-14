@@ -1,7 +1,280 @@
+/* Profile Page - Glassmorphism & Neon Design System */
+
 .profile-container {
     padding: 24px;
-    max-width: 600px;
+    max-width: 900px;
     margin: 0 auto;
+    animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.page-header {
+    margin-bottom: 24px;
+}
+
+.page-header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-shadow: 0 0 20px rgba(62, 207, 142, 0.2);
+}
+
+/* Glass Card */
+.profile-card {
+    background: var(--glass-bg, rgba(20, 20, 20, 0.6));
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+/* Header Section */
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.avatar-wrapper {
+    position: relative;
+}
+
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(62, 207, 142, 0.1);
+    border: 2px solid var(--brand-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--brand-primary);
+    box-shadow: 0 0 20px rgba(62, 207, 142, 0.2);
+}
+
+.profile-info h2 {
+    font-size: 1.4rem;
+    color: white;
+    margin: 0 0 8px 0;
+    font-weight: 600;
+}
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: rgba(62, 207, 142, 0.1);
+    color: var(--brand-primary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(62, 207, 142, 0.2);
+}
+
+/* Details Grid */
+.profile-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+}
+
+.detail-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.detail-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-left: 4px;
+}
+
+/* Reusing Input Group Styles Wrapper */
+.input-display-wrapper {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 4px 12px 4px 4px;
+    /* Space for button on right */
+    transition: all 0.2s ease;
+    height: 48px;
+}
+
+.input-display-wrapper:focus-within {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 2px rgba(62, 207, 142, 0.1);
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.input-icon-box {
+    width: 40px;
+    height: 38px;
+    /* Slightly smaller than wrapper */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-tertiary);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.detail-value {
+    flex: 1;
+    padding: 0 12px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.detail-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: white;
+    padding: 0 12px;
+    font-size: 0.95rem;
+    width: 100%;
+    outline: none;
+}
+
+.detail-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+/* Action Buttons */
+.action-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.edit-btn {
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.edit-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.save-btn {
+    background: rgba(62, 207, 142, 0.15);
+    color: var(--brand-primary);
+    border: 1px solid rgba(62, 207, 142, 0.3);
+}
+
+.save-btn:hover {
+    background: var(--brand-primary);
+    color: black;
+    box-shadow: 0 0 10px rgba(62, 207, 142, 0.4);
+}
+
+.cancel-btn {
+    background: rgba(244, 63, 94, 0.15);
+    color: #f43f5e;
+    /* Bright Red */
+    border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+.cancel-btn:hover {
+    background: #f43f5e;
+    color: white;
+    box-shadow: 0 0 10px rgba(244, 63, 94, 0.4);
+}
+
+/* Security Section specific */
+.security-section {
+    margin-top: 12px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.section-title {
+    font-size: 1rem;
+    color: white;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Admin Link Button */
+.admin-link-card {
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
+}
+
+.admin-button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, rgba(62, 207, 142, 0.2) 0%, rgba(62, 207, 142, 0.05) 100%);
+    border: 1px solid rgba(62, 207, 142, 0.3);
+    padding: 16px 32px;
+    border-radius: 12px;
+    color: var(--brand-primary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    width: 100%;
+    justify-content: center;
+}
+
+.admin-button:hover {
+    background: rgba(62, 207, 142, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(62, 207, 142, 0.15);
+}
+
+@media (max-width: 768px) {
+    .profile-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .profile-details {
+        grid-template-columns: 1fr;
+    }
+
+    .input-display-wrapper {
+        height: 56px;
+        /* Larger touch target */
+    }
 }
 
 .profile-card {
@@ -168,26 +441,53 @@
 }
 
 .save-btn {
-    background: rgba(62, 207, 142, 0.1);
-    color: var(--brand-primary);
+    background: rgba(62, 207, 142, 0.2);
+    color: #4ade80;
+    border: 1px solid rgba(62, 207, 142, 0.4);
+}
+
+.save-btn svg {
+    stroke: currentColor;
+    opacity: 1;
 }
 
 .save-btn:hover {
-    background: rgba(62, 207, 142, 0.2);
+    background: #4ade80;
+    color: black;
+    box-shadow: 0 0 15px rgba(74, 222, 128, 0.4);
 }
 
 .save-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    background: rgba(62, 207, 142, 0.05);
+    /* Dimmer when disabled */
+    border-color: white;
 }
 
 .cancel-btn {
-    background: rgba(244, 63, 94, 0.1);
-    color: var(--error);
+    background: rgba(244, 63, 94, 0.25) !important;
+    color: #f87171 !important;
+    border: 1px solid rgba(244, 63, 94, 0.5) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.cancel-btn svg {
+    stroke: currentColor !important;
+    fill: none !important;
+    opacity: 1 !important;
+    display: block !important;
+    width: 18px !important;
+    height: 18px !important;
+    stroke-width: 2.5 !important;
 }
 
 .cancel-btn:hover {
-    background: rgba(244, 63, 94, 0.2);
+    background: rgba(244, 63, 94, 0.25) !important;
+    color: #f87171 !important;
+    box-shadow: none;
 }
 
 .cancel-btn:disabled {

@@ -66,9 +66,16 @@ export const StoresList: React.FC = () => {
         setIsModalOpen(true);
     };
 
+    const mobileAddAction = (
+        <button onClick={handleCreate} className="nav-btn">
+            <Plus size={24} color="var(--brand-primary)" />
+            <span>Adicionar</span>
+        </button>
+    );
+
     return (
         <DashboardLayout
-            onAddClick={handleCreate} // Mobile add button integration
+            mobileAction={mobileAddAction}
         >
             <div className="fade-in">
                 {/* Header with Breadcrumbs */}
@@ -202,6 +209,6 @@ export const StoresList: React.FC = () => {
                     color: white !important;
                 }
             `}</style>
-        </DashboardLayout>
+        </DashboardLayout >
     );
 };

@@ -12,35 +12,28 @@ import {
     History,
     Info,
     AlertTriangle,
-    Send,
     Copy
 } from 'lucide-react';
 import { useValidityEntries, type ValidityEntry } from '../../hooks/useValidityEntries';
 import { useAuth } from '../../contexts/AuthContext';
 
+import { ValidityPermissions } from '../../utils/permissions';
 import { ConfirmModal } from '../../components/ConfirmModal';
 
-import { SolicitationModal } from './SolicitationModal';
-
 import { AddValidityModal } from './AddValidityModal';
-import { RequestsModal } from './RequestsModal';
 import { FilterModal, type FilterState } from './FilterModal';
 import { supabase } from '../../services/supabase';
 
+
+{/* Props Removed */ }
 interface ValidityListProps {
     onAddClick?: () => void;
-    isSolicitationModalOpen?: boolean;
-    onCloseSolicitationModal?: () => void;
-    onOpenSolicitationModal?: () => void;
     isFilterModalOpen?: boolean;
     onCloseFilterModal?: () => void;
 }
 
 export const ValidityList: React.FC<ValidityListProps> = ({
     onAddClick,
-    isSolicitationModalOpen: controlledIsOpen,
-    onCloseSolicitationModal,
-    onOpenSolicitationModal,
     isFilterModalOpen,
     onCloseFilterModal,
 }) => {
@@ -68,12 +61,8 @@ export const ValidityList: React.FC<ValidityListProps> = ({
     const [stores, setStores] = useState<Array<{ id: string, name: string }>>([]);
     const [users, setUsers] = useState<Array<{ id: string, name?: string, email?: string }>>([]);
 
-    // Internal state for when not controlled, though we aim to control it from App.tsx
-    const [internalSolicitationOpen, setInternalSolicitationOpen] = useState(false);
-    const [isRequestsModalOpen, setIsRequestsModalOpen] = useState(false);
-    const [pendingSolicitationsCount, setPendingSolicitationsCount] = useState(0);
 
-    // Fetch filter data and pending solicitations
+    // Fetch filter data
     useEffect(() => {
         const fetchFilterData = async () => {
             // Fetch stores
@@ -92,62 +81,8 @@ export const ValidityList: React.FC<ValidityListProps> = ({
             if (usersData) setUsers(usersData);
         };
 
-        const fetchPendingSolicitations = async () => {
-            if (!user?.store_id) return;
-
-            const { count, error } = await supabase
-                .schema('validity')
-                .from('solicitations_view')
-                .select('*', { count: 'exact', head: true })
-                .eq('store_id', user.store_id)
-                .eq('status', 'pendente');
-
-            if (!error && count !== null) {
-                setPendingSolicitationsCount(count);
-            }
-        };
-
-        // Realtime subscription for solicitations
-        const subscription = supabase
-            .channel('solicitations_changes')
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'validity',
-                    table: 'solicitations'
-                },
-                () => {
-                    fetchPendingSolicitations();
-                }
-            )
-            .subscribe();
-
         fetchFilterData();
-        if (user?.role === 'encarregado' || user?.role === 'admin') {
-            fetchPendingSolicitations();
-        }
-
-        return () => {
-            subscription.unsubscribe();
-        };
-    }, [user]);
-
-
-
-    // Effective state (controlled takes precedence)
-    const isSolicitationModalOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalSolicitationOpen;
-    const setIsSolicitationModalOpen = (isOpen: boolean) => {
-        if (controlledIsOpen !== undefined) {
-            if (isOpen && onOpenSolicitationModal) {
-                onOpenSolicitationModal();
-            } else if (!isOpen && onCloseSolicitationModal) {
-                onCloseSolicitationModal();
-            }
-        } else {
-            setInternalSolicitationOpen(isOpen);
-        }
-    };
+    }, []);
 
     // Delete Confirmation State
     const [deleteConfirmation, setDeleteConfirmation] = useState<{
@@ -171,10 +106,34 @@ export const ValidityList: React.FC<ValidityListProps> = ({
 
     const [copiedState, setCopiedState] = useState<{ id: string; type: 'code' | 'ean' | 'full' } | null>(null);
 
-    const handleCopy = (text: string, id: string, type: 'code' | 'ean' | 'full') => {
-        navigator.clipboard.writeText(text);
-        setCopiedState({ id, type });
-        setTimeout(() => setCopiedState(null), 2000);
+    const handleCopy = async (text: string, id: string, type: 'code' | 'ean' | 'full') => {
+        try {
+            // Tenta usar a API moderna primeiro (requer contexto seguro/HTTPS)
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                // Fallback para ambientes de desenvolvimento (HTTP) ou navegadores antigos
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-9999px";
+                textArea.style.top = "0";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                } catch (err) {
+                    console.error('Fallback copy failed', err);
+                    return; // Retorna se falhar
+                }
+                document.body.removeChild(textArea);
+            }
+            setCopiedState({ id, type });
+            setTimeout(() => setCopiedState(null), 2000);
+        } catch (err) {
+            console.error('Copy failed', err);
+        }
     };
 
     const handleCopyProductDetails = (item: ValidityEntry) => {
@@ -185,7 +144,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
     };
 
     const handleStatusToggle = (id: string, currentStatus: string) => {
-        if (!hasRole('conferente') && !hasRole('admin')) return; // Guard
+        if (!ValidityPermissions.canVerify(user) && !user?.is_admin) return; // Guard
         if (currentStatus === 'conferido') {
             setConfirmAction({
                 isOpen: true,
@@ -197,11 +156,9 @@ export const ValidityList: React.FC<ValidityListProps> = ({
         }
     };
 
-    const hasRole = (role: string) => user?.role === role;
-
     // Permissions Logic
-    const canVerify = hasRole('conferente') || hasRole('admin');
-    const canEdit = hasRole('encarregado') || hasRole('admin');
+    const canVerify = ValidityPermissions.canVerify(user) || user?.is_admin;
+    const canEdit = ValidityPermissions.canEdit(user) || user?.is_admin;
 
     const handleDelete = async () => {
         if (!deleteConfirmation) return;
@@ -285,9 +242,9 @@ export const ValidityList: React.FC<ValidityListProps> = ({
         }
 
         if (effectiveDays < 0) return 'expiry-critical'; // Expired
-        if (effectiveDays <= 15) return 'expiry-critical'; // Critical
-        if (effectiveDays <= 30) return 'expiry-warning'; // Warning
-        return 'expiry-normal'; // Normal (Green)
+        if (effectiveDays <= 10) return 'expiry-critical'; // Critical (10 days or less)
+        if (effectiveDays <= 30) return 'expiry-warning'; // Warning (30 days or less)
+        return 'expiry-success'; // Safe (More than 30 days)
     };
 
     const getExpiryDays = (date: string) => {
@@ -317,34 +274,10 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                     <p>Gerencie os produtos próximos do vencimento</p>
                 </div>
                 <div className="arbalest-header-actions">
-                    {(hasRole('encarregado') || hasRole('admin')) && (
+                    {canEdit && (
                         <button className="arbalest-btn arbalest-btn-primary hide-mobile" onClick={onAddClick}>
                             <Plus size={20} />
                             <span>Novo Registro</span>
-                        </button>
-                    )}
-
-                    {(hasRole('encarregado') || hasRole('admin')) && (
-                        <button
-                            className="arbalest-btn arbalest-btn-outline-warning hide-mobile"
-                            onClick={() => setIsRequestsModalOpen(true)}
-                            title="Ver Solicitações"
-                            style={{ position: 'relative' }}
-                        >
-                            <Send size={20} />
-                            <span>Solicitações</span>
-                            {pendingSolicitationsCount > 0 && (
-                                <span className="arbalest-badge arbalest-badge-danger" style={{
-                                    position: 'absolute',
-                                    top: '-5px',
-                                    right: '-5px',
-                                    borderRadius: '10px',
-                                    padding: '2px 6px',
-                                    fontSize: '10px'
-                                }}>
-                                    {pendingSolicitationsCount}
-                                </span>
-                            )}
                         </button>
                     )}
 
@@ -353,17 +286,6 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                         <History size={20} />
                         <span>Histórico Global</span>
                     </button>
-
-                    {canVerify && (
-                        <button
-                            className="arbalest-btn arbalest-btn-outline-warning hide-mobile"
-                            onClick={() => onOpenSolicitationModal?.()}
-                            title="Solicitar Conferência"
-                        >
-                            <Send size={20} />
-                            <span>Solicitar</span>
-                        </button>
-                    )}
                 </div>
             </div>
 
@@ -464,6 +386,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                             <tr>
                                 <th>Produto</th>
                                 <th>Código / EAN</th>
+                                <th>Loja</th>
                                 <th>Status</th>
                                 <th>Qtd.</th>
                                 <th>Validade</th>
@@ -504,6 +427,11 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                             {!item.product.code && !item.product.ean && <span>-</span>}
                                         </div>
                                     </td>
+                                    <td>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span style={{ fontSize: '0.9rem' }}>{item.store?.name || '-'}</span>
+                                        </div>
+                                    </td>
                                     <td>{getStatusBadge(item.status)}</td>
                                     <td><span className="quantity">{item.quantity}</span></td>
                                     <td>
@@ -539,9 +467,14 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                                 <>
 
                                                     <button
-                                                        className={`arbalest-icon-btn ${item.status === 'conferido' ? 'arbalest-btn-primary' : ''}`}
+                                                        className={`arbalest-icon-btn ${item.status === 'conferido' ? '' : ''}`}
                                                         onClick={() => handleStatusToggle(item.id, item.status)}
                                                         title={item.status === 'conferido' ? "Desmarcar" : "Confirmar"}
+                                                        style={item.status === 'conferido' ? {
+                                                            backgroundColor: 'var(--success)',
+                                                            color: '#ffffff',
+                                                            border: 'none'
+                                                        } : {}}
                                                     >
                                                         <CheckCircle2 size={18} />
                                                     </button>
@@ -605,6 +538,17 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                 </div>
 
                                 <div className="arbalest-card-body">
+                                    <div className="arbalest-card-row">
+                                        <div className="arbalest-card-info">
+                                            <label>Quantidade</label>
+                                            <span className="quantity-val">{item.quantity} un</span>
+                                        </div>
+                                        <div className="arbalest-card-info">
+                                            <label>Loja</label>
+                                            <span style={{ fontSize: '0.9rem' }}>{item.store?.name || '-'}</span>
+                                        </div>
+                                    </div>
+
                                     <div className="arbalest-card-info">
                                         <label>EAN / CÓD</label>
                                         <div style={{ display: 'flex', gap: '8px' }}>
@@ -624,18 +568,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                         </div>
                                     </div>
 
-                                    <div className="arbalest-card-row">
-                                        <div className="arbalest-card-info">
-                                            <label>Quantidade</label>
-                                            <span className="quantity-val">{item.quantity} un</span>
-                                        </div>
-                                        <div className="arbalest-card-info">
-                                            <label>Lote</label>
-                                            <span className="lot-tag">{item.lot || 'Não informado'}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="arbalest-card-info" style={{ marginTop: '8px' }}>
+                                    <div className="arbalest-card-info">
                                         <label>Vence em</label>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                             <span className={`expiry-date ${getExpiryClass(item)}`} style={{ fontWeight: 600 }}>
@@ -664,24 +597,36 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                             )}
                                         </div>
                                     </div>
+
+                                    {item.lot && (
+                                        <div className="arbalest-card-info">
+                                            <label>Lote</label>
+                                            <span className="lot-tag">{item.lot}</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="arbalest-card-footer">
                                     <button
-                                        className="arbalest-btn arbalest-btn-neutral"
+                                        className="arbalest-btn arbalest-btn-outline"
                                         onClick={() => handleCopyProductDetails(item)}
                                     >
                                         {copiedState?.id === item.id && copiedState?.type === 'full' ? (
                                             <><CheckCircle2 size={16} color="var(--success)" /> Copiado!</>
                                         ) : (
-                                            <><Copy size={16} /> Copiar</>
+                                            <><Copy size={16} /> Copiar Detalhes</>
                                         )}
                                     </button>
 
                                     {/* Mobile Actions based on Role */}
                                     {canVerify && (
                                         <button
-                                            className={`arbalest-btn ${item.status === 'conferido' ? 'arbalest-btn-primary' : 'arbalest-btn-outline'}`}
+                                            className={`arbalest-btn ${item.status === 'conferido' ? '' : 'arbalest-btn-outline'}`}
+                                            style={item.status === 'conferido' ? {
+                                                backgroundColor: 'var(--success)',
+                                                color: '#ffffff',
+                                                border: '1px solid var(--success)'
+                                            } : {}}
                                             onClick={() => handleStatusToggle(item.id, item.status)}
                                         >
                                             {item.status === 'conferido' ? (
@@ -705,7 +650,8 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                         ))}
                     </div>
                 </div>
-            )}
+            )
+            }
             {/* ... modals ... */}
 
 
@@ -722,10 +668,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
 
 
 
-            <SolicitationModal
-                isOpen={isSolicitationModalOpen}
-                onClose={() => setIsSolicitationModalOpen(false)}
-            />
+
 
             <ConfirmModal
                 isOpen={!!confirmAction}
@@ -748,12 +691,6 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                 onClose={() => setEditEntry(null)}
                 editEntry={editEntry}
                 onSuccess={refresh}
-            />
-
-            {/* Requests Modal */}
-            <RequestsModal
-                isOpen={isRequestsModalOpen}
-                onClose={() => setIsRequestsModalOpen(false)}
             />
 
             <FilterModal

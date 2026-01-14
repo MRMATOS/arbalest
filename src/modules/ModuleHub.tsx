@@ -2,45 +2,31 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { DashboardLayout } from '../layouts/DashboardLayout';
 import { Calendar, Map, Settings, Beef, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { hasModuleAccess } from '../utils/permissions';
 
 export const ModuleHub = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
 
-    const hasValidityAccess = user?.role && (user?.role === 'admin' || user?.role === 'encarregado' || user?.role === 'conferente') && user?.store?.show_validity !== false;
-    const hasPlanogramAccess = user?.role && (user?.role === 'admin' || user?.role === 'planogram_edit' || user?.role === 'planogram_view') && user?.store?.show_planogram !== false;
-    const hasSettingsAccess = user?.role === 'admin';
+    // Use new permission system for module access
+    const canAccessValidity = hasModuleAccess(user, 'validity');
 
-
-
-    const isRestrictedAcougue = user?.role === 'acougue';
-
-    // Hide other modules if user is restricted to 'acougue' or has no role
-    const isValidityVisible = user?.role && !isRestrictedAcougue && user?.store?.show_validity !== false;
-    const isPlanogramVisible = user?.role && !isRestrictedAcougue && user?.store?.show_planogram !== false;
+    const canAccessButcher = hasModuleAccess(user, 'butcher');
+    const canAccessPlanogram = hasModuleAccess(user, 'planogram');
+    const canAccessSettings = user?.is_admin;
 
     // Mobile Action for Hub: Profile Link
-    const profileMobileAction = (
-        <div
-            className="nav-btn"
-            onClick={() => navigate('/profile')}
-            style={{ cursor: 'pointer' }}
-        >
+    const mobileProfileLink = (
+        <Link to="/profile" className="nav-btn" style={{ minWidth: '60px' }}>
             <User size={24} />
             <span>Perfil</span>
-        </div>
+        </Link>
     );
 
     return (
-        <DashboardLayout customMobileAction={profileMobileAction}>
-            <div className="content-area" style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minHeight: '80vh', // Reduced to account for layout headers
-                padding: '20px'
-            }}>
+        <DashboardLayout mobileAction={mobileProfileLink}>
+            <div className="content-area module-hub-content">
                 <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                     <h1 style={{ fontSize: '2rem', marginBottom: '8px' }}>Bem-vindo, {user?.name?.split(' ')[0]}</h1>
                     <p style={{ color: 'var(--text-secondary)' }}>Selecione o módulo que deseja acessar</p>
@@ -54,19 +40,17 @@ export const ModuleHub = () => {
                     width: '100%'
                 }}>
                     {/* Validade Module Card */}
-                    {/* Validade Module Card */}
-                    {isValidityVisible && (
+                    {canAccessValidity && (
                         <div
 
-                            className={`glass item-card ${!hasValidityAccess ? 'disabled' : ''}`}
-                            onClick={() => hasValidityAccess && navigate('/validity')}
+                            className={`glass item-card`}
+                            onClick={() => navigate('/validity')}
                             style={{
                                 padding: '24px',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'flex-start', // Left align
-                                cursor: hasValidityAccess ? 'pointer' : 'not-allowed',
-                                opacity: hasValidityAccess ? 1 : 0.5,
+                                cursor: 'pointer',
                                 transition: 'all 0.3s ease',
                                 border: '1px solid var(--glass-border)',
                                 borderRadius: '16px',
@@ -74,16 +58,12 @@ export const ModuleHub = () => {
                                 minHeight: '160px' // Reduced height
                             }}
                             onMouseEnter={(e) => {
-                                if (hasValidityAccess) {
-                                    e.currentTarget.style.transform = 'translateY(-5px)';
-                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                                }
+                                e.currentTarget.style.transform = 'translateY(-5px)';
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
                             }}
                             onMouseLeave={(e) => {
-                                if (hasValidityAccess) {
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.background = 'var(--glass-bg)';
-                                }
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.background = 'var(--glass-bg)';
                             }}
                         >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px', width: '100%' }}>
@@ -91,6 +71,7 @@ export const ModuleHub = () => {
                                     background: 'var(--brand-primary)',
                                     width: '48px', // Smaller icon container
                                     height: '48px',
+                                    flexShrink: 0,
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -102,23 +83,22 @@ export const ModuleHub = () => {
                                 <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 600 }}>Gestão de Validade</h2>
                             </div>
                             <p style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.4' }}>
-                                Controle de vencimentos, auditorias e solicitações de produtos.
+                                Controle de vencimentos e conferências.
                             </p>
                         </div>
                     )}
 
                     {/* Planogram Module Card */}
-                    {isPlanogramVisible && (
+                    {canAccessPlanogram && (
                         <div
-                            className={`glass item-card ${!hasPlanogramAccess ? 'disabled' : ''}`}
-                            onClick={() => hasPlanogramAccess && navigate('/planogram')}
+                            className={`glass item-card`}
+                            onClick={() => navigate('/planogram')}
                             style={{
                                 padding: '24px',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'flex-start',
-                                cursor: hasPlanogramAccess ? 'pointer' : 'not-allowed',
-                                opacity: hasPlanogramAccess ? 1 : 0.5,
+                                cursor: 'pointer',
                                 transition: 'all 0.3s ease',
                                 border: '1px solid var(--glass-border)',
                                 borderRadius: '16px',
@@ -126,16 +106,12 @@ export const ModuleHub = () => {
                                 minHeight: '160px'
                             }}
                             onMouseEnter={(e) => {
-                                if (hasPlanogramAccess) {
-                                    e.currentTarget.style.transform = 'translateY(-5px)';
-                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                                }
+                                e.currentTarget.style.transform = 'translateY(-5px)';
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
                             }}
                             onMouseLeave={(e) => {
-                                if (hasPlanogramAccess) {
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.background = 'var(--glass-bg)';
-                                }
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.background = 'var(--glass-bg)';
                             }}
                         >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px', width: '100%' }}>
@@ -143,6 +119,7 @@ export const ModuleHub = () => {
                                     background: '#10b981', // Emerald 500
                                     width: '48px',
                                     height: '48px',
+                                    flexShrink: 0,
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -160,72 +137,21 @@ export const ModuleHub = () => {
                     )}
 
                     {/* Butcher Module Card */}
-                    {user?.role && (user?.role === 'admin' ||
-                        user?.role === 'acougue' ||
-                        ['requester', 'producer', 'manager'].includes(user?.butcher_role || '') ||
-                        ((user?.role === 'encarregado' || user?.role === 'conferente') && user?.store?.is_butcher_active !== false)
-                    ) && (
-                            <div
-                                className="glass item-card"
-                                onClick={() => navigate('/butcher')}
-                                style={{
-                                    padding: '24px',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'flex-start',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s ease',
-                                    border: '1px solid var(--glass-border)',
-                                    borderRadius: '16px',
-                                    background: 'var(--glass-bg)',
-                                    minHeight: '160px'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(-5px)';
-                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.background = 'var(--glass-bg)';
-                                }}
-                            >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px', width: '100%' }}>
-                                    <div style={{
-                                        background: '#ef4444', // Red 500
-                                        width: '48px',
-                                        height: '48px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        borderRadius: '50%',
-                                        boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-                                    }}>
-                                        <Beef size={24} color="white" />
-                                    </div>
-                                    <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 600 }}>Açougue</h2>
-                                </div>
-                                <p style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.4' }}>
-                                    Gestão de produção e pedidos de cortes.
-                                </p>
-                            </div>
-                        )}
-
-                    {/* Settings Module Card - Admin Only */}
-                    {hasSettingsAccess && (
+                    {canAccessButcher && (
                         <div
                             className="glass item-card"
-                            onClick={() => navigate('/settings')}
+                            onClick={() => navigate('/butcher')}
                             style={{
-                                padding: '32px',
+                                padding: '24px',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                alignItems: 'center',
+                                alignItems: 'flex-start',
                                 cursor: 'pointer',
                                 transition: 'all 0.3s ease',
                                 border: '1px solid var(--glass-border)',
                                 borderRadius: '16px',
                                 background: 'var(--glass-bg)',
-                                minHeight: '300px'
+                                minHeight: '160px'
                             }}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.transform = 'translateY(-5px)';
@@ -236,21 +162,70 @@ export const ModuleHub = () => {
                                 e.currentTarget.style.background = 'var(--glass-bg)';
                             }}
                         >
-                            <div style={{
-                                background: '#6366f1', // Indigo 500
-                                width: '64px',
-                                height: '64px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                borderRadius: '50%',
-                                marginBottom: '20px',
-                                boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-                            }}>
-                                <Settings size={32} color="white" />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px', width: '100%' }}>
+                                <div style={{
+                                    background: '#ef4444', // Red 500
+                                    width: '48px',
+                                    height: '48px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    borderRadius: '50%',
+                                    boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                                }}>
+                                    <Beef size={24} color="white" />
+                                </div>
+                                <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 600 }}>Açougue</h2>
                             </div>
-                            <h2 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>Configurações Gerais</h2>
-                            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                            <p style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.4' }}>
+                                Gestão de produção e pedidos de cortes.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Settings Module Card - Admin Only */}
+                    {canAccessSettings && (
+                        <div
+                            className="glass item-card"
+                            onClick={() => navigate('/settings')}
+                            style={{
+                                padding: '24px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'flex-start',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                border: '1px solid var(--glass-border)',
+                                borderRadius: '16px',
+                                background: 'var(--glass-bg)',
+                                minHeight: '160px'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-5px)';
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.background = 'var(--glass-bg)';
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px', width: '100%' }}>
+                                <div style={{
+                                    background: '#6366f1', // Indigo 500
+                                    width: '48px',
+                                    height: '48px',
+                                    flexShrink: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    borderRadius: '50%',
+                                    boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                                }}>
+                                    <Settings size={24} color="white" />
+                                </div>
+                                <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 600 }}>Configurações Gerais</h2>
+                            </div>
+                            <p style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.4' }}>
                                 Central administrativa: Lojas, Padrões e Usuários.
                             </p>
                         </div>

@@ -99,8 +99,15 @@ export const ModulePatternsPage: React.FC = () => {
             alert('Erro ao salvar padrão.');
         }
     };
+    const mobileAddAction = (
+        <button onClick={handleOpenAdd} className="nav-btn">
+            <Plus size={24} color="var(--brand-primary)" />
+            <span>Adicionar</span>
+        </button>
+    );
+
     return (
-        <DashboardLayout onAddClick={handleOpenAdd}>
+        <DashboardLayout mobileAction={mobileAddAction}>
             <div className="fade-in">
                 {/* Breadcrumbs */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>

@@ -4,6 +4,7 @@ import { Modal } from '../../components/Modal';
 import { useProductSearch, type Product } from '../../hooks/useProductSearch';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { getModuleStoreId } from '../../utils/permissions';
 import { type ValidityEntry } from '../../hooks/useValidityEntries';
 import { BarcodeScannerModal } from './BarcodeScannerModal';
 import './AddValidityModal.css';
@@ -81,12 +82,17 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
                 if (updateError) throw updateError;
             } else {
                 // Insert Logic
+                const storeId = getModuleStoreId(user, 'validity');
+                if (!storeId) {
+                    throw new Error('Usuário sem acesso para adicionar registros');
+                }
+
                 const { error: insertError } = await supabase
                     .schema('validity')
                     .from('validity_entries')
                     .insert({
                         product_id: selectedProduct.id,
-                        store_id: user.store_id,
+                        store_id: storeId,
                         expires_at: formData.expires_at,
                         lot: formData.lot || null,
                         quantity: formData.quantity ? parseFloat(formData.quantity) : null,

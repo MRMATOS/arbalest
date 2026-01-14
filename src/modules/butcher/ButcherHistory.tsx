@@ -6,6 +6,7 @@ import { DashboardLayout } from '../../layouts/DashboardLayout';
 import { Search, Printer, PlusCircle, FileText, Filter, History, Copy } from 'lucide-react';
 import { ButcherFilterModal } from './components/ButcherFilterModal';
 import { AddButcherOrderModal } from './components/AddButcherOrderModal';
+import { ButcherPermissions } from '../../utils/permissions';
 
 interface Order {
     id: string;
@@ -159,8 +160,8 @@ export const ButcherHistory: React.FC = () => {
     };
 
     // Logic for Mobile Action Button (Same as Dashboard for consistency)
-    const canProduce = user?.role === 'admin' || user?.butcher_role === 'producer';
-    const canRequest = user?.role === 'admin' || user?.butcher_role === 'requester';
+    const canProduce = ButcherPermissions.canProduce(user);
+    const canRequest = ButcherPermissions.canRequest(user);
 
     let mobileActionButton = null;
 
@@ -224,10 +225,11 @@ export const ButcherHistory: React.FC = () => {
 
     return (
         <DashboardLayout
-            customMobileAction={mobileActionButton}
-            filterMobileAction={historyLink}
-            secondaryMobileAction={filterButton}
-            tertiaryMobileAction={pedidosLink}
+            // Slots: Menu, History, Filter, Module (Pedidos), Action
+            mobileHistory={historyLink}
+            mobileFilter={filterButton}
+            mobileModule={pedidosLink}
+            mobileAction={mobileActionButton}
         >
             <div className="arbalest-layout-container">
                 {/* Header */}

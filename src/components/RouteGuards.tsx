@@ -2,19 +2,20 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { AlertCircle } from 'lucide-react';
 import { DashboardLayout } from '../layouts/DashboardLayout';
+import { hasModuleAccess } from '../utils/permissions';
 
 export const RequirePermissions = () => {
     const { user } = useAuth();
 
-    // Admin always has partial access (can at least access settings)
-    if (user?.role === 'admin') {
+    // Admin always has access
+    if (user?.is_admin) {
         return <Outlet />;
     }
 
-    // Must have both Role and Store assigned
-    if (!user?.role || !user?.store_id) {
+    // Must have both permissions and store assigned (unless legacy role exists)
+    if (!user?.permissions && !user?.role) {
         return (
-            <DashboardLayout hideDefaultModuleNav={true}>
+            <DashboardLayout>
                 <div className="arbalest-layout-container" style={{
                     height: '100vh',
                     display: 'flex',
@@ -61,35 +62,16 @@ interface ModuleAccessProps {
 export const RequireModuleAccess: React.FC<ModuleAccessProps> = ({ module }) => {
     const { user } = useAuth();
 
-    if (!user?.role) return <Navigate to="/" replace />;
+    if (!user) return <Navigate to="/login" replace />;
 
     const hasAccess = () => {
-        if (user.role === 'admin') return true;
+        if (user.is_admin) return true;
 
-        switch (module) {
-            case 'validity':
-                return (user.role === 'encarregado' || user.role === 'conferente') &&
-                    user.store?.show_validity !== false;
+        // Settings is admin-only, not a regular module
+        if (module === 'settings') return false;
 
-            case 'planogram':
-                return (user.role === 'planogram_edit' || user.role === 'planogram_view') &&
-                    user.store?.show_planogram !== false;
-
-            case 'butcher':
-                // Check if user has explicit butcher role access
-                if (user.role === 'acougue') return true;
-                if (['requester', 'producer', 'manager'].includes(user.butcher_role || '')) return true;
-
-                // Check if store allows butcher access for standard roles
-                return (user.role === 'encarregado' || user.role === 'conferente') &&
-                    user.store?.is_butcher_active !== false;
-
-            case 'settings':
-                return false; // Only admin (handled above)
-
-            default:
-                return false;
-        }
+        const canAccess = hasModuleAccess(user, module);
+        return canAccess;
     };
 
     if (!hasAccess()) {

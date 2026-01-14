@@ -17,7 +17,7 @@ interface Product {
 
 export const ProductList: React.FC = () => {
     const { user } = useAuth();
-    const isAdmin = user?.role === 'admin';
+    const isAdmin = user?.is_admin;
 
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(false);
