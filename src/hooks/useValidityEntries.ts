@@ -7,7 +7,8 @@ export interface ValidityEntry {
     expires_at: string;
     lot: string | null;
     quantity: number;
-    status: 'ativo' | 'conferindo' | 'conferido' | 'excluido';
+    unit: 'un' | 'kg';
+    status: 'pendente' | 'conferindo' | 'conferido' | 'excluido';
     product: {
         name: string;
         ean: string | null;
@@ -18,6 +19,7 @@ export interface ValidityEntry {
     created_by_user?: {
         id: string;
         name?: string;
+        username?: string;
         email?: string;
     };
     has_pending_delete_request?: boolean;
@@ -36,7 +38,7 @@ export interface ValidityEntry {
     };
 }
 
-export const useValidityEntries = (options: { includeDeleted?: boolean } = {}) => {
+export const useValidityEntries = (options: { includeDeleted?: boolean; statusFilter?: 'pendente' | 'conferido' | 'all' } = {}) => {
     const [entries, setEntries] = useState<ValidityEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -53,7 +55,12 @@ export const useValidityEntries = (options: { includeDeleted?: boolean } = {}) =
                 .from('validity_entries')
                 .select('*');
 
-            if (!options.includeDeleted) {
+            // Apply status filter
+            if (options.statusFilter === 'pendente') {
+                query = query.eq('status', 'pendente');
+            } else if (options.statusFilter === 'conferido') {
+                query = query.eq('status', 'conferido');
+            } else if (!options.includeDeleted) {
                 query = query.neq('status', 'excluido');
             }
 
@@ -76,7 +83,7 @@ export const useValidityEntries = (options: { includeDeleted?: boolean } = {}) =
             // Fetch profiles from public schema (default)
             const { data: profilesData } = await supabase
                 .from('profiles')
-                .select('id, name, email')
+                .select('id, name, username, email')
                 .in('id', createdByIds.length > 0 ? createdByIds : ['00000000-0000-0000-0000-000000000000']);
 
             // Fetch stores from public schema
@@ -129,6 +136,7 @@ export const useValidityEntries = (options: { includeDeleted?: boolean } = {}) =
                     created_by_user: profile ? {
                         id: profile.id,
                         name: profile.name,
+                        username: profile.username,
                         email: profile.email
                     } : undefined,
                     has_pending_delete_request: !!pendingRequest,
@@ -162,7 +170,7 @@ export const useValidityEntries = (options: { includeDeleted?: boolean } = {}) =
         } finally {
             setLoading(false);
         }
-    }, [user, options.includeDeleted]);
+    }, [user, options.includeDeleted, options.statusFilter]);
 
     useEffect(() => {
         const subscription = supabase

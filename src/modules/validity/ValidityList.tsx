@@ -19,6 +19,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 import { ValidityPermissions } from '../../utils/permissions';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { Pagination } from '../../components/Pagination';
 
 import { AddValidityModal } from './AddValidityModal';
 import { FilterModal, type FilterState } from './FilterModal';
@@ -44,7 +45,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
         refresh,
         updateStatus,
         deleteEntry
-    } = useValidityEntries();
+    } = useValidityEntries({ statusFilter: 'pendente' });
     const navigate = useNavigate();
     const { user } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
@@ -56,6 +57,10 @@ export const ValidityList: React.FC<ValidityListProps> = ({
     const [selectedUser, setSelectedUser] = useState<string>('all');
     const [selectedType, setSelectedType] = useState<string>('all');
     const [sortBy, setSortBy] = useState<string>('recent');
+
+    // Pagination
+    const ITEMS_PER_PAGE = 10;
+    const [currentPage, setCurrentPage] = useState(1);
 
     // Filter data
     const [stores, setStores] = useState<Array<{ id: string, name: string }>>([]);
@@ -72,17 +77,23 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                 .order('name');
             if (storesData) setStores(storesData);
 
-            // Fetch encarregados
+            // Fetch encarregados (users with encarregado function in validity module)
             const { data: usersData } = await supabase
                 .from('profiles')
-                .select('id, name, email')
-                .eq('role', 'encarregado')
+                .select('id, name, username, email')
+                .not('permissions->validity', 'is', null)  // Has validity module access
+                .eq('permissions->validity->>function', 'encarregado')  // Is encarregado
                 .order('name');
             if (usersData) setUsers(usersData);
         };
 
         fetchFilterData();
     }, []);
+
+    // Reset page when search changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
 
     // Delete Confirmation State
     const [deleteConfirmation, setDeleteConfirmation] = useState<{
@@ -139,7 +150,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
     const handleCopyProductDetails = (item: ValidityEntry) => {
         const days = getExpiryDays(item.expires_at);
         const statusText = days <= 0 ? 'VENCIDO' : `${days} dias`;
-        const text = `*${item.product.name}*\nEAN: ${item.product.ean || '-'}\nCód: ${item.product.code}\nQtd: ${item.quantity}\nLote: ${item.lot || '-'}\nValidade: ${new Date(item.expires_at).toLocaleDateString('pt-BR')} (${statusText})`;
+        const text = `*${item.product.name}*\nEAN: ${item.product.ean || '-'}\nCód: ${item.product.code}\nQtd: ${item.quantity} ${item.unit}\nLote: ${item.lot || '-'}\nValidade: ${new Date(item.expires_at).toLocaleDateString('pt-BR')} (${statusText})`;
         handleCopy(text, item.id, 'full');
     };
 
@@ -159,6 +170,13 @@ export const ValidityList: React.FC<ValidityListProps> = ({
     // Permissions Logic
     const canVerify = ValidityPermissions.canVerify(user) || user?.is_admin;
     const canEdit = ValidityPermissions.canEdit(user) || user?.is_admin;
+
+    // Delete permission: only admin or creator can delete
+    const canDelete = (entry: ValidityEntry) => {
+        if (user?.is_admin) return true;
+        if (entry.created_by_user?.id === user?.id) return true;
+        return false;
+    };
 
     const handleDelete = async () => {
         if (!deleteConfirmation) return;
@@ -217,12 +235,21 @@ export const ValidityList: React.FC<ValidityListProps> = ({
         setSelectedUser(newFilters.user);
         setSelectedType(newFilters.type);
         setSortBy(newFilters.sortBy);
+        setCurrentPage(1); // Reset to first page when filters change
     };
+
+    // Pagination logic
+    const totalItems = filteredEntries.length;
+    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+    const paginatedEntries = filteredEntries.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
 
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'conferido': return <span className="arbalest-badge arbalest-badge-success"><CheckCircle2 size={14} /> Conferido</span>;
-            default: return <span className="arbalest-badge arbalest-badge-info">Ativo</span>;
+            default: return <span className="arbalest-badge arbalest-badge-info">Pendente</span>;
         }
     };
 
@@ -395,7 +422,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredEntries.map(item => (
+                            {paginatedEntries.map(item => (
                                 <tr key={item.id}>
                                     <td className="product-col">
                                         <span className="product-name">{item.product.name}</span>
@@ -433,7 +460,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                         </div>
                                     </td>
                                     <td>{getStatusBadge(item.status)}</td>
-                                    <td><span className="quantity">{item.quantity}</span></td>
+                                    <td><span className="quantity">{item.quantity} {item.unit}</span></td>
                                     <td>
                                         <div className={`expiry-info ${getExpiryClass(item)}`}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -494,26 +521,27 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                                 )}
                                             </button>
 
-                                            {/* 4. Edit/Delete (Encarregado Only) */}
-                                            {canEdit && (
-                                                <>
-                                                    <button
-                                                        className="arbalest-icon-btn"
-                                                        onClick={() => setEditEntry(item)}
-                                                        title="Editar"
-                                                    >
-                                                        <Pen size={18} />
-                                                    </button>
+                                            {/* 4. Edit/Delete - only creator or admin */}
+                                            {canDelete(item) && (
+                                                <button
+                                                    className="arbalest-icon-btn"
+                                                    onClick={() => setEditEntry(item)}
+                                                    title="Editar"
+                                                >
+                                                    <Pen size={18} />
+                                                </button>
+                                            )}
 
-                                                    <button
-                                                        className="arbalest-icon-btn"
-                                                        onClick={() => setDeleteConfirmation({ isOpen: true, entryId: item.id, productName: item.product.name })}
-                                                        title="Excluir"
-                                                        style={{ color: 'var(--error)' }}
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
-                                                </>
+                                            {/* Delete - only creator or admin */}
+                                            {canDelete(item) && (
+                                                <button
+                                                    className="arbalest-icon-btn"
+                                                    onClick={() => setDeleteConfirmation({ isOpen: true, entryId: item.id, productName: item.product.name })}
+                                                    title="Excluir"
+                                                    style={{ color: 'var(--error)' }}
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
                                             )}
                                         </>
                                     </td>
@@ -530,7 +558,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
             {!loading && !error && (
                 <div className="mobile-view">
                     <div className="card-list">
-                        {filteredEntries.map(item => (
+                        {paginatedEntries.map(item => (
                             <div key={item.id} className="arbalest-card">
                                 <div className="arbalest-card-header">
                                     <span className="product-name">{item.product.name}</span>
@@ -541,7 +569,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                     <div className="arbalest-card-row">
                                         <div className="arbalest-card-info">
                                             <label>Quantidade</label>
-                                            <span className="quantity-val">{item.quantity} un</span>
+                                            <span className="quantity-val">{item.quantity} {item.unit}</span>
                                         </div>
                                         <div className="arbalest-card-info">
                                             <label>Loja</label>
@@ -637,7 +665,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                         </button>
                                     )}
 
-                                    {canEdit && (
+                                    {canDelete(item) && (
                                         <button
                                             className="arbalest-btn arbalest-btn-primary"
                                             onClick={() => setMobileOptionsEntry(item)}
@@ -650,9 +678,19 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                         ))}
                     </div>
                 </div>
-            )
-            }
+            )}
             {/* ... modals ... */}
+
+            {/* Pagination */}
+            {!loading && !error && totalPages > 1 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                    totalItems={totalItems}
+                    itemsPerPage={ITEMS_PER_PAGE}
+                />
+            )}
 
 
             <ConfirmModal
@@ -675,7 +713,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                 onClose={() => setConfirmAction(null)}
                 onConfirm={() => {
                     if (confirmAction) {
-                        updateStatus(confirmAction.entryId, 'ativo');
+                        updateStatus(confirmAction.entryId, 'pendente');
                     }
                 }}
                 title="Desmarcar Conferência?"
@@ -725,24 +763,26 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                     Editar Registro
                                 </button>
 
-                                <button
-                                    className="arbalest-btn"
-                                    style={{
-                                        border: '1px solid var(--error)',
-                                        color: 'var(--error)',
-                                        background: 'transparent'
-                                    }}
-                                    onClick={() => {
-                                        setDeleteConfirmation({
-                                            isOpen: true,
-                                            entryId: mobileOptionsEntry.id,
-                                            productName: mobileOptionsEntry.product.name
-                                        });
-                                        setMobileOptionsEntry(null);
-                                    }}
-                                >
-                                    Excluir Registro
-                                </button>
+                                {canDelete(mobileOptionsEntry) && (
+                                    <button
+                                        className="arbalest-btn"
+                                        style={{
+                                            border: '1px solid var(--error)',
+                                            color: 'var(--error)',
+                                            background: 'transparent'
+                                        }}
+                                        onClick={() => {
+                                            setDeleteConfirmation({
+                                                isOpen: true,
+                                                entryId: mobileOptionsEntry.id,
+                                                productName: mobileOptionsEntry.product.name
+                                            });
+                                            setMobileOptionsEntry(null);
+                                        }}
+                                    >
+                                        Excluir Registro
+                                    </button>
+                                )}
 
                                 <button className="arbalest-btn arbalest-btn-neutral" onClick={() => setMobileOptionsEntry(null)}>
                                     Cancelar

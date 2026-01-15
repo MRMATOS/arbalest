@@ -16,6 +16,31 @@ interface AddValidityModalProps {
     editEntry?: ValidityEntry | null;
 }
 
+// Helper function to detect unit based on input
+function detectUnit(input: string): { value: number; unit: 'un' | 'kg' } {
+    const cleaned = input.trim();
+
+    // Empty input
+    if (!cleaned) {
+        return { value: 0, unit: 'un' };
+    }
+
+    // Trailing . or , = integer (un)
+    if (cleaned.endsWith('.') || cleaned.endsWith(',')) {
+        const num = parseInt(cleaned.slice(0, -1)) || 0;
+        return { value: num, unit: 'un' };
+    }
+
+    // Has decimal = kg
+    const hasDecimal = /[.,]\d/.test(cleaned);
+    const normalized = parseFloat(cleaned.replace(',', '.')) || 0;
+
+    return {
+        value: normalized,
+        unit: hasDecimal ? 'kg' : 'un'
+    };
+}
+
 export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onClose, onSuccess, editEntry }) => {
     const { results, loading: searchLoading, search } = useProductSearch();
     const { user } = useAuth();
@@ -28,6 +53,7 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
         lot: '',
         quantity: ''
     });
+    const [detectedUnit, setDetectedUnit] = useState<'un' | 'kg'>('un');
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -40,10 +66,7 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
                 lot: editEntry.lot || '',
                 quantity: editEntry.quantity ? editEntry.quantity.toString() : ''
             });
-        } else {
-            // Reset if opening in add mode (though handleClose usually does this, it helps switching modes)
-            // But be careful not to wipe state if just re-rendering.
-            // Better to rely on the parent resetting editEntry or handleClose clearing.
+            setDetectedUnit(editEntry.unit || 'un');
         }
     }, [editEntry]);
 
@@ -81,11 +104,12 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
 
                 if (updateError) throw updateError;
             } else {
-                // Insert Logic
+                // Add mode: Insert new entry
                 const storeId = getModuleStoreId(user, 'validity');
                 if (!storeId) {
                     throw new Error('Usuário sem acesso para adicionar registros');
                 }
+                const { value, unit } = detectUnit(formData.quantity);
 
                 const { error: insertError } = await supabase
                     .schema('validity')
@@ -95,9 +119,10 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
                         store_id: storeId,
                         expires_at: formData.expires_at,
                         lot: formData.lot || null,
-                        quantity: formData.quantity ? parseFloat(formData.quantity) : null,
+                        quantity: value,
+                        unit: unit,
                         created_by: user.id,
-                        status: 'ativo'
+                        status: 'pendente'
                     });
 
                 if (insertError) throw insertError;
@@ -245,15 +270,29 @@ export const AddValidityModal: React.FC<AddValidityModalProps> = ({ isOpen, onCl
 
                             <div className="form-group">
                                 <label className="arbalest-label">Quantidade (Opcional)</label>
-                                <input
-                                    type="number"
-                                    className="arbalest-input"
-                                    value={formData.quantity}
-                                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                                    placeholder="Ex: 24"
-                                    min="0"
-                                    step="1"
-                                />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <input
+                                        type="text"
+                                        className="arbalest-input"
+                                        value={formData.quantity}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setFormData({ ...formData, quantity: value });
+                                            if (value) {
+                                                const { unit } = detectUnit(value);
+                                                setDetectedUnit(unit);
+                                            } else {
+                                                setDetectedUnit('un');
+                                            }
+                                        }}
+                                        placeholder="Ex: 300 ou 11,45"
+                                    />
+                                    {formData.quantity && (
+                                        <span className={`unit-badge unit-${detectedUnit}`}>
+                                            {detectedUnit === 'un' ? '📦 un' : '⚖️ kg'}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="form-group">

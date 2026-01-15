@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Copy, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Search, Copy, CheckCircle2, RotateCcw } from 'lucide-react';
 import { useValidityEntries, type ValidityEntry } from '../../hooks/useValidityEntries';
 import { supabase } from '../../services/supabase';
 import { FilterModal } from './FilterModal';
+import { Pagination } from '../../components/Pagination';
 import '../../styles/global.css';
 
 
@@ -17,7 +18,7 @@ export const ValidityHistoryPage: React.FC<ValidityHistoryPageProps> = ({
     onCloseFilterModal: controlledOnCloseFilter
 }) => {
     const navigate = useNavigate();
-    const { entries, loading } = useValidityEntries({ includeDeleted: true });
+    const { entries, loading, updateStatus } = useValidityEntries({ statusFilter: 'conferido' });
 
     const [searchTerm, setSearchTerm] = useState('');
     const [copiedState, setCopiedState] = useState<{ id: string, type: 'full' | 'code' } | null>(null);
@@ -32,6 +33,10 @@ export const ValidityHistoryPage: React.FC<ValidityHistoryPageProps> = ({
     const [filterType, setFilterType] = useState('all');
     const [filterStatus, setFilterStatus] = useState('all'); // all, excluido, vencido, ativo
     const [sortBy, setSortBy] = useState('recent');
+
+    // Pagination
+    const ITEMS_PER_PAGE = 10;
+    const [currentPage, setCurrentPage] = useState(1);
 
     const [internalIsFilterOpen, setInternalIsFilterOpen] = useState(false);
 
@@ -88,7 +93,7 @@ export const ValidityHistoryPage: React.FC<ValidityHistoryPageProps> = ({
         } else if (filterStatus === 'vencido') {
             const isExpired = new Date(item.expires_at) < new Date();
             if (!isExpired || item.status === 'excluido') return false;
-        } else if (filterStatus === 'ativo') {
+        } else if (filterStatus === 'pendente') {
             if (item.status === 'excluido') return false;
             const isExpired = new Date(item.expires_at) < new Date();
             if (isExpired) return false;
@@ -105,6 +110,19 @@ export const ValidityHistoryPage: React.FC<ValidityHistoryPageProps> = ({
         // recent (created_at) - Default
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
+
+    // Pagination logic
+    const totalItems = filteredEntries.length;
+    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+    const paginatedEntries = filteredEntries.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
+
+    // Reset page when search changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
 
     const handleCopyProductDetails = async (entry: ValidityEntry) => {
         const lines = [
@@ -126,30 +144,7 @@ export const ValidityHistoryPage: React.FC<ValidityHistoryPageProps> = ({
         }
     };
 
-    // Helper for Status Badge
-    const getStatusBadge = (item: ValidityEntry) => {
-        if (item.status === 'excluido') {
-            return <span className="arbalest-badge badge-danger">Excluído</span>;
-        }
-
-        const isExpired = new Date(item.expires_at) < new Date();
-        if (isExpired) {
-            return <span className="arbalest-badge badge-danger">Vencido</span>;
-        }
-
-        if (item.status === 'conferido') {
-            return <span className="arbalest-badge badge-success">Conferido</span>;
-        }
-
-        return <span className="arbalest-badge badge-neutral">Ativo</span>;
-    };
-
     const getStoreName = (id: string) => stores.find(s => s.id === id)?.name || '...';
-    const getUserName = (id?: string) => {
-        if (!id) return '-';
-        const u = users.find(u => u.id === id);
-        return u ? (u.name || u.email?.split('@')[0]) : '...';
-    };
 
     return (
         <div className="arbalest-layout-container">
@@ -201,7 +196,7 @@ export const ValidityHistoryPage: React.FC<ValidityHistoryPageProps> = ({
                         <label className="arbalest-label">Status</label>
                         <select className="arbalest-select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
                             <option value="all">Todos</option>
-                            <option value="ativo">Ativos</option>
+                            <option value="pendente">Pendentes</option>
                             <option value="vencido">Vencidos</option>
                             <option value="excluido">Excluídos</option>
                         </select>
@@ -236,19 +231,18 @@ export const ValidityHistoryPage: React.FC<ValidityHistoryPageProps> = ({
                                 <tr>
                                     <th>Produto</th>
                                     <th>Loja</th>
-                                    <th>Tipo</th>
-                                    <th>Usuário</th>
+                                    <th>Registrado por</th>
                                     <th>Lote</th>
                                     <th>Qtd.</th>
                                     <th>Validade</th>
-                                    <th>Status</th>
-                                    <th>Criado Em</th>
-                                    <th style={{ width: '50px' }}></th>
+                                    <th>Registrado em</th>
+                                    <th>Conferido em</th>
+                                    <th style={{ width: '100px' }}>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredEntries.map(item => (
-                                    <tr key={item.id} style={{ opacity: item.status === 'excluido' ? 0.7 : 1 }}>
+                                {paginatedEntries.map(item => (
+                                    <tr key={item.id}>
                                         <td>
                                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                                 <span style={{ fontWeight: 500 }}>{item.product.name}</span>
@@ -256,16 +250,17 @@ export const ValidityHistoryPage: React.FC<ValidityHistoryPageProps> = ({
                                             </div>
                                         </td>
                                         <td>{getStoreName(item.store_id)}</td>
-                                        <td style={{ textTransform: 'capitalize' }}>{item.product.type || '-'}</td>
-                                        <td>{getUserName(item.created_by_user?.id)}</td>
+                                        <td>{item.created_by_user?.name || item.created_by_user?.username || item.created_by_user?.email || '-'}</td>
                                         <td>{item.lot || '-'}</td>
-                                        <td>{item.quantity}</td>
+                                        <td>{item.quantity} {item.unit}</td>
                                         <td>
                                             {new Date(item.expires_at).toLocaleDateString('pt-BR')}
                                         </td>
-                                        <td>{getStatusBadge(item)}</td>
                                         <td style={{ fontSize: '0.8rem', opacity: 0.8 }}>
                                             {new Date(item.created_at).toLocaleDateString('pt-BR')}
+                                        </td>
+                                        <td style={{ fontSize: '0.8rem', opacity: 0.8 }}>
+                                            {item.verified_at ? new Date(item.verified_at).toLocaleDateString('pt-BR') : '-'}
                                         </td>
                                         <td>
                                             <button
@@ -279,6 +274,14 @@ export const ValidityHistoryPage: React.FC<ValidityHistoryPageProps> = ({
                                                     <Copy size={18} />
                                                 )}
                                             </button>
+                                            <button
+                                                className="arbalest-icon-btn"
+                                                onClick={() => updateStatus(item.id, 'pendente')}
+                                                title="Desmarcar (voltar para pendência)"
+                                                style={{ marginLeft: '4px' }}
+                                            >
+                                                <RotateCcw size={18} />
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
@@ -287,11 +290,10 @@ export const ValidityHistoryPage: React.FC<ValidityHistoryPageProps> = ({
                     </div>
 
                     <div className="mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {filteredEntries.map(item => (
-                            <div key={item.id} className="arbalest-card arbalest-glass" style={{ opacity: item.status === 'excluido' ? 0.7 : 1 }}>
+                        {paginatedEntries.map(item => (
+                            <div key={item.id} className="arbalest-card arbalest-glass">
                                 <div className="arbalest-card-header">
                                     <span className="product-name">{item.product.name}</span>
-                                    {getStatusBadge(item)}
                                 </div>
                                 <div className="arbalest-card-body">
                                     <div className="arbalest-card-row">
@@ -300,8 +302,8 @@ export const ValidityHistoryPage: React.FC<ValidityHistoryPageProps> = ({
                                             <span style={{ fontSize: '0.85rem' }}>{item.product.code} • {item.product.ean || '-'}</span>
                                         </div>
                                         <div className="arbalest-card-info">
-                                            <label className="arbalest-label">Loja / Usuário</label>
-                                            <span style={{ fontSize: '0.85rem' }}>{getStoreName(item.store_id)}<br />{getUserName(item.created_by_user?.id)}</span>
+                                            <label className="arbalest-label">Loja / Registrado por</label>
+                                            <span style={{ fontSize: '0.85rem' }}>{getStoreName(item.store_id)}<br />{item.created_by_user?.name || item.created_by_user?.username || item.created_by_user?.email || '-'}</span>
                                         </div>
                                     </div>
                                     <div className="arbalest-card-row">
@@ -311,12 +313,27 @@ export const ValidityHistoryPage: React.FC<ValidityHistoryPageProps> = ({
                                         </div>
                                         <div className="arbalest-card-info">
                                             <label className="arbalest-label">Qtd.</label>
-                                            <span>{item.quantity}</span>
+                                            <span>{item.quantity} {item.unit}</span>
                                         </div>
                                         <div className="arbalest-card-info">
                                             <label className="arbalest-label">Validade</label>
                                             <span style={{ color: new Date(item.expires_at) < new Date() ? 'var(--error)' : 'inherit' }}>
                                                 {new Date(item.expires_at).toLocaleDateString('pt-BR')}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="arbalest-card-row">
+                                        <div className="arbalest-card-info">
+                                            <label className="arbalest-label">Registrado em</label>
+                                            <span style={{ fontSize: '0.85rem' }}>
+                                                {new Date(item.created_at).toLocaleDateString('pt-BR')}
+                                            </span>
+                                        </div>
+                                        <div className="arbalest-card-info">
+                                            <label className="arbalest-label">Conferido em</label>
+                                            <span style={{ fontSize: '0.85rem' }}>
+                                                {item.verified_at ? new Date(item.verified_at).toLocaleDateString('pt-BR') : '-'}
                                             </span>
                                         </div>
                                     </div>
@@ -339,12 +356,31 @@ export const ValidityHistoryPage: React.FC<ValidityHistoryPageProps> = ({
                                                 </>
                                             )}
                                         </button>
+                                        <button
+                                            className="arbalest-btn arbalest-btn-primary"
+                                            style={{ width: '100%', justifyContent: 'center', marginTop: '8px' }}
+                                            onClick={() => updateStatus(item.id, 'pendente')}
+                                        >
+                                            <RotateCcw size={18} />
+                                            <span>Desmarcar</span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                         ))}
                     </div>
                 </>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                    totalItems={totalItems}
+                    itemsPerPage={ITEMS_PER_PAGE}
+                />
             )}
 
             <FilterModal
@@ -363,6 +399,7 @@ export const ValidityHistoryPage: React.FC<ValidityHistoryPageProps> = ({
                     setFilterUser(newFilters.user);
                     setFilterType(newFilters.type);
                     setSortBy(newFilters.sortBy);
+                    setCurrentPage(1);
                 }}
             />
         </div>
