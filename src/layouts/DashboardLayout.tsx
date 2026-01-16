@@ -237,20 +237,17 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             {/* Main Content */}
             <main className="main-content">
                 <div className="main-header desktop-only">
-                    {/* Mobile Toggle Button (Only on Mobile normally, but here 'desktop-only' header? Check usage) */}
                     <button onClick={toggleSidebar} className="menu-toggle-btn" ref={toggleBtnRef}>
                         {sidebarOpen ? <ChevronLeft size={24} /> : <Menu size={24} />}
                     </button>
 
-                    <div className="header-actions" style={{ marginLeft: 'auto' }}>
-                        <div className="user-profile">
-                            <span className="role-badge">
-                                {getUserFunctionsLabel(user)}
-                            </span>
-                            {storeLabel && (
-                                <span className="store-badge">{storeLabel}</span>
-                            )}
-                        </div>
+                    <div className="user-profile">
+                        <span className="role-badge">
+                            {getUserFunctionsLabel(user)}
+                        </span>
+                        {storeLabel && (
+                            <span className="store-badge">{storeLabel}</span>
+                        )}
                     </div>
                 </div>
                 <div className="content-area">

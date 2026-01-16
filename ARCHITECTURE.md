@@ -198,7 +198,70 @@ FOR SELECT USING (
 - **Colunas**: `snake_case`
 - **Policies**: `[schema]_[action]_policy` (ex: `butcher_read_policy`)
 
+### ⚠️ Schemas e Tabelas por Módulo
+
+**IMPORTANTE:** Use `.schema()` + `.from()` separadamente para schemas customizados.
+
+#### Schema `public` (Compartilhado)
+- `profiles` - Perfis de usuário com permissões
+- `stores` - Lojas do sistema
+- `products` - Catálogo de produtos
+
+#### Schema `validity`
+- `entries` - Registros de validade de produtos
+- `entry_history` - Histórico de alterações
+- `delete_requests` - Solicitações de exclusão
+
+#### Schema `butcher` 
+**⚠️ ATENÇÃO: Schema reorganizado em lote/itens**
+
+✅ **Tabelas Corretas:**
+- `order_batches` - Cabeçalho do pedido (lote)
+- `order_items` - Itens individuais do pedido (linhas)
+
+❌ **NÃO EXISTE:**
+- `orders` - Tabela antiga, removida
+
+**Uso Correto com Supabase:**
+```typescript
+// ✅ CORRETO - Usar .schema() + .from() separadamente
+const { data } = await supabase
+  .schema('butcher')
+  .from('order_batches')
+  .select('*');
+
+const { data: items } = await supabase
+  .schema('butcher')
+  .from('order_items')
+  .select('*');
+
+// ❌ ERRADO - NÃO usar ponto no nome da tabela
+const { data } = await supabase
+  .from('butcher.order_batches'); // Cria public.butcher.order_batches!
+
+// ❌ ERRADO - NÃO usar apenas .from() sem declarar schema
+const { data } = await supabase
+  .from('order_batches'); // Procura em public.order_batches
+```
+
+**Por que usar `.schema()` separadamente?**
+- Usar `.from('butcher.order_batches')` faz o Supabase interpretar `butcher.order_batches` como nome de tabela no schema `public`
+- Resultado: busca em `public.butcher.order_batches` (não existe)
+- Solução: `.schema('butcher').from('order_batches')` especifica schema E tabela corretamente
+
+**Realtime Subscriptions:**
+```typescript
+// ✅ CORRETO - Especificar schema e table separadamente
+supabase.channel('butcher_updates')
+  .on('postgres_changes',
+    { event: '*', schema: 'butcher', table: 'order_batches' },
+    () => fetchOrders()
+  )
+  .subscribe();
+```
+
 ---
+
 
 ## 💻 Convenções de Código
 

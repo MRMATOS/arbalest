@@ -18,6 +18,38 @@ export const AdminDashboard: React.FC = () => {
     const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
+    const MODULE_LABELS: Record<string, string> = {
+        validity: 'Validade', // Shortened for list view
+        butcher: 'Açougue',
+        planogram: 'Planogramas',
+    };
+
+    const FUNCTION_LABELS: Record<string, string> = {
+        conferente: 'Conferente',
+        encarregado: 'Encarregado',
+        visitante: 'Visitante',
+        solicitante: 'Solicitante',
+        gerente: 'Gerente',
+        editor: 'Editor',
+    };
+
+    const getStoreName = (storeId: string | null) => {
+        if (storeId === null) return 'Todas as Lojas';
+        const store = stores.find(s => s.id === storeId);
+        return store ? store.name : 'Loja desconhecida';
+    };
+
+    const formatPermissions = (permissions: any) => {
+        if (!permissions || Object.keys(permissions).length === 0) return 'Sem acesso';
+
+        return Object.entries(permissions).map(([module, access]: [string, any]) => {
+            const moduleName = MODULE_LABELS[module] || module;
+            const functionName = FUNCTION_LABELS[access.function] || access.function;
+            const storeName = getStoreName(access.store_id);
+            return `${moduleName} - ${functionName} - ${storeName}`;
+        });
+    };
+
 
 
     useEffect(() => {
@@ -183,7 +215,7 @@ export const AdminDashboard: React.FC = () => {
                                 <th>Email</th>
                                 <th>Nome</th>
                                 <th>Status</th>
-                                <th>Loja Vinculada</th>
+                                <th>Acesso</th>
                                 <th className="actions-col">Ações</th>
                             </tr>
                         </thead>
@@ -217,10 +249,16 @@ export const AdminDashboard: React.FC = () => {
                                         )}
                                     </td>
                                     <td>
-                                        <span>
-                                            {/* Legacy field - will be removed after migration period */}
-                                            {stores.find(s => s.id === user.store_id)?.name || '-'}
-                                        </span>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem' }}>
+                                            {user.is_admin && <span className="arbalest-badge arbalest-badge-info" style={{ width: 'fit-content' }}>Administrador</span>}
+                                            {Array.isArray(formatPermissions(user.permissions)) ? (
+                                                (formatPermissions(user.permissions) as string[]).map((perm, i) => (
+                                                    <div key={i} style={{ color: 'var(--text-secondary)' }}>• {perm}</div>
+                                                ))
+                                            ) : (
+                                                <span style={{ color: 'var(--text-tertiary)' }}>{formatPermissions(user.permissions)}</span>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="actions-col">
                                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
@@ -267,10 +305,18 @@ export const AdminDashboard: React.FC = () => {
                                 )}
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '6px' }}>
-                                <span style={{ opacity: 0.7 }}>Loja:</span>
-                                {/* Legacy field - will be removed after migration period */}
-                                <span style={{ color: 'white' }}>{stores.find(s => s.id === user.store_id)?.name || 'Nenhuma'}</span>
+
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.9rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '6px' }}>
+                                <span style={{ opacity: 0.7, fontWeight: 600 }}>Acesso:</span>
+                                {user.is_admin && <div style={{ color: 'var(--brand-primary)' }}>• Administrador do Sistema</div>}
+                                {Array.isArray(formatPermissions(user.permissions)) ? (
+                                    (formatPermissions(user.permissions) as string[]).map((perm, i) => (
+                                        <div key={i} style={{ color: 'white' }}>• {perm}</div>
+                                    ))
+                                ) : (
+                                    <span style={{ color: 'var(--text-tertiary)' }}>{formatPermissions(user.permissions)}</span>
+                                )}
                             </div>
 
                             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
@@ -310,6 +356,6 @@ export const AdminDashboard: React.FC = () => {
                     onSave={handleSaveUser}
                 />
             </div>
-        </DashboardLayout>
+        </DashboardLayout >
     );
 };

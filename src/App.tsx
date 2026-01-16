@@ -19,6 +19,7 @@ import { StoresList } from './modules/settings/components/StoresList';
 import { ButcherDashboard } from './modules/butcher/ButcherDashboard';
 import { ValidityPermissions } from './utils/permissions';
 import { ButcherHistory } from './modules/butcher/ButcherHistory';
+import { OrderEditPage } from './modules/butcher/OrderEditPage';
 import { RequirePermissions, RequireModuleAccess } from './components/RouteGuards';
 
 const RequireAuth = () => {
@@ -235,6 +236,8 @@ function App() {
 
                 <Route element={<RequireModuleAccess module="butcher" />}>
                   <Route path="/butcher" element={<ButcherDashboard />} />
+                  <Route path="/butcher/order/new" element={<OrderEditPage />} />
+                  <Route path="/butcher/order/:id/edit" element={<OrderEditPage />} />
                   <Route path="/butcher/history" element={<ButcherHistory />} />
                 </Route>
 

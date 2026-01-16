@@ -228,10 +228,20 @@ export const useValidityEntries = (options: { includeDeleted?: boolean; statusFi
 
             if (updateError) throw updateError;
 
-            // Optimistic update
-            setEntries(prev => prev.map(entry =>
-                entry.id === id ? { ...entry, status: newStatus } : entry
-            ));
+            // Optimistic update: if status changed to conferido/excluido, remove from pending list
+            // If changed back to pendente, we need a refresh (item not in current list)
+            if (newStatus === 'conferido' || newStatus === 'excluido') {
+                // Remove from list (since list filters by 'pendente')
+                setEntries(prev => prev.filter(entry => entry.id !== id));
+            } else if (newStatus === 'pendente') {
+                // Item is being restored - need full refresh to get it back
+                await fetchEntries();
+            } else {
+                // For other statuses, just update in place
+                setEntries(prev => prev.map(entry =>
+                    entry.id === id ? { ...entry, status: newStatus } : entry
+                ));
+            }
         } catch (err) {
             console.error('Error updating status:', err);
             throw err;

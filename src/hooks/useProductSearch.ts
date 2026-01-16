@@ -7,6 +7,7 @@ export interface Product {
     ean: string | null;
     code: string;
     type: 'mercado' | 'farmacia' | null;
+    meat_group: string | null;
 }
 
 export const useProductSearch = () => {
@@ -36,7 +37,7 @@ export const useProductSearch = () => {
 
             // Apply Filters
             if (filters?.meatOnly) {
-                // Assuming meat_group is not null for butcher products
+                // Filter where meat_group is NOT null
                 query = query.not('meat_group', 'is', null);
             }
 

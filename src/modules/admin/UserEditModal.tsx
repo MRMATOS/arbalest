@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Save, Lock, Mail, Plus, Trash2, Pencil } from 'lucide-react';
+import { X, Save, Lock, Mail, Plus, Trash2, Pencil, Eye, EyeOff, User } from 'lucide-react';
 import type { Profile } from '../../contexts/AuthContext';
 import { AddAccessModal } from './AddAccessModal';
 
@@ -39,6 +39,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ isOpen, onClose, u
     });
     const [saving, setSaving] = useState(false);
     const [isAddAccessModalOpen, setIsAddAccessModalOpen] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [editingAccess, setEditingAccess] = useState<{
         module: string;
         access: { function: string; store_id: string | null };
@@ -67,6 +68,21 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ isOpen, onClose, u
             }
         }
     }, [user, isOpen]);
+
+    // Close on Escape key
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+
+        if (isOpen) {
+            window.addEventListener('keydown', handleKeyDown);
+        }
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isOpen, onClose]);
 
     if (!isOpen) return null;
 
@@ -128,10 +144,15 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ isOpen, onClose, u
         return store ? store.name : 'Loja desconhecida';
     };
 
+
     return (
         <>
-            <div className="arbalest-modal-overlay">
-                <div className="arbalest-modal arbalest-glass" style={{ maxWidth: '500px' }}>
+            <div className="arbalest-modal-overlay" onClick={onClose}>
+                <div
+                    className="arbalest-modal arbalest-glass"
+                    style={{ maxWidth: '500px' }}
+                    onClick={e => e.stopPropagation()}
+                >
                     <div className="arbalest-modal-header">
                         <h2>{isEditing ? 'Editar Usuário' : 'Novo Usuário'}</h2>
                         <button onClick={onClose} className="arbalest-icon-btn">
@@ -140,6 +161,21 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ isOpen, onClose, u
                     </div>
 
                     <form onSubmit={handleSubmit} className="arbalest-form">
+                        {/* Name Field (Optional) */}
+                        <div className="arbalest-form-group">
+                            <label>
+                                <User size={16} />
+                                Nome (Opcional)
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.name || ''}
+                                onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                                className="arbalest-input"
+                                placeholder="Nome completo"
+                            />
+                        </div>
+
                         <div className="arbalest-form-group">
                             <label>
                                 <Mail size={16} />
@@ -163,14 +199,30 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ isOpen, onClose, u
                                     <Lock size={16} />
                                     Senha Inicial
                                 </label>
-                                <input
-                                    type="password"
-                                    value={formData.password || ''}
-                                    onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                                    className="arbalest-input"
-                                    placeholder="Mínimo 6 caracteres"
-                                    required
-                                />
+                                <div className="arbalest-search-wrapper">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        value={formData.password || ''}
+                                        onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                                        placeholder="Mínimo 6 caracteres"
+                                        required
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: 'var(--text-primary)',
+                                            width: '100%',
+                                            outline: 'none'
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="arbalest-icon-btn"
+                                        style={{ padding: '4px' }}
+                                    >
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
                             </div>
                         )}
 

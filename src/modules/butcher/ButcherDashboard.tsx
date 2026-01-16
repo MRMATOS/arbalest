@@ -1,780 +1,262 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../services/supabase';
-import { useAuth } from '../../contexts/AuthContext';
-import { ButcherPermissions, getModuleStoreId } from '../../utils/permissions';
+import { Plus, History, Filter, Edit, Trash2, Printer, FileText } from 'lucide-react';
 import { DashboardLayout } from '../../layouts/DashboardLayout';
-import { Search, History, Printer, Check, Trash2, PlusCircle, FileText, Filter } from 'lucide-react';
-import { ButcherFilterModal } from './components/ButcherFilterModal';
-import { AddButcherOrderModal } from './components/AddButcherOrderModal';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-
-
-interface Order {
-    id: string;
-    product: {
-        name: string;
-        code: string;
-        ean?: string;
-        meat_group?: string;
-    };
-    sim_poa_code?: string;
-    quantity: number;
-    unit: 'bandeja' | 'kg';
-    status: 'pending' | 'production' | 'received';
-    requester_store: {
-        name: string;
-        code: string;
-        id: string; // added id for filtering
-    };
-    created_at: string;
-}
+import { useAuth } from '../../contexts/AuthContext';
+import { useButcherOrders } from '../../hooks/useButcherOrders';
+import { ButcherPermissions } from '../../utils/permissions';
+import { ORDER_STATUS_LABELS, ORDER_STATUS_BADGE } from '../../types/butcher';
 
 export const ButcherDashboard: React.FC = () => {
-    const { user } = useAuth();
     const navigate = useNavigate();
-    const [orders, setOrders] = useState<Order[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [isAddOrderModalOpen, setIsAddOrderModalOpen] = useState(false);
-    const [printQueue, setPrintQueue] = useState<string[]>([]);
-    const [isPrinting, setIsPrinting] = useState(false);
-
-    // Filters State
-    const [selectedStore, setSelectedStore] = useState('all');
-    const [selectedMeatGroup, setSelectedMeatGroup] = useState('all');
-    const [selectedPeriod, setSelectedPeriod] = useState('today');
-    const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-    const [sortBy] = useState('recent'); // recent, oldest
-
-    // Derived Data for Filters
-    // Derived Data for Filters
-    const stores = Array.from(new Set(orders
-        .filter(o => o.requester_store)
-        .map(o => JSON.stringify({ id: o.requester_store.id, name: o.requester_store.name }))
-    )).map(s => JSON.parse(s));
-
-    const meatGroups = Array.from(new Set(orders.map(o => o.product?.meat_group).filter(Boolean))) as string[];
-
-    // Determines if user handles production (can print/update status)
-
-
-    const canProduce = ButcherPermissions.canProduce(user);
+    const { user } = useAuth();
     const canRequest = ButcherPermissions.canRequest(user);
+    const canProduce = ButcherPermissions.canProduce(user);
+    const isProducerOnly = canProduce && !canRequest && !user?.is_admin;
 
-    useEffect(() => {
-        fetchOrders();
+    // Item 11 Updated: Production sees pending AND printed orders
+    // Requesters see draft, pending, and printed (exclude completed)
+    const statusFilter = isProducerOnly
+        ? ['pending', 'printed']
+        : ['draft', 'pending', 'printed'];
 
-        const channel = supabase
-            .channel('butcher_updates')
-            .on(
-                'postgres_changes',
-                { event: '*', schema: 'butcher', table: 'orders' },
-                () => fetchOrders()
-            )
-            .subscribe();
+    const { orders, loading, error, deleteOrder, cleanupEmptyDrafts, refresh } = useButcherOrders({ statusFilter });
 
-        return () => {
-            supabase.removeChannel(channel);
+    // Cleanup empty drafts on mount
+    React.useEffect(() => {
+        const performCleanup = async () => {
+            await cleanupEmptyDrafts();
+            refresh();
         };
-    }, []);
+        performCleanup();
+    }, [cleanupEmptyDrafts, refresh]);
 
-    const fetchOrders = async () => {
-        try {
-            setLoading(true);
-
-            // 1. Fetch Orders from Butcher Schema
-            const { data: ordersData, error: ordersError } = await supabase
-                .schema('butcher')
-                .from('orders')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (ordersError) throw ordersError;
-
-            // 2. Extract IDs for related data
-            const productIds = [...new Set((ordersData || []).map((o: any) => o.product_id).filter(Boolean))];
-            const storeIds = [...new Set((ordersData || []).map((o: any) => o.requester_store_id).filter(Boolean))];
-
-            // 3. Fetch Products (Public Schema)
-            const { data: productsData, error: productsError } = await supabase
-                .from('products')
-                .select('id, name, code, ean, meat_group')
-                .in('id', productIds.length > 0 ? productIds : ['00000000-0000-0000-0000-000000000000']);
-
-            if (productsError) throw productsError;
-
-            // 4. Fetch Stores (Public Schema)
-            const { data: storesData, error: storesError } = await supabase
-                .from('stores')
-                .select('id, name, code')
-                .in('id', storeIds.length > 0 ? storeIds : ['00000000-0000-0000-0000-000000000000']);
-
-            if (storesError) throw storesError;
-
-            // 5. Create Maps for fast lookup
-            const productsMap = new Map((productsData || []).map((p: any) => [p.id, p]));
-            const storesMap = new Map((storesData || []).map((s: any) => [s.id, s]));
-
-            // 6. Merge Data
-            const formattedData = (ordersData || []).map((order: any) => ({
-                ...order,
-                product: productsMap.get(order.product_id) || null,
-                requester_store: storesMap.get(order.requester_store_id) || null
-            }));
-
-            setOrders(formattedData);
-        } catch (error) {
-            console.error('Error fetching orders:', error);
-        } finally {
-            setLoading(false);
+    const handleDelete = async (id: string) => {
+        if (confirm('Tem certeza que deseja excluir este pedido?')) {
+            await deleteOrder(id);
         }
     };
 
-    const handleUpdateStatus = async (orderId: string, newStatus: string) => {
-        try {
-            const updates: any = { status: newStatus };
-
-            if (newStatus === 'production') {
-                const storeId = getModuleStoreId(user, 'butcher');
-                if (storeId) {
-                    updates.production_store_id = storeId;
-                }
-            } else if (newStatus === 'received') {
-                updates.received_at = new Date().toISOString();
-            }
-
-            const { error } = await supabase
-                .schema('butcher')
-                .from('orders')
-                .update(updates)
-                .eq('id', orderId);
-
-            // Re-fetch handled by realtime subscription
-            if (error) throw error;
-            if (error) throw error;
-        } catch (error) {
-            console.error('Error updating status:', error);
-            alert('Erro ao atualizar status');
-        }
+    // Format date as DD/MM HH:mm
+    const formatDate = (dateStr: string) => {
+        const date = new Date(dateStr);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${day}/${month} ${hours}:${minutes}`;
     };
 
-    const handleToggleQueue = (orderId: string) => {
-        setPrintQueue(prev => {
-            if (prev.includes(orderId)) {
-                return prev.filter(id => id !== orderId);
-            }
-            return [...prev, orderId];
-        });
+    // Check if order can be deleted
+    const canDelete = (order: typeof orders[0]) => {
+        if (user?.is_admin) return true;
+        return !['printed', 'completed'].includes(order.status);
     };
-
-
-
-    const handlePrintQueue = async () => {
-        if (printQueue.length === 0) return;
-        setIsPrinting(true);
-
-        try {
-            // 1. Update statuses to 'production' (if not already)
-            const ordersToUpdate = orders
-                .filter(o => printQueue.includes(o.id) && o.status === 'pending')
-                .map(o => o.id);
-
-            if (ordersToUpdate.length > 0) {
-                const storeId = getModuleStoreId(user, 'butcher');
-                const { error } = await supabase
-                    .schema('butcher')
-                    .from('orders')
-                    .update({
-                        status: 'production',
-                        printed_at: new Date().toISOString(),
-                        production_store_id: storeId || undefined
-                    })
-                    .in('id', ordersToUpdate);
-
-                if (error) throw error;
-            }
-
-            // 2. Refresh local state (Optimistic or wait for realtime - continuing flow)
-
-            // 3. Generate and Save PDF
-            const doc = new jsPDF();
-
-            // Header
-            doc.setFontSize(16);
-            doc.text('Lista de Produção - Açougue', 14, 20);
-
-            doc.setFontSize(10);
-            doc.text(`Impresso em: ${new Date().toLocaleString('pt-BR')}`, 14, 28);
-
-            // Table Data
-            const tableData = orders
-                .filter(o => printQueue.includes(o.id))
-                .map(order => {
-                    const date = new Date(order.created_at);
-                    const dateStr = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-                    const timeStr = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-                    return [
-                        order.product.name,
-                        [order.product.code, order.product.ean].filter(Boolean).join(' / ') || '-',
-                        order.requester_store.name,
-                        `${dateStr} ${timeStr}`,
-                        `${order.quantity} ${order.unit === 'bandeja' ? 'Bandejas' : order.unit}`
-                    ];
-                });
-
-            autoTable(doc, {
-                startY: 35,
-                head: [['PRODUTO', 'CÓD. / EAN', 'SOLICITANTE', 'PEDIDO EM', 'QTD.']],
-                body: tableData,
-                styles: { fontSize: 10 },
-                headStyles: { fillColor: [22, 163, 74] }, // Brand Primary Greenish (approx)
-            });
-
-            doc.save(`producao_acougue_${new Date().toISOString().split('T')[0]}.pdf`);
-
-            setIsPrinting(false);
-            setPrintQueue([]);
-        } catch (error) {
-            console.error('Error processing print queue:', error);
-            alert('Erro ao processar fila de impressão');
-            setIsPrinting(false);
-        }
-    };
-
-    const handleDeleteOrder = async (orderId: string) => {
-        if (!window.confirm('Tem certeza que deseja cancelar este pedido?')) return;
-
-        try {
-            const { error } = await supabase
-                .schema('butcher')
-                .from('orders')
-                .delete()
-                .eq('id', orderId);
-
-            if (error) throw error;
-        } catch (error) {
-            console.error('Error deleting order:', error);
-            alert('Erro ao cancelar pedido');
-        }
-    };
-
-    const filteredOrders = orders.filter(order => {
-        const prod = order.product || {};
-        const store = order.requester_store || {};
-
-        const matchesSearch =
-            (prod.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (prod.code || '').includes(searchTerm) ||
-            (prod.ean && prod.ean.includes(searchTerm));
-
-        const matchesStore = selectedStore === 'all' || store.id === selectedStore;
-        const matchesGroup = selectedMeatGroup === 'all' || prod.meat_group === selectedMeatGroup;
-
-        let matchesPeriod = true;
-        if (selectedPeriod !== 'all') {
-            const date = new Date(order.created_at);
-            const now = new Date();
-            date.setHours(0, 0, 0, 0);
-            now.setHours(0, 0, 0, 0);
-
-            if (selectedPeriod === 'today') {
-                matchesPeriod = date.getTime() === now.getTime();
-            } else if (selectedPeriod === 'week') {
-                const oneWeekAgo = new Date(now);
-                oneWeekAgo.setDate(now.getDate() - 7);
-                matchesPeriod = date >= oneWeekAgo;
-            } else if (selectedPeriod === 'month') {
-                const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-                matchesPeriod = date >= firstDayOfMonth;
-            }
-        }
-
-        // Logic: Producers generally see "pending" and "production". "Received" goes to history.
-        // Requesters see everything active.
-        const isActive = order.status !== 'received';
-
-        return matchesSearch && matchesStore && matchesGroup && matchesPeriod && isActive;
-    }).sort((a, b) => {
-        if (sortBy === 'recent') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-    });
-
-    const getStatusLabel = (status: string) => {
-        switch (status) {
-            case 'pending': return 'Pendente';
-            case 'production': return 'Produzindo';
-            case 'received': return 'Entregue';
-            default: return status;
-        }
-    };
-
-    // Logic for Mobile Action Button
-    let mobileActionButton = null;
-
-    if (canProduce) {
-        mobileActionButton = (
-            <button
-                className="nav-btn add-btn-mobile"
-                onClick={handlePrintQueue}
-                style={{ border: 'none', background: 'transparent', opacity: printQueue.length === 0 ? 0.5 : 1 }}
-                disabled={printQueue.length === 0 || isPrinting}
-            >
-                <Printer size={24} color={printQueue.length > 0 ? "var(--brand-primary)" : "var(--text-tertiary)"} />
-                <span style={{ color: printQueue.length > 0 ? "var(--brand-primary)" : "var(--text-tertiary)" }}>Imprimir</span>
-            </button>
-        );
-    } else if (canRequest) {
-        mobileActionButton = (
-            <button
-                className="nav-btn add-btn-mobile"
-                onClick={() => setIsAddOrderModalOpen(true)}
-                style={{ border: 'none', background: 'transparent' }}
-            >
-                <PlusCircle size={24} />
-                <span>Pedir</span>
-            </button>
-        );
-    }
-
-    // Navigation Links (Reordered per request: History -> Filter -> Orders -> Action)
-
-    // 1. History Link (goes to History page) - Will be in 'filterMobileAction' slot (first on left) based on Layout
-    // Wait, Layout is: Filter -> Secondary -> Tertiary -> Custom.
-    // User wants: Menu - Histórico - Filtrar - Pedidos - Pedir
-    // So: 
-    // FilterSlot = Historico
-    // SecondarySlot = Filtrar
-    // TertiarySlot = Pedidos (Active)
-    // CustomSlot = Pedir/Imprimir
-
-    const historyLink = (
-        <div
-            onClick={() => navigate('/butcher/history')}
-            className="nav-btn"
-            style={{ cursor: 'pointer' }}
-        >
-            <History size={24} />
-            <span>Histórico</span>
-        </div>
-    );
-
-    const activeFiltersCount = (selectedStore !== 'all' ? 1 : 0) + (selectedMeatGroup !== 'all' ? 1 : 0) + (selectedPeriod !== 'today' ? 1 : 0);
-
-    const filterButton = (
-        <div
-            onClick={() => setIsFilterModalOpen(true)}
-            className="nav-btn"
-            style={{ cursor: 'pointer', position: 'relative' }}
-        >
-            <div style={{ position: 'relative' }}>
-                <Filter size={24} />
-                {activeFiltersCount > 0 && (
-                    <span style={{
-                        position: 'absolute',
-                        top: -8,
-                        right: -8,
-                        background: 'var(--warning)',
-                        color: '#000',
-                        borderRadius: '50%',
-                        width: '18px',
-                        height: '18px',
-                        fontSize: '11px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 'bold',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}>
-                        {activeFiltersCount}
-                    </span>
-                )}
-            </div>
-            <span>Filtrar</span>
-        </div>
-    );
-
-    const pedidosLink = (
-        <div
-            className="nav-btn active"
-            style={{ cursor: 'default' }}
-        >
-            <FileText size={24} />
-            <span>Pedidos</span>
-        </div>
-    );
 
     return (
         <DashboardLayout
-            mobileHistory={historyLink}
-            mobileFilter={filterButton}
-            mobileModule={pedidosLink}
-            mobileAction={mobileActionButton}
+            mobileHistory={
+                <button className="nav-btn" onClick={() => navigate('/butcher/history')}>
+                    <History size={24} />
+                    <span>Histórico</span>
+                </button>
+            }
+            mobileFilter={
+                <button className="nav-btn">
+                    <Filter size={24} />
+                    <span>Filtrar</span>
+                </button>
+            }
+            mobileModule={
+                <button className="nav-btn active">
+                    <FileText size={24} />
+                    <span>Pedidos</span>
+                </button>
+            }
+            mobileAction={
+                canRequest ? (
+                    <button className="nav-btn" onClick={() => navigate('/butcher/order/new')}>
+                        <Plus size={24} />
+                        <span>Pedir</span>
+                    </button>
+                ) : undefined
+            }
         >
             <div className="arbalest-layout-container">
                 {/* Header */}
                 <div className="arbalest-header">
-                    <div className="header-text" style={{ width: '100%' }}>
+                    <div>
                         <h1>Pedidos do Açougue</h1>
-                        <p>Gerencie solicitações e produção de cortes</p>
-
-                        {/* Mobile Action for Managers (who see Print in nav) */}
-                        {canProduce && canRequest && (
-                            <div className="mobile-view" style={{ marginTop: '16px' }}>
-                                <button
-                                    className="arbalest-btn arbalest-btn-primary"
-                                    onClick={() => setIsAddOrderModalOpen(true)}
-                                    style={{ width: '100%', justifyContent: 'center' }}
-                                >
-                                    <PlusCircle size={20} />
-                                    <span>Fazer Pedido</span>
-                                </button>
-                            </div>
-                        )}
+                        <p>Total: {orders.length} pedidos</p>
                     </div>
-                    <div className="arbalest-header-actions hide-mobile">
+                    <div className="arbalest-header-actions">
                         <button
-                            className="arbalest-btn arbalest-btn-neutral"
+                            className="arbalest-btn arbalest-btn-outline"
                             onClick={() => navigate('/butcher/history')}
                         >
-                            <History size={20} />
-                            <span>Histórico</span>
+                            <History size={18} />
+                            Histórico
                         </button>
-
-                        {canProduce && (
-                            <button
-                                className={`arbalest-btn arbalest-btn-primary ${printQueue.length === 0 ? 'disabled' : ''}`}
-                                onClick={handlePrintQueue}
-                                disabled={printQueue.length === 0 || isPrinting}
-                                style={{ opacity: printQueue.length === 0 ? 0.5 : 1, cursor: printQueue.length === 0 ? 'not-allowed' : 'pointer' }}
-                            >
-                                <Printer size={20} />
-                                <span>{isPrinting ? 'Imprimindo...' : `Imprimir Selecionados (${printQueue.length})`}</span>
-                            </button>
-                        )}
-
                         {canRequest && (
                             <button
                                 className="arbalest-btn arbalest-btn-primary"
-                                onClick={() => setIsAddOrderModalOpen(true)}
+                                onClick={() => navigate('/butcher/order/new')}
                             >
-                                <PlusCircle size={20} />
-                                <span>Fazer pedido</span>
+                                <Plus size={18} />
+                                Novo Pedido
                             </button>
                         )}
                     </div>
                 </div>
 
-                {/* Desktop Filters */}
-                <div className="arbalest-filter-section arbalest-glass desktop-filters hide-mobile" style={{ marginBottom: '16px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-                        <div className="filter-group">
-                            <label className="arbalest-label">Loja</label>
-                            <select
-                                value={selectedStore}
-                                onChange={(e) => setSelectedStore(e.target.value)}
-                                className="arbalest-select"
-                            >
-                                <option value="all">Todas as Lojas</option>
-                                {stores.map(store => (
-                                    <option key={store.id} value={store.id}>{store.name}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="filter-group">
-                            <label className="arbalest-label">Grupo</label>
-                            <select
-                                value={selectedMeatGroup}
-                                onChange={(e) => setSelectedMeatGroup(e.target.value)}
-                                className="arbalest-select"
-                            >
-                                <option value="all">Todos os Grupos</option>
-                                {meatGroups.map(group => (
-                                    <option key={group} value={group}>{group}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="filter-group">
-                            <label className="arbalest-label">Período</label>
-                            <select
-                                value={selectedPeriod}
-                                onChange={(e) => setSelectedPeriod(e.target.value as any)}
-                                className="arbalest-select"
-                            >
-                                <option value="today">Hoje</option>
-                                <option value="week">Esta Semana</option>
-                                <option value="month">Este Mês</option>
-                                <option value="all">Todo o Período</option>
-                            </select>
-                        </div>
+                {/* Loading State */}
+                {loading && (
+                    <div className="arbalest-loading-state">
+                        <p>Carregando pedidos...</p>
                     </div>
-                </div>
+                )}
 
-                {/* Search Bar or Helper Text */}
-                <div className="arbalest-filter-section arbalest-glass">
-                    {/* Mobile Only Helper: Show when empty */}
-                    {!loading && orders.length === 0 && (
-                        <div className="mobile-view" style={{
-                            // display: 'flex' removed to allow class to control visibility (hidden on desktop)
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '100%',
-                            padding: '10px',
-                            color: 'var(--text-secondary)',
-                            fontSize: '0.9rem'
-                        }}>
-                            <span>Use o botão <strong style={{ color: 'var(--brand-primary)', fontWeight: 700 }}>PEDIR</strong> para adicionar pedidos na lista</span>
-                        </div>
-                    )}
-
-                    {/* Search Bar: Always on Desktop. Hidden on Mobile if empty */}
-                    <div className={`arbalest-search-wrapper ${(!loading && orders.length === 0) ? 'hide-mobile' : ''}`}>
-                        <Search size={18} />
-                        <input
-                            type="text"
-                            placeholder="Buscar por produto, código ou EAN..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                {/* Error State */}
+                {error && (
+                    <div className="arbalest-error-state">
+                        <p>{error}</p>
                     </div>
-                </div>
+                )}
 
                 {/* Desktop Table */}
-                <div className="desktop-view arbalest-table-container">
-                    {
-                        loading ? (
-                            <div className="arbalest-loading-state" >
-                                <div className="spinner" />
-                                <p>Carregando pedidos...</p>
-                            </div>
-                        ) : (
-                            <table className="arbalest-table">
-                                <thead>
+                {!loading && !error && (
+                    <div className="arbalest-table-container">
+                        <table className="arbalest-table">
+                            <thead>
+                                <tr>
+                                    <th>Pedido</th>
+                                    <th>Loja</th>
+                                    <th>Data</th>
+                                    <th>Qtd Itens</th>
+                                    <th>Status</th>
+                                    <th style={{ width: '100px' }}>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {orders.length === 0 ? (
                                     <tr>
-                                        <th>Produto</th>
-                                        <th>Grupo</th>
-                                        <th>Cód / EAN</th>
-                                        <th>Status</th>
-                                        <th>Qtd.</th>
-                                        <th>Loja</th>
-                                        <th>Pedido Em</th>
-                                        <th className="actions-col">AÇÃO</th>
+                                        <td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-tertiary)' }}>
+                                            Nenhum pedido encontrado
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredOrders.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-                                                Nenhum pedido encontrado.
+                                ) : (
+                                    orders.map(order => (
+                                        <tr
+                                            key={order.id}
+                                            onClick={() => navigate(`/butcher/order/${order.id}/edit`)}
+                                            style={{ cursor: 'pointer' }}
+                                        >
+                                            <td>
+                                                <span style={{ fontWeight: 600, color: 'var(--brand-primary)' }}>
+                                                    #{order.order_number}
+                                                </span>
+                                            </td>
+                                            <td>{order.requester_store?.name || '-'}</td>
+                                            <td>{formatDate(order.submitted_at || order.created_at)}</td>
+                                            <td>{order.items.length}</td>
+                                            <td>
+                                                <span className={`arbalest-badge ${ORDER_STATUS_BADGE[order.status]}`}>
+                                                    {ORDER_STATUS_LABELS[order.status]}
+                                                </span>
+                                            </td>
+                                            <td onClick={e => e.stopPropagation()}>
+                                                {canRequest && (
+                                                    <>
+                                                        <button
+                                                            className="arbalest-icon-btn"
+                                                            onClick={() => navigate(`/butcher/order/${order.id}/edit`)}
+                                                            title="Editar"
+                                                        >
+                                                            <Edit size={18} />
+                                                        </button>
+                                                        <button
+                                                            className="arbalest-icon-btn"
+                                                            onClick={() => handleDelete(order.id)}
+                                                            disabled={!canDelete(order)}
+                                                            style={{
+                                                                color: canDelete(order) ? 'var(--error)' : 'var(--text-tertiary)',
+                                                                opacity: canDelete(order) ? 1 : 0.5
+                                                            }}
+                                                            title={canDelete(order) ? 'Excluir' : 'Não pode excluir (já impresso)'}
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {canProduce && (
+                                                    <button
+                                                        className="arbalest-icon-btn"
+                                                        onClick={() => navigate(`/butcher/order/${order.id}/edit`)}
+                                                        title="Imprimir"
+                                                    >
+                                                        <Printer size={18} />
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
-                                    ) : (
-                                        filteredOrders.map(order => (
-                                            <tr key={order.id}>
-                                                <td>
-                                                    <span className="product-name">{order.product?.name || 'Produto não encontrado'}</span>
-                                                </td>
-                                                <td>
-                                                    <span className="code-info" style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                                                        {order.product?.meat_group || 'Sem grupo'}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <div className="code-info" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                        {order.product?.code && <span className="code">{order.product.code}</span>}
-                                                        {order.product?.code && order.product?.ean && <span style={{ color: 'var(--text-tertiary)' }}>/</span>}
-                                                        {order.product?.ean && <span className="ean">{order.product.ean}</span>}
-                                                        {!order.product?.code && !order.product?.ean && <span>-</span>}
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span className={`arbalest-badge ${order.status === 'pending' ? 'arbalest-badge-warning' :
-                                                        order.status === 'production' ? 'arbalest-badge-info' :
-                                                            'arbalest-badge-success'
-                                                        }`}>
-                                                        {getStatusLabel(order.status)}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <span className="quantity-badge">
-                                                        {order.quantity} <span style={{ fontSize: '0.75rem', fontWeight: 400 }}>{order.unit === 'bandeja' ? 'Bandejas' : order.unit}</span>
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <span className="store-tag">{order.requester_store?.name || 'Loja desconhecida'}</span>
-                                                </td>
-                                                <td>
-                                                    <span className="date-tag" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                                        {new Date(order.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })} {' '}
-                                                        {new Date(order.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                                    </span>
-                                                </td>
-                                                <td className="actions-col">
-                                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                                        {/* Actions logic */}
-                                                        {canProduce && (
-                                                            <button
-                                                                className="arbalest-icon-btn"
-                                                                title={printQueue.includes(order.id) ? "Remover da fila" : "Adicionar à fila de impressão"}
-                                                                onClick={() => handleToggleQueue(order.id)}
-                                                                style={{
-                                                                    color: printQueue.includes(order.id) ? 'var(--warning)' : 'var(--success)',
-                                                                    opacity: 1
-                                                                }}
-                                                            >
-                                                                <Printer size={18} />
-                                                            </button>
-                                                        )}
-
-                                                        {canRequest && order.status === 'production' && (
-                                                            <button
-                                                                className="arbalest-icon-btn"
-                                                                title="Confirmar Recebimento"
-                                                                onClick={() => handleUpdateStatus(order.id, 'received')}
-                                                                style={{ color: 'var(--success)' }}
-                                                            >
-                                                                <Check size={18} />
-                                                            </button>
-                                                        )}
-
-                                                        {canRequest && order.status === 'pending' && (
-                                                            <button
-                                                                className="arbalest-icon-btn arbalest-btn-danger"
-                                                                style={{ color: 'var(--error)' }}
-                                                                title="Cancelar"
-                                                                onClick={() => handleDeleteOrder(order.id)}
-                                                            >
-                                                                <Trash2 size={18} />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        )}
-                </div>
-
-                {/* Mobile Card View */}
-                <div className="mobile-view">
-                    <div className="card-list">
-                        {filteredOrders.map(order => (
-                            <div key={order.id} className="arbalest-card">
-                                <div className="arbalest-card-header">
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                        <span className="product-name" style={{ fontSize: '1rem' }}>
-                                            {order.product?.name || 'Produto não encontrado'}
-                                        </span>
-                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
-                                            {order.product?.meat_group || 'Sem grupo'}
-                                        </span>
-                                    </div>
-                                    <span className={`arbalest-badge ${order.status === 'pending' ? 'arbalest-badge-warning' :
-                                        order.status === 'production' ? 'arbalest-badge-info' :
-                                            'arbalest-badge-success'
-                                        }`}>
-                                        {getStatusLabel(order.status)}
-                                    </span>
-                                </div>
-
-                                <div className="arbalest-card-body">
-                                    <div className="arbalest-card-row">
-                                        <div className="arbalest-card-info">
-                                            <label>Quantidade</label>
-                                            <span className="quantity-badge">{order.quantity} {order.unit === 'bandeja' ? 'Bandejas' : order.unit}</span>
-                                        </div>
-                                        <div className="arbalest-card-info">
-                                            <label>Loja</label>
-                                            <span>{order.requester_store?.name || 'Loja desconhecida'}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="arbalest-card-row">
-                                        <div className="arbalest-card-info">
-                                            <label>Código / EAN</label>
-                                            <span>{order.product?.code || '-'}</span>
-                                        </div>
-                                        <div className="arbalest-card-info">
-                                            <label>Pedido Em</label>
-                                            <span>
-                                                {new Date(order.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })} {' '}
-                                                {new Date(order.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-
-
-                                {/* Action Footer - Only render if there are actions available */}
-                                {(canProduce && order.status === 'pending') ||
-                                    (canRequest && order.status === 'production') ||
-                                    (canProduce && order.status === 'production') ||
-                                    (canRequest && order.status === 'pending') ? (
-                                    <div className="arbalest-card-footer">
-                                        {canProduce && (
-                                            <button
-                                                className={`arbalest-btn mobile-no-hover ${printQueue.includes(order.id) ? 'arbalest-btn-warning' : 'arbalest-btn-primary'}`}
-                                                onClick={() => handleToggleQueue(order.id)}
-                                            >
-                                                {printQueue.includes(order.id) ? 'Remover da impressão' : 'Adicionar à impressão'} <Printer size={16} />
-                                            </button>
-                                        )}
-                                        {canRequest && order.status === 'production' && (
-                                            <button
-                                                className="arbalest-btn arbalest-btn-primary"
-                                                onClick={() => handleUpdateStatus(order.id, 'received')}
-                                            >
-                                                Confirmar Recebimento <Check size={16} />
-                                            </button>
-                                        )}
-                                        {canRequest && order.status === 'pending' && (
-                                            <button
-                                                className="arbalest-btn arbalest-btn-outline"
-                                                style={{ borderColor: 'var(--error)', color: 'var(--error)' }}
-                                                onClick={() => handleDeleteOrder(order.id)}
-                                            >
-                                                Cancelar Pedido <Trash2 size={16} />
-                                            </button>
-                                        )}
-                                    </div>
-                                ) : null}
-                            </div>
-                        ))}
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
-                </div>
+                )}
 
+                {/* Mobile Cards */}
+                {!loading && !error && (
+                    <div className="mobile-view">
+                        <div className="card-list">
+                            {orders.map(order => (
+                                <div
+                                    key={order.id}
+                                    className="arbalest-card"
+                                    onClick={() => navigate(`/butcher/order/${order.id}/edit`)}
+                                >
+                                    <div className="arbalest-card-header">
+                                        <div>
+                                            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--brand-primary)' }}>
+                                                #{order.order_number}
+                                            </h3>
+                                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                                {order.requester_store?.name}
+                                            </p>
+                                        </div>
+                                        <span className={`arbalest-badge ${ORDER_STATUS_BADGE[order.status]}`}>
+                                            {ORDER_STATUS_LABELS[order.status]}
+                                        </span>
+                                    </div>
+                                    <div className="arbalest-card-body">
+                                        <div className="arbalest-card-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                                            <div className="arbalest-card-info">
+                                                <label>Pedido em</label>
+                                                <span>{formatDate(order.submitted_at || order.created_at)}</span>
+                                            </div>
+                                            <div className="arbalest-card-info">
+                                                {order.printed_at && (
+                                                    <>
+                                                        <label>Iniciado em</label>
+                                                        <span>{formatDate(order.printed_at)}</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                            <div className="arbalest-card-info">
+                                                <label>Itens</label>
+                                                <span>{order.items.length}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
-
-            {/* Filter Modal */}
-            <ButcherFilterModal
-                isOpen={isFilterModalOpen}
-                onClose={() => setIsFilterModalOpen(false)}
-                filters={{ store: selectedStore, meatGroup: selectedMeatGroup, period: selectedPeriod }}
-                setFilter={(key, value) => {
-                    if (key === 'store') setSelectedStore(value);
-                    if (key === 'meatGroup') setSelectedMeatGroup(value);
-                    if (key === 'period') setSelectedPeriod(value);
-                }}
-                stores={stores}
-                meatGroups={meatGroups}
-                type="dashboard"
-            />
-
-            <AddButcherOrderModal
-                isOpen={isAddOrderModalOpen}
-                onClose={() => setIsAddOrderModalOpen(false)}
-                onSuccess={() => {
-                    // Refresh is automatic via realtime, but could force fetch here if needed
-                    fetchOrders();
-                }}
-            />
-
-        </DashboardLayout >
+        </DashboardLayout>
     );
 };
+
+export default ButcherDashboard;

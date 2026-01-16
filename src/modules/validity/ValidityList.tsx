@@ -150,7 +150,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
     const handleCopyProductDetails = (item: ValidityEntry) => {
         const days = getExpiryDays(item.expires_at);
         const statusText = days <= 0 ? 'VENCIDO' : `${days} dias`;
-        const text = `*${item.product.name}*\nEAN: ${item.product.ean || '-'}\nCód: ${item.product.code}\nQtd: ${item.quantity} ${item.unit}\nLote: ${item.lot || '-'}\nValidade: ${new Date(item.expires_at).toLocaleDateString('pt-BR')} (${statusText})`;
+        const text = `*${item.product.name}*\nEAN: ${item.product.ean || '-'}\nCód: ${item.product.code}\nQtd: ${item.quantity} ${item.unit}\nLote: ${item.lot || '-'}\nValidade: ${new Date(item.expires_at).toLocaleDateString('pt-BR', { timeZone: 'UTC' })} (${statusText})`;
         handleCopy(text, item.id, 'full');
     };
 
@@ -311,7 +311,7 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                     {/* Desktop Actions */}
                     <button className="arbalest-btn arbalest-btn-neutral hide-mobile" onClick={() => navigate('/validity/history')}>
                         <History size={20} />
-                        <span>Histórico Global</span>
+                        <span>Histórico</span>
                     </button>
                 </div>
             </div>
@@ -412,12 +412,11 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                             {/* ... existing table head ... */}
                             <tr>
                                 <th>Produto</th>
-                                <th>Código / EAN</th>
                                 <th>Loja</th>
-                                <th>Status</th>
                                 <th>Qtd.</th>
                                 <th>Validade</th>
-                                <th>Lote</th>
+                                { /* <th>Lote</th> */}
+                                <th>Status</th>
                                 <th className="actions-col"></th>
                             </tr>
                         </thead>
@@ -425,33 +424,33 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                             {paginatedEntries.map(item => (
                                 <tr key={item.id}>
                                     <td className="product-col">
-                                        <span className="product-name">{item.product.name}</span>
-                                    </td>
-                                    <td className="code-col">
-                                        <div className="code-info" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            {item.product.code && (
-                                                <span
-                                                    className={`code clickable-copy ${copiedState?.id === item.id && copiedState?.type === 'code' ? 'copied' : ''}`}
-                                                    onClick={() => handleCopy(item.product.code, item.id, 'code')}
-                                                    title="Clique para copiar código"
-                                                >
-                                                    {copiedState?.id === item.id && copiedState?.type === 'code' ? 'Copiado!' : item.product.code}
-                                                </span>
-                                            )}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <span className="product-name">{item.product.name}</span>
+                                            <div className="code-info" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', opacity: 0.8 }}>
+                                                {item.product.code && (
+                                                    <span
+                                                        className={`code clickable-copy ${copiedState?.id === item.id && copiedState?.type === 'code' ? 'copied' : ''}`}
+                                                        onClick={() => handleCopy(item.product.code, item.id, 'code')}
+                                                        title="Clique para copiar código"
+                                                    >
+                                                        {copiedState?.id === item.id && copiedState?.type === 'code' ? 'Copiado!' : item.product.code}
+                                                    </span>
+                                                )}
 
-                                            {item.product.code && item.product.ean && <span style={{ color: 'var(--text-tertiary)' }}>/</span>}
+                                                {item.product.code && item.product.ean && <span style={{ color: 'var(--text-tertiary)' }}>/</span>}
 
-                                            {item.product.ean && (
-                                                <span
-                                                    className={`ean clickable-copy ${copiedState?.id === item.id && copiedState?.type === 'ean' ? 'copied' : ''}`}
-                                                    onClick={() => handleCopy(item.product.ean || '', item.id, 'ean')}
-                                                    title="Clique para copiar EAN"
-                                                >
-                                                    {copiedState?.id === item.id && copiedState?.type === 'ean' ? 'Copiado!' : item.product.ean}
-                                                </span>
-                                            )}
+                                                {item.product.ean && (
+                                                    <span
+                                                        className={`ean clickable-copy ${copiedState?.id === item.id && copiedState?.type === 'ean' ? 'copied' : ''}`}
+                                                        onClick={() => handleCopy(item.product.ean || '', item.id, 'ean')}
+                                                        title="Clique para copiar EAN"
+                                                    >
+                                                        {copiedState?.id === item.id && copiedState?.type === 'ean' ? 'Copiado!' : item.product.ean}
+                                                    </span>
+                                                )}
 
-                                            {!item.product.code && !item.product.ean && <span>-</span>}
+                                                {!item.product.code && !item.product.ean && <span>-</span>}
+                                            </div>
                                         </div>
                                     </td>
                                     <td>
@@ -459,7 +458,6 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                             <span style={{ fontSize: '0.9rem' }}>{item.store?.name || '-'}</span>
                                         </div>
                                     </td>
-                                    <td>{getStatusBadge(item.status)}</td>
                                     <td><span className="quantity">{item.quantity} {item.unit}</span></td>
                                     <td>
                                         <div className={`expiry-info ${getExpiryClass(item)}`}>
@@ -486,7 +484,8 @@ export const ValidityList: React.FC<ValidityListProps> = ({
                                             <span className="days">{getExpiryText(getExpiryDays(item.expires_at))}</span>
                                         </div>
                                     </td>
-                                    <td><span className="lot-tag">{item.lot || 'Não informado'}</span></td>
+                                    { /* <td><span className="lot-tag">{item.lot || 'Não informado'}</span></td> */}
+                                    <td>{getStatusBadge(item.status)}</td>
                                     <td className="actions-col">
                                         <>
                                             {/* 2. Verification Actions (Conferente only) */}

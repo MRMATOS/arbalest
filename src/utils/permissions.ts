@@ -42,32 +42,15 @@ export function hasModuleAccess(
     user: Profile | null,
     module: ModuleName
 ): boolean {
-    console.log('🔐 hasModuleAccess chamado:', {
-        module,
-        user: user ? {
-            email: user.email,
-            is_admin: user.is_admin,
-            permissions: user.permissions
-        } : null
-    });
-
     if (!user) {
-        console.log('❌ Acesso negado: usuário não autenticado');
         return false;
     }
 
     if (user.is_admin) {
-        console.log('✅ Acesso concedido: usuário é admin');
         return true;
     }
 
-    const hasAccess = !!user.permissions?.[module];
-    console.log(`${hasAccess ? '✅' : '❌'} Acesso ao módulo '${module}':`, {
-        hasPermission: hasAccess,
-        moduleData: user.permissions?.[module]
-    });
-
-    return hasAccess;
+    return !!user.permissions?.[module];
 }
 
 /**
@@ -217,6 +200,9 @@ export const ButcherPermissions = {
     canView: (user: Profile | null) => hasModuleAccess(user, 'butcher'),
 
     canRequest: (user: Profile | null) =>
+        hasAnyFunction(user, 'butcher', ['solicitante', 'gerente']),
+
+    canEdit: (user: Profile | null) =>
         hasAnyFunction(user, 'butcher', ['solicitante', 'gerente']),
 
     canProduce: (user: Profile | null) =>
